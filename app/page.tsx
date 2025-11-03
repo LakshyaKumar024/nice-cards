@@ -12,7 +12,7 @@ const categories = [
   "BABYSHOWER",
   "FESTIVAL",
   "INVITATION",
-  "CORPORATE",
+  "CORPORATE"
 ];
 
 // Import proper shadcn components (make sure these are installed)
