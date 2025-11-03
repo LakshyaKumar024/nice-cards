@@ -1,0 +1,54 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "./generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum CATEGORYS {
+  WEDDING
+  BIRTHDAY
+  ANNIVERSARY
+  GRADUATION
+  BABYSHOWER
+  FESTIVAL
+  INVITATION
+  CORPORATE
+}
+
+model Template {
+  uuid String @id @default(uuid())
+  name String
+  description String?
+  catogery CATEGORYS
+  image String
+  price Int?
+  paid Boolean @default(false)
+  svg String
+  createdAt DateTime @default(now())
+
+  savedTemplates SavedTemplate[]
+  @@map(name: "templates")
+}
+
+
+model SavedTemplate {
+  uuid String @id @default(uuid())
+  userId String 
+  templateId String 
+  file_location String
+  createdAt DateTime @default(now())
+
+  template Template @relation(fields: [templateId], references: [uuid], onDelete: Cascade)
+
+  @@map(name: "saved templates")
+}
