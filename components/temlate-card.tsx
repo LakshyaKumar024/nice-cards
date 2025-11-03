@@ -1,32 +1,46 @@
 import { IndianRupee } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import Router from "next/navigation"
 
 interface TemplateCardProps {
-  id: number;
+  uuid: string;
   name: string;
   description: string;
   price: number;
   category: string;
   imageUrl: string;
-  onPurchase: (templateId: number) => void;
-  isPurchased: boolean;
+  onPurchase: (templateId: string) => void;
 }
 
 export function TemplateCard({
-  id,
+  uuid,
   name,
   description,
   price,
   category,
   imageUrl,
   onPurchase,
-  isPurchased,
 }: TemplateCardProps) {
+  const isPurchased = false;
+
   return (
+    <Link href={`/design/${uuid}`}>
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md dark:shadow-gray-700/30 overflow-hidden hover:shadow-lg dark:hover:shadow-gray-700/50 transition-shadow">
       <div className="h-48 bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-        <span className="text-gray-500 dark:text-gray-400">
-          Template Image: {name}
-        </span>
+        {imageUrl ? (
+          <Image
+            src={`/placeholder/image/${imageUrl}`}
+            alt={name}
+            width={200}
+            height={200}
+            className="h-48 w-auto rounded-lg"
+          />
+        ) : (
+          <span className="text-gray-500 dark:text-gray-400">
+            Template Image: {name}
+          </span>
+        )}
       </div>
       <div className="p-4">
         <div className="flex justify-between items-start mb-2">
@@ -45,7 +59,7 @@ export function TemplateCard({
             ₹ {price}
           </div>
           <button
-            onClick={() => onPurchase(id)}
+            onClick={() => Router.redirect(`/design/${uuid}`)}
             disabled={isPurchased}
             className={`px-4 py-2 rounded-md ${
               isPurchased
@@ -58,5 +72,7 @@ export function TemplateCard({
         </div>
       </div>
     </div>
+    </Link>
+
   );
 }

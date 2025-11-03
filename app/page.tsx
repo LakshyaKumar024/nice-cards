@@ -1,105 +1,63 @@
 "use client";
 import { TemplateCard } from "@/components/temlate-card";
 import Image from "next/image";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
-// Dummy data for templates
-const dummyTemplates = [
-  {
-    id: 1,
-    name: "Elegant Wedding",
-    description: "A sophisticated wedding invitation with gold accents",
-    price: 29.99,
-    category: "Wedding",
-    image_url: "/images/wedding-elegant.jpg",
-  },
-  {
-    id: 2,
-    name: "Modern Birthday",
-    description: "Clean and contemporary birthday party invitation",
-    price: 19.99,
-    category: "Birthday",
-    image_url: "/images/birthday-modern.jpg",
-  },
-  {
-    id: 3,
-    name: "Corporate Event",
-    description: "Professional business event invitation template",
-    price: 24.99,
-    category: "Business",
-    image_url: "/images/corporate-event.jpg",
-  },
-  {
-    id: 4,
-    name: "Beach Wedding",
-    description: "Tropical themed wedding invitation with ocean colors",
-    price: 27.99,
-    category: "Wedding",
-    image_url: "/images/beach-wedding.jpg",
-  },
-  {
-    id: 5,
-    name: "Kids Birthday",
-    description: "Fun and colorful birthday invitation for children",
-    price: 17.99,
-    category: "Birthday",
-    image_url: "/images/kids-birthday.jpg",
-  },
-  {
-    id: 6,
-    name: "Anniversary",
-    description: "Elegant anniversary celebration invitation",
-    price: 22.99,
-    category: "Anniversary",
-    image_url: "/images/anniversary.jpg",
-  },
-  {
-    id: 7,
-    name: "Baby Shower",
-    description: "Adorable baby shower invitation template",
-    price: 18.99,
-    category: "Baby Shower",
-    image_url: "/images/baby-shower.jpg",
-  },
-  {
-    id: 8,
-    name: "Graduation",
-    description: "Celebratory graduation party invitation",
-    price: 21.99,
-    category: "Graduation",
-    image_url: "/images/graduation.jpg",
-  },
-];
-
-// Dummy categories
 const categories = [
   "All",
-  "Wedding",
-  "Birthday",
-  "Business",
-  "Anniversary",
-  "Baby Shower",
-  "Graduation",
+  "WEDDING",
+  "BIRTHDAY",
+  "ANNIVERSARY",
+  "GRADUATION",
+  "BABYSHOWER",
+  "FESTIVAL",
+  "INVITATION",
+  "CORPORATE",
 ];
 
 // Import proper shadcn components (make sure these are installed)
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+export interface Template {
+  uuid: string;
+  name: string;
+  description: string;
+  price: number;
+  catogery: string;
+  image: string;
+  editable_fields: Array<{
+    label: string;
+    type: string;
+    required: boolean;
+  }>;
+  rating: number;
+  downloads: number;
+  created_at: string;
+  tags: string[];
+}
+
 export default function Home() {
-  const session = true;
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [purchasedIds, setPurchasedIds] = useState<Set<number>>(new Set());
+  const [templates, setTemplates] = useState<Template[]>([]);
+
+  useEffect(() => {
+    fetch("/api/design")
+      .then((res) => res.json())
+      .then((data) => {
+        setTemplates(data.data);
+        console.log(data.data);
+      });
+  }, []);
 
   // Filter templates based on selected category
   const filteredTemplates =
     selectedCategory === "All"
-      ? dummyTemplates
-      : dummyTemplates.filter(
-          (template) => template.category === selectedCategory
-        );
+      ? templates
+      : templates.filter((template) => template.catogery === selectedCategory);
 
-  const handlePurchase = (templateId: number) => {
-    setPurchasedIds((prev) => new Set([...Array.from(prev), templateId]));
+  const handlePurchase = (templateId: string) => {
+    // setPurchasedIds((prev) => new Set([...Array.from(prev), templateId]));
     alert(`Template ${templateId} purchased successfully!`);
   };
 
@@ -121,7 +79,7 @@ export default function Home() {
           </div>
 
           {/* Responsive heading */}
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold mb-3 sm:mb-4 lg:mb-6 bg-gradient-to-r from-[#6c47ff] to-[#8a6cff] bg-clip-text text-transparent px-4">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold mb-3 sm:mb-4 lg:mb-6 bg-linear-to-r from-[#6c47ff] to-[#8a6cff] bg-clip-text text-transparent px-4">
             Beautiful Invitation Templates
           </h1>
 
@@ -143,7 +101,7 @@ export default function Home() {
               <TabsTrigger
                 key={category}
                 value={category}
-                className="flex-1 sm:flex-none min-w-[80px] sm:min-w-[100px] text-xs sm:text-sm px-2 sm:px-4 py-2 rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-200 hover:bg-muted"
+                className="flex-1 sm:flex-none min-w-20 sm:min-w-[100px] text-xs sm:text-sm px-2 sm:px-4 py-2 rounded-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-200 hover:bg-muted"
               >
                 {category}
               </TabsTrigger>
@@ -155,15 +113,14 @@ export default function Home() {
         <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
           {filteredTemplates.map((template) => (
             <TemplateCard
-              key={template.id}
-              id={template.id}
+              key={template.uuid}
+              uuid={template.uuid}
               name={template.name}
               description={template.description || ""}
               price={template.price}
-              category={template.category}
-              imageUrl={template.image_url}
+              category={template.catogery}
+              imageUrl={template.image}
               onPurchase={handlePurchase}
-              isPurchased={purchasedIds.has(template.id)}
             />
           ))}
         </div>

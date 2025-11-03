@@ -23,17 +23,20 @@ enum CATEGORYS {
   FESTIVAL
   INVITATION
   CORPORATE
+  OTHER
 }
 
 model Template {
   uuid String @id @default(uuid())
   name String
   description String?
-  catogery CATEGORYS
+  catogery CATEGORYS? @default(OTHER)
+  tags String
   image String
   price Int?
   paid Boolean @default(false)
   svg String
+  pdf String
   createdAt DateTime @default(now())
 
   savedTemplates SavedTemplate[]

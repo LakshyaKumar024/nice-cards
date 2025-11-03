@@ -2,11 +2,32 @@
 
 import { useState } from "react"
 import { Download, Save, Menu, X } from "lucide-react"
-import { Template } from "@/lib/types"
+
+
+
+interface Template {
+  uuid: string;
+  name: string;
+  description: string;
+  price: number;
+  category: string;
+  image_url: string;
+  preview_url: string | null;
+  editable_fields: Array<{
+    label: string;
+    type: string;
+    required: boolean;
+  }>;
+  rating: number;
+  downloads: number;
+  created_at: string;
+  tags: string[];
+}
 
 
 export default function TemplateEditor() {
     const [template, setTemplate] = useState<Template | null>(null);
+
 
   const [cardData, setCardData] = useState({
     recipientName: "Guest Name",
