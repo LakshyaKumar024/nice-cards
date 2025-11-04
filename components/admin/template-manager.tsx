@@ -1,20 +1,21 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Trash2, Edit, Plus, DollarSign } from "lucide-react"
+import { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Trash2, Edit, Plus, DollarSign } from "lucide-react";
+import Link from "next/link";
 
 interface Template {
-  id: string
-  name: string
-  category: string
-  status: "active" | "inactive"
-  price: number
-  uses: number
-  createdDate: string
+  id: string;
+  name: string;
+  category: string;
+  status: "active" | "inactive";
+  price: number;
+  uses: number;
+  createdDate: string;
 }
 
 const mockTemplates: Template[] = [
@@ -54,31 +55,35 @@ const mockTemplates: Template[] = [
     uses: 189,
     createdDate: "2024-01-05",
   },
-]
+];
 
 export function TemplateManager() {
-  const [templates, setTemplates] = useState<Template[]>(mockTemplates)
-  const [searchTerm, setSearchTerm] = useState("")
+  const [templates, setTemplates] = useState<Template[]>(mockTemplates);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const filteredTemplates = templates.filter((template) =>
-    template.name.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
+    template.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const removeTemplate = (id: string) => {
-    setTemplates(templates.filter((t) => t.id !== id))
-  }
+    setTemplates(templates.filter((t) => t.id !== id));
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h3 className="text-lg font-semibold text-foreground">Templates</h3>
-          <p className="text-sm text-muted-foreground">Manage all templates and their settings</p>
+          <p className="text-sm text-muted-foreground">
+            Manage all templates and their settings
+          </p>
         </div>
-        <Button className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2">
-          <Plus className="w-4 h-4" />
-          Add Template
-        </Button>
+        <Link href="/dashboard/create">
+          <Button className="bg-primary text-primary-foreground hover:bg-primary/90 gap-2">
+            <Plus className="w-4 h-4" />
+            Add Template
+          </Button>
+        </Link>
       </div>
 
       {/* Search Bar */}
@@ -98,35 +103,68 @@ export function TemplateManager() {
             <table className="w-full">
               <thead className="border-b border-border bg-muted/30">
                 <tr>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-card-foreground">Name</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-card-foreground">Category</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-card-foreground">Price</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-card-foreground">Status</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-card-foreground">Uses</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-card-foreground">Created</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-card-foreground">Actions</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-card-foreground">
+                    Name
+                  </th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-card-foreground">
+                    Category
+                  </th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-card-foreground">
+                    Price
+                  </th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-card-foreground">
+                    Status
+                  </th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-card-foreground">
+                    Uses
+                  </th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-card-foreground">
+                    Created
+                  </th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-card-foreground">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {filteredTemplates.map((template) => (
-                  <tr key={template.id} className="border-b border-border hover:bg-muted/20 transition-colors">
+                  <tr
+                    key={template.id}
+                    className="border-b border-border hover:bg-muted/20 transition-colors"
+                  >
                     <td className="px-6 py-4">
-                      <span className="font-medium text-card-foreground">{template.name}</span>
+                      <span className="font-medium text-card-foreground">
+                        {template.name}
+                      </span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-sm text-muted-foreground">{template.category}</span>
+                      <span className="text-sm text-muted-foreground">
+                        {template.category}
+                      </span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-sm font-semibold text-foreground">${template.price}</span>
+                      <span className="text-sm font-semibold text-foreground">
+                        ${template.price}
+                      </span>
                     </td>
                     <td className="px-6 py-4">
-                      <Badge variant={template.status === "active" ? "default" : "secondary"}>{template.status}</Badge>
+                      <Badge
+                        variant={
+                          template.status === "active" ? "default" : "secondary"
+                        }
+                      >
+                        {template.status}
+                      </Badge>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-sm text-muted-foreground">{template.uses}</span>
+                      <span className="text-sm text-muted-foreground">
+                        {template.uses}
+                      </span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="text-sm text-muted-foreground">{template.createdDate}</span>
+                      <span className="text-sm text-muted-foreground">
+                        {template.createdDate}
+                      </span>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex gap-2">
@@ -165,5 +203,5 @@ export function TemplateManager() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

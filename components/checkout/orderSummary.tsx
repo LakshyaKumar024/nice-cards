@@ -10,9 +10,11 @@ interface TemplateData {
   originalPrice: number;
   discount: number;
   finalPrice: number;
+  name: string;
+  designer: string;
+  image: string;
   // Add other properties that templateData might have
   id?: string;
-  name?: string;
   description?: string;
 }
 

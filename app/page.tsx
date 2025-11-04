@@ -12,7 +12,7 @@ const categories = [
   "BABYSHOWER",
   "FESTIVAL",
   "INVITATION",
-  "CORPORATE"
+  "CORPORATE",
 ];
 
 // Import proper shadcn components (make sure these are installed)
@@ -38,7 +38,6 @@ export interface Template {
 
 export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
-  const [purchasedIds, setPurchasedIds] = useState<Set<number>>(new Set());
   const [templates, setTemplates] = useState<Template[]>([]);
 
   useEffect(() => {
@@ -90,23 +89,23 @@ export default function Home() {
           </p>
         </div>
 
-     <Tabs
-  value={selectedCategory}
-  onValueChange={setSelectedCategory}
-  className="mb-6 sm:mb-8 lg:mb-12 w-full"
->
-  <TabsList className="flex flex-wrap justify-center gap-2 sm:gap-4 h-auto p-3 sm:p-4 bg-muted/50 rounded-xl shadow-sm">
-    {categories.map((category) => (
-      <TabsTrigger
-        key={category}
-        value={category}
-        className="flex-1 sm:flex-none min-w-[120px] sm:min-w-[140px] text-sm sm:text-base font-medium px-4 sm:px-6 py-3 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-200 hover:bg-muted"
-      >
-        {category}
-      </TabsTrigger>
-    ))}
-  </TabsList>
-</Tabs>
+        <Tabs
+          value={selectedCategory}
+          onValueChange={setSelectedCategory}
+          className="mb-6 sm:mb-8 lg:mb-12 w-full"
+        >
+          <TabsList className="flex flex-wrap justify-center gap-2 sm:gap-4 h-auto p-3 sm:p-4 bg-muted/50 rounded-xl shadow-sm">
+            {categories.map((category) => (
+              <TabsTrigger
+                key={category}
+                value={category}
+                className="flex-1 sm:flex-none min-w-[120px] sm:min-w-[140px] text-sm sm:text-base font-medium px-4 sm:px-6 py-3 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-200 hover:bg-muted"
+              >
+                {category}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
 
         {/* Templates Grid */}
         <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">

@@ -2,16 +2,24 @@
 import { use, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, ShoppingCart, Check, Download, ImageIcon } from "lucide-react";
+import {
+  ArrowLeft,
+  ShoppingCart,
+  Check,
+  Download,
+  ImageIcon,
+} from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
+import { toast } from "sonner";
 
 interface Template {
   uuid: string;
   name: string;
   description: string;
   price: number;
-  category: string;
+  catogery: string;
   paid: boolean;
   pdf: string;
   svg: string;
@@ -35,106 +43,95 @@ export function TemplateDetail({
   const [tags, setTags] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [imageError, setImageError] = useState(false);
+  const { isLoaded, isSignedIn, user } = useUser();
   const router = useRouter();
 
   const { templateId } = use(params);
 
   useEffect(() => {
-  const fetchTemplate = async () => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      console.log('Fetching template:', templateId);
-      
-      const response = await fetch(`/api/design/${templateId}`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        cache: 'no-store',
-      });
+    const fetchTemplate = async () => {
+      setLoading(true);
+      setError(null);
 
-      console.log('Response status:', response.status);
+      try {
+        console.log("Fetching template:", templateId);
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Error response:', errorText);
-        throw new Error(`Failed to fetch template: ${response.status} - ${errorText}`);
-      }
+        const response = await fetch(`/api/design/${templateId}`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          cache: "no-store",
+        });
 
-      const result = await response.json();
-      console.log('API response:', result);
-      
-      // Extract the template data from the nested data property
-      const data = result.data;
-      
-      // Validate required fields
-      if (!data?.uuid || !data?.name) {
-        throw new Error('Invalid template data received');
-      }
-      
-      setTemplate(data);
+        console.log("Response status:", response.status);
 
-      // Parse tags safely
-      let parsedTags: string[] = [];
-      if (typeof data.tags === "string") {
-        try {
-          parsedTags = JSON.parse(data.tags || "[]");
-        } catch {
-          parsedTags = data.tags
-            .split(",")
-            .map((tag: string) => tag.trim())
-            .filter(Boolean);
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("Error response:", errorText);
+          throw new Error(
+            `Failed to fetch template: ${response.status} - ${errorText}`
+          );
         }
-      } else if (Array.isArray(data.tags)) {
-        parsedTags = data.tags;
+
+        const result = await response.json();
+        console.log("API response:", result);
+
+        // Extract the template data from the nested data property
+        const data = result.data;
+
+        // Validate required fields
+        if (!data?.uuid || !data?.name) {
+          throw new Error("Invalid template data received");
+        }
+
+        setTemplate(data);
+
+        // Parse tags safely
+        let parsedTags: string[] = [];
+        if (typeof data.tags === "string") {
+          try {
+            parsedTags = JSON.parse(data.tags || "[]");
+          } catch {
+            parsedTags = data.tags
+              .split(",")
+              .map((tag: string) => tag.trim())
+              .filter(Boolean);
+          }
+        } else if (Array.isArray(data.tags)) {
+          parsedTags = data.tags;
+        }
+        setTags(parsedTags);
+
+        // Check if template is already purchased
+        // TODO: MAKE THIS WORK
+        const purchasedTemplates = false;
+        setIsPurchased(purchasedTemplates);
+      } catch (error) {
+        console.error("Error fetching template:", error);
+        setError(
+          error instanceof Error ? error.message : "Failed to load template"
+        );
+      } finally {
+        setLoading(false);
       }
-      setTags(parsedTags);
+    };
 
-      // Check if template is already purchased
-      // TODO: MAKE THIS WORK
-      const purchasedTemplates = false;
-      setIsPurchased(purchasedTemplates);
-    } catch (error) {
-      console.error("Error fetching template:", error);
-      setError(error instanceof Error ? error.message : "Failed to load template");
-    } finally {
-      setLoading(false);
+    if (templateId) {
+      fetchTemplate();
     }
-  };
-
-  if (templateId) {
-    fetchTemplate();
-  }
-}, [templateId]);
-
+  }, [templateId]);
+  console.log("user",user?.id);
+  
   const handlePurchase = async () => {
     if (!template) return;
-
     setPurchasing(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      const purchasedTemplates = JSON.parse(
-        localStorage.getItem("purchasedTemplates") || "[]"
-      );
-
-      if (!purchasedTemplates.includes(template.uuid)) {
-        purchasedTemplates.push(template.uuid);
-        localStorage.setItem(
-          "purchasedTemplates",
-          JSON.stringify(purchasedTemplates)
-        );
-      }
-
-      setIsPurchased(true);
-      alert(`Successfully purchased "${template.name}"!`);
+      router.push(`/design/${template.uuid}/checkout`);
     } catch (error) {
       console.error("Purchase failed:", error);
-      alert("Purchase failed. Please try again.");
+      toast.error("Purchase failed. Please try again.");
     } finally {
-      setPurchasing(false);
     }
   };
 
@@ -187,7 +184,9 @@ export function TemplateDetail({
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50">
         <div className="container mx-auto px-4 py-8 text-center">
           <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-4 max-w-2xl mx-auto">
-            <p className="text-xl text-red-600 mb-2 font-semibold">Error Loading Template</p>
+            <p className="text-xl text-red-600 mb-2 font-semibold">
+              Error Loading Template
+            </p>
             <p className="text-sm text-red-500">{error}</p>
           </div>
           <Button onClick={handleBack}>
@@ -203,9 +202,7 @@ export function TemplateDetail({
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50">
         <div className="container mx-auto px-4 py-8 text-center">
-          <p className="text-xl text-gray-600 mb-4">
-            Template not found
-          </p>
+          <p className="text-xl text-gray-600 mb-4">Template not found</p>
           <Button onClick={handleBack}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Templates
@@ -245,7 +242,9 @@ export function TemplateDetail({
                   <div className="w-full h-full flex items-center justify-center">
                     <div className="text-center">
                       <ImageIcon className="h-24 w-24 text-gray-300 mx-auto mb-4" />
-                      <p className="text-gray-400 text-sm">No preview available</p>
+                      <p className="text-gray-400 text-sm">
+                        No preview available
+                      </p>
                     </div>
                   </div>
                 )}
@@ -262,23 +261,27 @@ export function TemplateDetail({
             <div className="grid grid-cols-3 gap-4 text-center">
               <div className="bg-white rounded-lg p-3 border shadow-sm">
                 <div className="text-2xl font-bold text-purple-600">
-                  {typeof template.rating === 'number' && !isNaN(template.rating) 
-                    ? template.rating.toFixed(1) 
-                    : 'N/A'}
+                  {typeof template.rating === "number" &&
+                  !isNaN(template.rating)
+                    ? template.rating.toFixed(1)
+                    : "N/A"}
                 </div>
                 <div className="text-xs text-gray-500">Rating</div>
               </div>
               <div className="bg-white rounded-lg p-3 border shadow-sm">
                 <div className="text-2xl font-bold text-purple-600">
-                  {typeof template.downloads === 'number' && !isNaN(template.downloads)
+                  {typeof template.downloads === "number" &&
+                  !isNaN(template.downloads)
                     ? template.downloads.toLocaleString()
-                    : '0'}
+                    : "0"}
                 </div>
                 <div className="text-xs text-gray-500">Downloads</div>
               </div>
               <div className="bg-white rounded-lg p-3 border shadow-sm">
                 <div className="text-2xl font-bold text-purple-600">
-                  {template.createdAt ? new Date(template.createdAt).getFullYear() : 'N/A'}
+                  {template.createdAt
+                    ? new Date(template.createdAt).getFullYear()
+                    : "N/A"}
                 </div>
                 <div className="text-xs text-gray-500">Published</div>
               </div>
@@ -309,23 +312,23 @@ export function TemplateDetail({
                     {template.name}
                   </h1>
                   <Badge className="bg-purple-100 text-purple-700 text-sm">
-                    {template.category || 'Uncategorized'}
+                    {template.catogery || "Uncategorized"}
                   </Badge>
                 </div>
                 <div className="sm:text-right">
                   <p className="text-2xl sm:text-3xl font-bold text-purple-600">
-                    ${typeof template.price === 'number' && !isNaN(template.price)
+                    $
+                    {typeof template.price === "number" &&
+                    !isNaN(template.price)
                       ? template.price.toFixed(2)
-                      : '0.00'}
+                      : "0.00"}
                   </p>
-                  <p className="text-sm text-gray-600">
-                    One-time purchase
-                  </p>
+                  <p className="text-sm text-gray-600">One-time purchase</p>
                 </div>
               </div>
 
               <p className="text-base sm:text-lg text-gray-600 leading-relaxed">
-                {template.description || 'No description available.'}
+                {template.description || "No description available."}
               </p>
             </div>
 
@@ -407,9 +410,11 @@ export function TemplateDetail({
                   ) : (
                     <>
                       <ShoppingCart className="mr-2 h-5 w-5" />
-                      Purchase Template - ${typeof template.price === 'number' && !isNaN(template.price)
+                      Purchase Template - $
+                      {typeof template.price === "number" &&
+                      !isNaN(template.price)
                         ? template.price.toFixed(2)
-                        : '0.00'}
+                        : "0.00"}
                     </>
                   )}
                 </Button>
