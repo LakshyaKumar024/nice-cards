@@ -121,8 +121,8 @@ export function TemplateDetail({
       fetchTemplate();
     }
   }, [templateId]);
-  console.log("user",user?.id);
-  
+  console.log("user", user?.id);
+
   const handlePurchase = async () => {
     if (!template) return;
     setPurchasing(true);

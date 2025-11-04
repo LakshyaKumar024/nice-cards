@@ -20,9 +20,10 @@ interface TemplateData {
 
 interface OrderSummaryProps {
   templateData: TemplateData;
+  handelPayment:()=>void;
 }
 
-const OrderSummary = ({ templateData }: OrderSummaryProps) => {
+const OrderSummary = ({ templateData, handelPayment}: OrderSummaryProps) => {
     const [marketingConsent, setMarketingConsent] = useState<boolean>(false);
 
     return (
@@ -73,6 +74,7 @@ const OrderSummary = ({ templateData }: OrderSummaryProps) => {
 
             {/* Place Order Button */}
             <Button
+            onClick={handelPayment}
                 size="lg"
                 className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-base h-12"
             >

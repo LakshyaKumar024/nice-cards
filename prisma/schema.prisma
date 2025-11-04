@@ -27,31 +27,42 @@ enum CATEGORYS {
 }
 
 model Template {
-  uuid String @id @default(uuid())
-  name String
+  uuid        String     @id @default(uuid())
+  name        String
   description String?
-  catogery CATEGORYS? @default(OTHER)
-  tags String
-  image String
-  price Int?
-  paid Boolean @default(false)
-  svg String
-  pdf String
-  createdAt DateTime @default(now())
+  catogery    CATEGORYS? @default(OTHER)
+  tags        String
+  image       String
+  price       Int?
+  paid        Boolean    @default(false)
+  svg         String
+  pdf         String
+  createdAt   DateTime   @default(now())
 
   savedTemplates SavedTemplate[]
+
   @@map(name: "templates")
 }
 
-
 model SavedTemplate {
-  uuid String @id @default(uuid())
-  userId String 
-  templateId String 
+  uuid          String   @id @default(uuid())
+  userId        String
+  templateId    String
   file_location String
-  createdAt DateTime @default(now())
+  createdAt     DateTime @default(now())
 
   template Template @relation(fields: [templateId], references: [uuid], onDelete: Cascade)
 
   @@map(name: "saved templates")
+}
+
+model Order {
+  id              Int      @id @default(autoincrement())
+  userId          String
+  templateId      String
+  razorpayOrderId String @unique
+  amount          Int
+  currency        String?  @default("INR")
+  status          String?  @default("pending")
+  createdAt       DateTime @default(now())
 }
