@@ -3,7 +3,11 @@ import OrderSummary from "@/components/checkout/orderSummary";
 import { Card } from "@/components/ui/card";
 import { use } from "react";
 
-export default function Page({ params }: { params: Promise<{ templateId: string }> }) {
+export default function Page({
+  params,
+}: {
+  params: Promise<{ templateId: string }>;
+}) {
   const { templateId } = use(params);
 
   const templateData = {
@@ -15,7 +19,7 @@ export default function Page({ params }: { params: Promise<{ templateId: string 
     finalPrice: 10.0,
   };
 
-  console.log("rpi---",);
+  console.log("rpi---");
   const handlePayment = async () => {
     const res = await fetch("/api/order", {
       method: "POST",
@@ -32,7 +36,26 @@ export default function Page({ params }: { params: Promise<{ templateId: string 
     const paymentData = {
       key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
       order_id: data.data.razorpay.id,
-      handler: async () => {},
+      
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      handler: async (response: any) => {
+        const res = await fetch("/api/order/verify", {
+          method: "POST",
+          body: JSON.stringify({
+            orderId: response.razorpay_order_id,
+            razorpayPaymentId: response.razorpay_payment_id,
+            razorpaySignature: response.razorpay_signature,
+          }),
+        });
+        const data = await res.json();
+        console.log(data);
+        if (data.isOk) {
+          // do whatever page transition you want here as payment was successful
+          alert("Payment successful");
+        } else {
+          alert("Payment failed");
+        }
+      },
     };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const payment = new (window as any).Razorpay(paymentData);
@@ -149,4 +172,3 @@ export default function Page({ params }: { params: Promise<{ templateId: string 
     </div>
   );
 }
-
