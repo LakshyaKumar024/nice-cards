@@ -7,15 +7,27 @@ import { TemplateManager } from "@/components/admin/template-manager"
 import { UserAnalytics } from "@/components/admin/user-analytics"
 import { PricingManager } from "@/components/admin/pricing-manager"
 
-export default function AdminPage() {
+export default function Page() {
   const [activeTab, setActiveTab] = useState("dashboard")
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case "dashboard":
+        return <DashboardOverview />
+      case "templates":
+        return <TemplateManager />
+      case "users":
+        return <UserAnalytics />
+      case "pricing":
+        return <PricingManager />
+      default:
+        return <DashboardOverview />
+    }
+  }
 
   return (
     <AdminLayout activeTab={activeTab} onTabChange={setActiveTab}>
-      {activeTab === "dashboard" && <DashboardOverview />}
-      {activeTab === "templates" && <TemplateManager />}
-      {activeTab === "users" && <UserAnalytics />}
-      {activeTab === "pricing" && <PricingManager />}
+      {renderContent()}
     </AdminLayout>
   )
 }

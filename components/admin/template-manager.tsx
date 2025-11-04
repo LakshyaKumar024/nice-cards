@@ -5,8 +5,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Edit, Plus, DollarSign } from "lucide-react";
+import { Trash2, Edit, Plus } from "lucide-react";
 import Link from "next/link";
+import { TemplateManagerDialogbox } from "./template-manager-dialogbox";
 
 interface Template {
   id: string;
@@ -16,6 +17,7 @@ interface Template {
   price: number;
   uses: number;
   createdDate: string;
+  description?: string;
 }
 
 const mockTemplates: Template[] = [
@@ -27,6 +29,7 @@ const mockTemplates: Template[] = [
     price: 29,
     uses: 324,
     createdDate: "2024-01-15",
+    description: "A clean starter for blogs.",
   },
   {
     id: "2",
@@ -36,6 +39,7 @@ const mockTemplates: Template[] = [
     price: 49,
     uses: 287,
     createdDate: "2024-01-10",
+    description: "Perfect for personal portfolios.",
   },
   {
     id: "3",
@@ -45,6 +49,7 @@ const mockTemplates: Template[] = [
     price: 79,
     uses: 256,
     createdDate: "2024-01-08",
+    description: "Landing pages for SaaS startups.",
   },
   {
     id: "4",
@@ -54,12 +59,28 @@ const mockTemplates: Template[] = [
     price: 99,
     uses: 189,
     createdDate: "2024-01-05",
+    description: "Modern e-commerce storefront.",
   },
 ];
 
 export function TemplateManager() {
   const [templates, setTemplates] = useState<Template[]>(mockTemplates);
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Dialog states
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
+  const [open, setOpen] = useState(false);
+
+  const handleEdit = (template: Template) => {
+    setSelectedTemplate(template);
+    setOpen(true);
+  };
+
+  const handleSave = (updatedTemplate: Template) => {
+    setTemplates((prev) =>
+      prev.map((t) => (t.id === updatedTemplate.id ? updatedTemplate : t))
+    );
+  };
 
   const filteredTemplates = templates.filter((template) =>
     template.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -167,23 +188,20 @@ export function TemplateManager() {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex gap-2">
+                      {/* Action buttons */}
+                      <div className="flex items-center gap-1">
+                        {/* Edit Button */}
                         <Button
                           variant="ghost"
                           size="sm"
                           className="text-primary hover:bg-primary/10"
                           title="Edit template"
+                          onClick={() => handleEdit(template)}
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-blue-500 hover:bg-blue-500/10"
-                          title="Adjust price"
-                        >
-                          <DollarSign className="w-4 h-4" />
-                        </Button>
+
+                        {/* Trash Button (moved closer) */}
                         <Button
                           variant="ghost"
                           size="sm"
@@ -202,6 +220,14 @@ export function TemplateManager() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Dialog Box */}
+      <TemplateManagerDialogbox
+        open={open}
+        setOpen={setOpen}
+        template={selectedTemplate}
+        onSave={handleSave}
+      />
     </div>
   );
 }

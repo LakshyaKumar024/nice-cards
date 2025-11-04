@@ -66,84 +66,98 @@ const templateUsageData = [
 
 export function DashboardOverview() {
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
         {dashboardStats.map((stat) => {
           const Icon = stat.icon
           return (
             <Card key={stat.title} className="bg-card border-border">
-              <CardHeader className="pb-3">
+              <CardHeader className="pb-2 sm:pb-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-medium text-card-foreground">{stat.title}</CardTitle>
-                  <Icon className={`w-5 h-5 ${stat.color}`} />
+                  <CardTitle className="text-xs sm:text-sm font-medium text-card-foreground">{stat.title}</CardTitle>
+                  <Icon className={`w-4 sm:w-5 h-4 sm:h-5 ${stat.color}`} />
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-card-foreground">{stat.value}</div>
-                <p className="text-xs text-muted-foreground mt-2">{stat.description}</p>
+                <div className="text-xl sm:text-2xl font-bold text-card-foreground">{stat.value}</div>
+                <p className="text-xs text-muted-foreground mt-1 sm:mt-2">{stat.description}</p>
               </CardContent>
             </Card>
           )
         })}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Charts Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Sign-in Activity Chart */}
         <Card className="lg:col-span-2 bg-card border-border">
-          <CardHeader>
-            <CardTitle className="text-card-foreground">Sign-in Activity</CardTitle>
-            <CardDescription>Weekly sign-in trends</CardDescription>
+          <CardHeader className="pb-3 sm:pb-4">
+            <CardTitle className="text-base sm:text-lg text-card-foreground">Sign-in Activity</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">Weekly sign-in trends</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={signInData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                <XAxis dataKey="date" stroke="#999" />
-                <YAxis stroke="#999" />
-                <Tooltip
-                  contentStyle={{ backgroundColor: "#1a1a1a", border: "1px solid #333" }}
-                  labelStyle={{ color: "#fff" }}
-                />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="signIns"
-                  stroke="hsl(var(--color-primary))"
-                  strokeWidth={2}
-                  dot={{ fill: "hsl(var(--color-primary))" }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="newUsers"
-                  stroke="hsl(var(--color-accent))"
-                  strokeWidth={2}
-                  dot={{ fill: "hsl(var(--color-accent))" }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            <div className="w-full h-64 sm:h-72 lg:h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={signInData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                  <XAxis dataKey="date" stroke="#999" tick={{ fontSize: 12 }} />
+                  <YAxis stroke="#999" tick={{ fontSize: 12 }} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: "#1a1a1a", border: "1px solid #333" }}
+                    labelStyle={{ color: "#fff" }}
+                    wrapperStyle={{ outline: "none" }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: 12 }} />
+                  <Line
+                    type="monotone"
+                    dataKey="signIns"
+                    stroke="hsl(var(--color-primary))"
+                    strokeWidth={2}
+                    dot={{ fill: "hsl(var(--color-primary))", r: 3 }}
+                    isAnimationActive={false}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="newUsers"
+                    stroke="hsl(var(--color-accent))"
+                    strokeWidth={2}
+                    dot={{ fill: "hsl(var(--color-accent))", r: 3 }}
+                    isAnimationActive={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </CardContent>
         </Card>
 
         {/* Template Usage */}
         <Card className="bg-card border-border">
-          <CardHeader>
-            <CardTitle className="text-card-foreground">Template Usage</CardTitle>
-            <CardDescription>Most used templates</CardDescription>
+          <CardHeader className="pb-3 sm:pb-4">
+            <CardTitle className="text-base sm:text-lg text-card-foreground">Template Usage</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">Most used templates</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={templateUsageData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                <XAxis dataKey="name" stroke="#999" angle={-45} height={80} />
-                <YAxis stroke="#999" />
-                <Tooltip
-                  contentStyle={{ backgroundColor: "#1a1a1a", border: "1px solid #333" }}
-                  labelStyle={{ color: "#fff" }}
-                />
-                <Bar dataKey="usage" fill="hsl(var(--color-secondary))" radius={[8, 8, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <div className="w-full h-64 sm:h-72 lg:h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={templateUsageData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                  <XAxis dataKey="name" stroke="#999" angle={-45} height={60} tick={{ fontSize: 12 }} />
+                  <YAxis stroke="#999" tick={{ fontSize: 12 }} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: "#1a1a1a", border: "1px solid #333" }}
+                    labelStyle={{ color: "#fff" }}
+                    wrapperStyle={{ outline: "none" }}
+                  />
+                  <Bar
+                    dataKey="usage"
+                    fill="hsl(var(--color-secondary))"
+                    radius={[8, 8, 0, 0]}
+                    isAnimationActive={false}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </CardContent>
         </Card>
       </div>
