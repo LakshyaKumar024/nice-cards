@@ -70,10 +70,11 @@ export function PricingManager() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-semibold text-foreground">Template Pricing</h3>
-        <p className="text-sm text-muted-foreground">Set and manage prices for individual templates</p>
+    <div className="space-y-4 sm:space-y-6">
+      {/* Header */}
+      <div className="space-y-2">
+        <h3 className="text-lg sm:text-xl font-semibold text-foreground">Template Pricing</h3>
+        <p className="text-xs sm:text-sm text-muted-foreground">Set and manage prices for individual templates</p>
       </div>
 
       {/* Search Bar */}
@@ -82,7 +83,7 @@ export function PricingManager() {
           placeholder="Search templates..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="bg-input border-border text-foreground placeholder:text-muted-foreground"
+          className="bg-input border-border text-foreground placeholder:text-muted-foreground text-sm"
         />
       </div>
 
@@ -90,42 +91,56 @@ export function PricingManager() {
       <Card className="bg-card border-border overflow-hidden">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-max">
               <thead className="border-b border-border bg-muted/30">
                 <tr>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-card-foreground">Template Name</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-card-foreground">Category</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-card-foreground">Price</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-card-foreground">Discount</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-card-foreground">Final Price</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-card-foreground">Status</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-card-foreground">Actions</th>
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-semibold text-card-foreground whitespace-nowrap">
+                    Template Name
+                  </th>
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-semibold text-card-foreground whitespace-nowrap">
+                    Category
+                  </th>
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-semibold text-card-foreground whitespace-nowrap">
+                    Price
+                  </th>
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-semibold text-card-foreground whitespace-nowrap">
+                    Discount
+                  </th>
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-semibold text-card-foreground whitespace-nowrap">
+                    Final Price
+                  </th>
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-semibold text-card-foreground whitespace-nowrap">
+                    Status
+                  </th>
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-semibold text-card-foreground whitespace-nowrap">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {filteredTemplates.map((template) => (
                   <tr key={template.id} className="border-b border-border hover:bg-muted/20 transition-colors">
-                    <td className="px-6 py-4">
-                      <span className="font-medium text-card-foreground">{template.name}</span>
+                    <td className="px-3 sm:px-6 py-3 sm:py-4">
+                      <span className="font-medium text-card-foreground text-xs sm:text-sm">{template.name}</span>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm text-muted-foreground">{template.category}</span>
+                    <td className="px-3 sm:px-6 py-3 sm:py-4">
+                      <span className="text-xs sm:text-sm text-muted-foreground">{template.category}</span>
                     </td>
 
-                    <td className="px-6 py-4">
+                    <td className="px-3 sm:px-6 py-3 sm:py-4">
                       {editingId === template.id ? (
                         <Input
                           type="number"
                           value={editValues.price}
                           onChange={(e) => setEditValues({ ...editValues, price: Number.parseFloat(e.target.value) })}
-                          className="w-24 bg-input border-border text-foreground h-8"
+                          className="w-16 sm:w-24 bg-input border-border text-foreground h-8 text-xs sm:text-sm"
                         />
                       ) : (
-                        <span className="text-sm text-muted-foreground">${template.price}</span>
+                        <span className="text-xs sm:text-sm text-muted-foreground">${template.price}</span>
                       )}
                     </td>
 
-                    <td className="px-6 py-4">
+                    <td className="px-3 sm:px-6 py-3 sm:py-4">
                       {editingId === template.id ? (
                         <Input
                           type="number"
@@ -135,19 +150,18 @@ export function PricingManager() {
                           onChange={(e) =>
                             setEditValues({ ...editValues, discount: Number.parseFloat(e.target.value) })
                           }
-                          className="w-20 bg-input border-border text-foreground h-8"
+                          className="w-14 sm:w-20 bg-input border-border text-foreground h-8 text-xs sm:text-sm"
                           placeholder="%"
                         />
                       ) : (
-                        <span className="text-sm text-muted-foreground">
+                        <span className="text-xs sm:text-sm text-muted-foreground">
                           {template.discount ? `${template.discount}%` : "-"}
                         </span>
                       )}
                     </td>
 
-                    {/* Calculate final price */}
-                    <td className="px-6 py-4">
-                      <span className="text-sm font-semibold text-foreground">
+                    <td className="px-3 sm:px-6 py-3 sm:py-4">
+                      <span className="text-xs sm:text-sm font-semibold text-foreground">
                         $
                         {editingId === template.id
                           ? (editValues.price - (editValues.price * (editValues.discount || 0)) / 100).toFixed(2)
@@ -155,38 +169,40 @@ export function PricingManager() {
                       </span>
                     </td>
 
-                    <td className="px-6 py-4">
-                      <Badge variant={template.status === "active" ? "default" : "secondary"}>{template.status}</Badge>
+                    <td className="px-3 sm:px-6 py-3 sm:py-4">
+                      <Badge variant={template.status === "active" ? "default" : "secondary"} className="text-xs">
+                        {template.status}
+                      </Badge>
                     </td>
 
-                    <td className="px-6 py-4">
-                      <div className="flex gap-2">
+                    <td className="px-3 sm:px-6 py-3 sm:py-4">
+                      <div className="flex gap-1 sm:gap-2">
                         {editingId === template.id ? (
                           <>
                             <Button
                               size="sm"
-                              className="bg-primary text-primary-foreground hover:bg-primary/90 h-8"
+                              className="bg-primary text-primary-foreground hover:bg-primary/90 h-7 sm:h-8 px-2"
                               onClick={() => saveEdit(template.id)}
                             >
-                              <Save className="w-4 h-4" />
+                              <Save className="w-3 sm:w-4 h-3 sm:h-4" />
                             </Button>
                             <Button
                               size="sm"
                               variant="outline"
-                              className="border-border text-muted-foreground hover:bg-muted/20 h-8 bg-transparent"
+                              className="border-border text-muted-foreground hover:bg-muted/20 h-7 sm:h-8 px-2 bg-transparent"
                               onClick={cancelEdit}
                             >
-                              <X className="w-4 h-4" />
+                              <X className="w-3 sm:w-4 h-3 sm:h-4" />
                             </Button>
                           </>
                         ) : (
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="text-primary hover:bg-primary/10"
+                            className="text-primary hover:bg-primary/10 h-7 sm:h-8 px-2"
                             onClick={() => startEdit(template)}
                           >
-                            <Edit className="w-4 h-4" />
+                            <Edit className="w-3 sm:w-4 h-3 sm:h-4" />
                           </Button>
                         )}
                       </div>
@@ -200,35 +216,37 @@ export function PricingManager() {
       </Card>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         <Card className="bg-card border-border">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm text-muted-foreground">Average Price</CardTitle>
+          <CardHeader className="pb-2 sm:pb-3">
+            <CardTitle className="text-xs sm:text-sm text-muted-foreground">Average Price</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-foreground">
+            <p className="text-xl sm:text-2xl font-bold text-foreground">
               ${(templates.reduce((sum, t) => sum + t.price, 0) / templates.length).toFixed(2)}
             </p>
           </CardContent>
         </Card>
 
         <Card className="bg-card border-border">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm text-muted-foreground">Active Templates</CardTitle>
+          <CardHeader className="pb-2 sm:pb-3">
+            <CardTitle className="text-xs sm:text-sm text-muted-foreground">Active Templates</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-foreground">
+            <p className="text-xl sm:text-2xl font-bold text-foreground">
               {templates.filter((t) => t.status === "active").length}
             </p>
           </CardContent>
         </Card>
 
         <Card className="bg-card border-border">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm text-muted-foreground">With Discounts</CardTitle>
+          <CardHeader className="pb-2 sm:pb-3">
+            <CardTitle className="text-xs sm:text-sm text-muted-foreground">With Discounts</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-foreground">{templates.filter((t) => t.discount).length}</p>
+            <p className="text-xl sm:text-2xl font-bold text-foreground">
+              {templates.filter((t) => t.discount).length}
+            </p>
           </CardContent>
         </Card>
       </div>

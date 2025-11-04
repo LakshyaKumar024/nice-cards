@@ -43,36 +43,36 @@ export function UserAnalytics() {
   const totalSignIns = mockUsers.reduce((sum, u) => sum + u.signIns, 0)
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 lg:gap-6">
         <Card className="bg-card border-border">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-card-foreground">Total Members</CardTitle>
+          <CardHeader className="pb-2 sm:pb-3">
+            <CardTitle className="text-xs sm:text-sm font-medium text-card-foreground">Total Members</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-card-foreground">{totalUsers}</div>
-            <p className="text-xs text-muted-foreground mt-2">across all regions</p>
+            <div className="text-2xl sm:text-3xl font-bold text-card-foreground">{totalUsers}</div>
+            <p className="text-xs text-muted-foreground mt-1 sm:mt-2">across all regions</p>
           </CardContent>
         </Card>
         <Card className="bg-card border-border">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-card-foreground">Active Users</CardTitle>
+          <CardHeader className="pb-2 sm:pb-3">
+            <CardTitle className="text-xs sm:text-sm font-medium text-card-foreground">Active Users</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-card-foreground">{activeUsers}</div>
-            <p className="text-xs text-muted-foreground mt-2">
+            <div className="text-2xl sm:text-3xl font-bold text-card-foreground">{activeUsers}</div>
+            <p className="text-xs text-muted-foreground mt-1 sm:mt-2">
               {Math.round((activeUsers / totalUsers) * 100)}% of total
             </p>
           </CardContent>
         </Card>
         <Card className="bg-card border-border">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-card-foreground">Total Sign-ins</CardTitle>
+          <CardHeader className="pb-2 sm:pb-3">
+            <CardTitle className="text-xs sm:text-sm font-medium text-card-foreground">Total Sign-ins</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-card-foreground">{totalSignIns}</div>
-            <p className="text-xs text-muted-foreground mt-2">all time</p>
+            <div className="text-2xl sm:text-3xl font-bold text-card-foreground">{totalSignIns}</div>
+            <p className="text-xs text-muted-foreground mt-1 sm:mt-2">all time</p>
           </CardContent>
         </Card>
       </div>
@@ -83,45 +83,57 @@ export function UserAnalytics() {
           placeholder="Search by name or email..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="bg-input border-border text-foreground placeholder:text-muted-foreground"
+          className="bg-input border-border text-foreground placeholder:text-muted-foreground text-sm"
         />
       </div>
 
       {/* Users Table */}
-      <Card className="bg-card border-border">
-        <CardHeader>
-          <CardTitle className="text-card-foreground">Members List</CardTitle>
-          <CardDescription>{filteredUsers.length} members</CardDescription>
+      <Card className="bg-card border-border overflow-hidden">
+        <CardHeader className="pb-3 sm:pb-4">
+          <CardTitle className="text-base sm:text-lg text-card-foreground">Members List</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">{filteredUsers.length} members</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-max">
               <thead className="border-b border-border bg-muted/30">
                 <tr>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-card-foreground">Name</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-card-foreground">Email</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-card-foreground">Sign-ins</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-card-foreground">Join Date</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-card-foreground">Status</th>
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-semibold text-card-foreground whitespace-nowrap">
+                    Name
+                  </th>
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-semibold text-card-foreground whitespace-nowrap">
+                    Email
+                  </th>
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-semibold text-card-foreground whitespace-nowrap">
+                    Sign-ins
+                  </th>
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-semibold text-card-foreground whitespace-nowrap">
+                    Join Date
+                  </th>
+                  <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs sm:text-sm font-semibold text-card-foreground whitespace-nowrap">
+                    Status
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {filteredUsers.map((user) => (
                   <tr key={user.id} className="border-b border-border hover:bg-muted/20 transition-colors">
-                    <td className="px-6 py-4">
-                      <span className="font-medium text-card-foreground">{user.name}</span>
+                    <td className="px-3 sm:px-6 py-3 sm:py-4">
+                      <span className="font-medium text-card-foreground text-xs sm:text-sm">{user.name}</span>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm text-muted-foreground">{user.email}</span>
+                    <td className="px-3 sm:px-6 py-3 sm:py-4">
+                      <span className="text-xs sm:text-sm text-muted-foreground">{user.email}</span>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm font-medium text-card-foreground">{user.signIns}</span>
+                    <td className="px-3 sm:px-6 py-3 sm:py-4">
+                      <span className="text-xs sm:text-sm font-medium text-card-foreground">{user.signIns}</span>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm text-muted-foreground">{user.joinDate}</span>
+                    <td className="px-3 sm:px-6 py-3 sm:py-4">
+                      <span className="text-xs sm:text-sm text-muted-foreground">{user.joinDate}</span>
                     </td>
-                    <td className="px-6 py-4">
-                      <Badge variant={user.status === "active" ? "default" : "secondary"}>{user.status}</Badge>
+                    <td className="px-3 sm:px-6 py-3 sm:py-4">
+                      <Badge variant={user.status === "active" ? "default" : "secondary"} className="text-xs">
+                        {user.status}
+                      </Badge>
                     </td>
                   </tr>
                 ))}
