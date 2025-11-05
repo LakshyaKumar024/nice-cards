@@ -1,10 +1,44 @@
 "use client";
 
-import { useState } from "react";
+import { use, useEffect, useState } from "react";
 import { Download, Save } from "lucide-react";
 import { useTheme } from "next-themes";
+import { SVGViewer } from "@/components/svg-viewer";
+import { useUser } from "@clerk/nextjs";
 
-export default function TemplateEditor() {
+interface Template {
+  uuid: string;
+  name: string;
+  description: string;
+  price: number;
+  catogery: string;
+  paid: boolean;
+  pdf: string;
+  svg: string;
+  image: string;
+  preview_url: string | null;
+  rating: number;
+  downloads: number;
+  createdAt: string;
+  tags: string[];
+}
+
+
+export default function page({
+  params,
+}: {
+  params: Promise<{ templateId: string }>;
+}) {
+  const [svgContent, setSvgContent] = useState("");
+  const { templateId } = use(params);
+  const [loading, setLoading] = useState(true);
+  const [template, setTemplate] = useState<Template | null>(null);
+  const { isLoaded, user } = useUser();
+  const [isPurchased, setIsPurchased] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [tags, setTags] = useState<string[]>([]);
+
+
   const [cardData, setCardData] = useState({
     recipientName: "Guest Name",
     senderName: "Your Name",
@@ -14,8 +48,82 @@ export default function TemplateEditor() {
     eventLocation: "Grand Ballroom",
     customMessage: "We would be honored by your presence",
   });
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const { theme, setTheme } = useTheme();
+
+
+  useEffect(() => {
+    const fetchTemplate = async () => {
+      setLoading(true);
+      if (!isLoaded || !templateId) return;
+
+      try {
+        const res = await fetch(`/api/design/${templateId}`, {
+          method: "POST",
+          body: JSON.stringify({ userId: user?.id }),
+          headers: { "Content-Type": "application/json" },
+          cache: "no-store",
+        });
+
+        if (!res.ok) throw new Error("Failed to fetch template");
+
+        const result = await res.json();
+        const data = result.data;
+        if (!data?.uuid) throw new Error("Invalid template data");
+
+        setTemplate(data);
+        setIsPurchased(data.hasPurchased ?? false);
+
+        // Parse tags safely
+        if (Array.isArray(data.tags)) {
+          setTags(data.tags);
+        } else if (typeof data.tags === "string") {
+          try {
+            setTags(JSON.parse(data.tags));
+          } catch {
+            setTags(data.tags.split(",").map((t: string) => t.trim()));
+          }
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Error loading template");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (isLoaded && templateId) fetchTemplate();
+  }, [templateId, isLoaded, user]);
+
+
+  useEffect(() => {
+    if (!template?.svg) return;
+
+    console.log("🖼️ Fetching SVG:", template.svg);
+    fetch(`/api/getSvg/${template.svg}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to load SVG");
+        return res.text();
+      })
+      .then((data) => {
+        console.log("✅ SVG loaded successfully");
+        setSvgContent(data);
+      })
+      .catch((err) => {
+        console.error("❌ Error loading SVG:", err);
+        setSvgContent(""); // fallback empty
+      });
+  }, [template]);
+
+
+  if (loading)
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-black transition-colors">
+        <div className="flex flex-col items-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mb-4"></div>
+          <p className="text-xl text-gray-700 dark:text-gray-300">
+            Loading template...
+          </p>
+        </div>
+      </div>
+    );
 
   const handleInputChange = (field: keyof typeof cardData, value: string) => {
     setCardData((prev) => ({ ...prev, [field]: value }));
@@ -23,6 +131,7 @@ export default function TemplateEditor() {
 
   const handleSave = () => alert("Card design saved successfully!");
   const handleDownload = () => alert("Preparing your card for download...");
+
 
   return (
     <div className="min-h-screen transition-colors duration-300 bg-white dark:bg-black text-gray-800 dark:text-gray-200 font-[Geist]">
@@ -96,40 +205,10 @@ export default function TemplateEditor() {
 
         {/* Live Preview */}
         <section className="bg-gray-50 dark:bg-neutral-900 border border-gray-200 dark:border-gray-800 rounded-xl shadow-sm p-8 flex flex-col items-center justify-center">
-          <div className="w-full border-2 border-dashed border-gray-300 dark:border-gray-700 p-6 rounded-lg text-center">
-            <h1 className="text-3xl font-bold mb-4 text-purple-600 dark:text-purple-400 tracking-wide uppercase">
-              ✨ Invitation ✨
-            </h1>
-            <p className="text-xl font-semibold mb-4">
-              Dear {cardData.recipientName},
-            </p>
-            <p className="italic text-gray-600 dark:text-gray-300 mb-4">
-              {cardData.customMessage}
-            </p>
-            <div className="text-sm text-gray-700 dark:text-gray-400 leading-6">
-              <p>
-                <strong>Date:</strong>{" "}
-                {new Date(cardData.eventDate).toLocaleDateString()}
-              </p>
-              <p>
-                <strong>Time:</strong> {cardData.eventTime}
-              </p>
-              <p>
-                <strong>Location:</strong> {cardData.eventLocation}
-              </p>
-            </div>
-            <div className="mt-6">
-              <p className="text-sm text-gray-400 dark:text-gray-500">
-                With warm regards,
-              </p>
-              <p className="text-lg font-bold text-purple-500 dark:text-purple-300">
-                {cardData.senderName}
-              </p>
-              <p className="text-xs text-gray-500 mt-1">{cardData.senderAddress}</p>
-            </div>
+          <div className="w-full max-w-[600px] mx-auto">
+            <SVGViewer svgContent={svgContent} title="Invitation Preview" />
           </div>
 
-          {/* Tip box */}
           <div className="w-full mt-6 bg-gray-100 dark:bg-neutral-950 border border-gray-200 dark:border-gray-800 rounded-lg p-4 text-sm text-gray-600 dark:text-gray-400">
             💡 <strong>Tip:</strong> Edits update instantly in the preview.
           </div>

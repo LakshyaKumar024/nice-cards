@@ -102,9 +102,8 @@ export function TemplateDetail({
     if (!template) return;
     const link = document.createElement("a");
     link.href = template.pdf || template.svg;
-    link.download = `${template.name.replace(/\s+/g, "_")}.${
-      template.pdf ? "pdf" : "svg"
-    }`;
+    link.download = `${template.name.replace(/\s+/g, "_")}.${template.pdf ? "pdf" : "svg"
+      }`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -184,14 +183,6 @@ export function TemplateDetail({
                 {isPurchased ? (
                   <>
                     {imageSrc && !imageError ? (
-                      // <Image
-                      //   src={imageSrc || "/placeholder.svg"}
-                      //   alt={`${template.name} preview`}
-                      //   fill
-                      //   className="object-cover"
-                      //   priority
-                      //   onError={() => setImageError(true)}
-                      // />
                       <div className="relative w-full h-full">
                         <iframe
                           src={`/api/getPdf/${template.pdf}#toolbar=0&navpanes=0&scrollbar=0`}

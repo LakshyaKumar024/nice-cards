@@ -134,8 +134,21 @@ export const Navbar = () => {
                           <span className="text-foreground">Templates</span>
                         </Link>
                         <div className="flex items-center gap-3 px-2 py-3">
+
                           <User className="h-5 w-5" />
-                          <span className="text-foreground">Profile</span>
+                          <SignedIn>
+                            <UserButton
+                              appearance={{
+                                elements: {
+                                  avatarBox: "h-8 w-8", // Compact avatar size
+                                },
+                                variables: {
+                                  colorPrimary: "#e5c846ff", // Tailwind indigo-600 for accent
+                                },
+                              }}
+                            />
+                          </SignedIn>
+
                         </div>
                       </div>
                     </SignedIn>
