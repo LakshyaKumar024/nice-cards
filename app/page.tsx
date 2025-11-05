@@ -1,10 +1,7 @@
 "use client";
-
-import { TemplateCard } from "@/components/temlate-card";
+import { TemplateCard } from "@/components/template-card";
 import Image from "next/image";
 import React, { useEffect, useState } from "react";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useTheme } from "next-themes";
 
 const categories = [
   "All",
@@ -17,6 +14,9 @@ const categories = [
   "INVITATION",
   "CORPORATE",
 ];
+
+// Import proper shadcn components (make sure these are installed)
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export interface Template {
   uuid: string;
@@ -39,86 +39,76 @@ export interface Template {
 export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [templates, setTemplates] = useState<Template[]>([]);
-  const { theme, setTheme } = useTheme();
 
   useEffect(() => {
     fetch("/api/design")
       .then((res) => res.json())
-      .then((data) => setTemplates(data.data))
-      .catch((err) => console.error("Failed to load templates:", err));
+      .then((data) => {
+        setTemplates(data.data);
+        console.log(data.data);
+      });
   }, []);
 
+  // Filter templates based on selected category
   const filteredTemplates =
     selectedCategory === "All"
       ? templates
       : templates.filter((template) => template.catogery === selectedCategory);
 
   const handlePurchase = (templateId: string) => {
+    // setPurchasedIds((prev) => new Set([...Array.from(prev), templateId]));
     alert(`Template ${templateId} purchased successfully!`);
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black text-gray-900 dark:text-gray-100 transition-colors duration-300">
-      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 lg:py-14">
-        {/* 🌟 Header Section */}
-        <div className="flex flex-col items-center justify-center text-center mb-10 sm:mb-14 lg:mb-16">
-          {/* Logo */}
-          <div className="mb-6 sm:mb-8">
+    <div className="min-h-screen bg-gradient-subtle">
+      <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
+        {/* Hero Section */}
+        <div className="flex flex-col items-center justify-center text-center mb-8 sm:mb-12 lg:mb-16">
+          {/* Responsive logo */}
+          <div className="mb-4 sm:mb-6 lg:mb-8">
             <Image
               src="/logo.jpg"
-              width={160}
-              height={160}
+              width={200}
+              height={200}
               alt="NC"
-              className="w-24 h-24 sm:w-32 sm:h-32 lg:w-40 lg:h-40 rounded-lg object-cover shadow-md"
+              className="w-24 h-24 sm:w-32 sm:h-32 lg:w-40 lg:h-40 xl:w-48 xl:h-48"
               priority
             />
           </div>
 
-          {/* Heading */}
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold mb-4 bg-gradient-to-r from-purple-500 to-purple-700 bg-clip-text text-transparent">
+          {/* Responsive heading */}
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold mb-3 sm:mb-4 lg:mb-6 bg-linear-to-r from-[#6c47ff] to-[#8a6cff] bg-clip-text text-transparent px-4">
             Beautiful Invitation Templates
           </h1>
 
-          {/* Subtext */}
-          <p className="text-base sm:text-lg lg:text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+          {/* Responsive paragraph */}
+          <p className="text-base sm:text-lg lg:text-xl text-muted-foreground max-w-xs sm:max-w-md lg:max-w-2xl mx-auto px-4 sm:px-0">
             Choose from our collection of stunning invitation card templates for
-            every occasion.
+            every occasion
           </p>
-
-          {/* 🌓 Theme Toggle */}
-          
         </div>
 
-        {/* 🔖 Category Tabs */}
-       <Tabs
-  value={selectedCategory}
-  onValueChange={setSelectedCategory}
-  className="mb-10 w-full"
->
-  {/* 🆕 WRAPPER ADDED BELOW */}
-  <div className="flex justify-center w-full">
-    {/* 🆕 Added w-full sm:w-auto to handle centering properly */}
-    <TabsList className="flex flex-wrap justify-center gap-3 sm:gap-4 h-auto p-3 sm:p-4 
-      bg-gray-100 dark:bg-neutral-900 rounded-xl border border-gray-200 dark:border-gray-800 
-      shadow-sm w-full sm:w-auto">
-      {categories.map((category) => (
-        <TabsTrigger
-          key={category}
-          value={category}
-          className="text-sm sm:text-base font-medium px-4 sm:px-6 py-2.5 rounded-md
-          data-[state=active]:bg-purple-600 data-[state=active]:text-white
-          text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-neutral-800 transition"
+        <Tabs
+          value={selectedCategory}
+          onValueChange={setSelectedCategory}
+          className="mb-6 sm:mb-8 lg:mb-12 w-full"
         >
-          {category}
-        </TabsTrigger>
-      ))}
-    </TabsList>
-  </div>
-</Tabs>
+          <TabsList className="flex flex-wrap justify-center gap-2 sm:gap-4 h-auto p-3 sm:p-4 bg-muted/50 rounded-xl shadow-sm">
+            {categories.map((category) => (
+              <TabsTrigger
+                key={category}
+                value={category}
+                className="flex-1 sm:flex-none min-w-[120px] sm:min-w-[140px] text-sm sm:text-base font-medium px-4 sm:px-6 py-3 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-200 hover:bg-muted"
+              >
+                {category}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
 
-
-        {/* 🎨 Templates Grid */}
-        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 sm:gap-8 lg:gap-10">
+        {/* Templates Grid */}
+        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
           {filteredTemplates.map((template) => (
             <TemplateCard
               key={template.uuid}
@@ -133,11 +123,11 @@ export default function Home() {
           ))}
         </div>
 
-        {/* 🕳 Empty State */}
+        {/* Empty State */}
         {filteredTemplates.length === 0 && (
-          <div className="text-center py-20 sm:py-28 lg:py-32">
-            <p className="text-lg sm:text-xl lg:text-2xl text-gray-500 dark:text-gray-400">
-              No templates found in this category.
+          <div className="text-center py-12 sm:py-16 lg:py-20">
+            <p className="text-lg sm:text-xl lg:text-2xl text-muted-foreground">
+              No templates found in this category
             </p>
           </div>
         )}
