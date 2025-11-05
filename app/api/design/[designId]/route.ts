@@ -1,18 +1,21 @@
 import prisma from "@/lib/db-init";
 import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(
+
+export async function POST(
     request: NextRequest,
     { params }: { params: { designId: string } }
 ) {
+    const body = await request.json();
+    const { userId } = body;
     const { designId } = await params; // This is correct for API routes
-    
-    // Use the designId
-    console.log('Design ID:', designId);
 
-    
+    // Use the designId
+    console.log('user ID:', userId);
+
+
     try {
-        const templates = await prisma.template.findUnique({
+        const template = await prisma.template.findUnique({
             where: { uuid: designId },
             select: {
                 uuid: true,
@@ -26,14 +29,43 @@ export async function GET(
                 pdf: true,
                 image: true,
                 createdAt: true,
+                savedTemplates: userId
+                    ? {
+                        where: { userId },
+                        select: {
+                            uuid: true,
+                            file_location: true,
+                            createdAt: true,
+                        },
+                    }
+                    : {}
             }
         })
+
+        if (!template) {
+            return NextResponse.json(
+                { success: false, error: "Template not found" },
+                { status: 404 }
+            );
+        }
+
+
+        const savedTemplates = userId ? template.savedTemplates || [] : [];
+        const hasPurchased = savedTemplates.length > 0;
+
 
         return NextResponse.json(
             {
                 success: true,
-                data: templates
-            }, { status: 200 })
+                data: {
+                    ...template,
+                    hasPurchased,
+                    savedTemplate: hasPurchased ? template.savedTemplates[0] : null,
+                },
+            },
+            { status: 200 }
+        );
+
 
     } catch (error) {
         return NextResponse.json(

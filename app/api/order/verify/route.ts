@@ -30,20 +30,32 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const order = await prisma.order.update({
-            where: {
-                razorpayOrderId: orderId
-            }, data: {
-                status: "completed"
-            },
-            select: {
-                id: true,
-                razorpayOrderId: true,
-                userId: true,
-                templateId: true,
-                status: true,
-            }
+        const order = await prisma.$transaction(async (tx) => {
+
+            const order = await tx.order.update({
+                where: {
+                    razorpayOrderId: orderId
+                }, data: {
+                    status: "completed"
+                },
+                select: {
+                    id: true,
+                    razorpayOrderId: true,
+                    userId: true,
+                    templateId: true,
+                    status: true,
+                }
+            })
+
+            const saveTemplate = await tx.savedTemplate.create({
+                data: {
+                    userId: order?.userId,
+                    templateId: order?.templateId,
+                }
+            })
+            return { order, saveTemplate };
         });
+
         if (order) {
             const transporter = nodemailer.createTransport({
                 host: process.env.SMTP_HOST!,

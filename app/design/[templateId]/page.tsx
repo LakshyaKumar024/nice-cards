@@ -23,7 +23,7 @@ interface Template {
   paid: boolean;
   pdf: string;
   svg: string;
-  image_url: string;
+  image: string;
   preview_url: string | null;
   rating: number;
   downloads: number;
@@ -43,7 +43,8 @@ export function TemplateDetail({
   const [tags, setTags] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [imageError, setImageError] = useState(false);
-  const { user } = useUser();
+  const { isLoaded, user } = useUser();
+
   const router = useRouter();
 
   const { templateId } = use(params);
@@ -51,9 +52,14 @@ export function TemplateDetail({
   useEffect(() => {
     const fetchTemplate = async () => {
       setLoading(true);
+      if (!isLoaded || !templateId) {
+        return;
+      }
+
       try {
         const res = await fetch(`/api/design/${templateId}`, {
-          method: "GET",
+          method: "POST",
+          body: JSON.stringify({ userId: user?.id }),
           headers: { "Content-Type": "application/json" },
           cache: "no-store",
         });
@@ -62,6 +68,9 @@ export function TemplateDetail({
         const data = result.data;
         if (!data?.uuid) throw new Error("Invalid template data");
         setTemplate(data);
+        console.log("user === ", user);
+        console.log(data.hasPurchased);
+        setIsPurchased(data.hasPurchased);
 
         // Parse tags safely
         let parsed: string[] = [];
@@ -73,8 +82,6 @@ export function TemplateDetail({
           }
         } else if (Array.isArray(data.tags)) parsed = data.tags;
         setTags(parsed);
-
-        setIsPurchased(false);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Error loading template");
       } finally {
@@ -82,11 +89,13 @@ export function TemplateDetail({
       }
     };
     if (templateId) fetchTemplate();
-  }, [templateId]);
+  }, [templateId, isLoaded, user]);
 
   const handlePurchase = () => {
+    setPurchasing(true);
     if (!template) return;
     router.push(`/design/${template.uuid}/checkout`);
+    setPurchasing(false);
   };
 
   const handleDownload = () => {
@@ -102,11 +111,15 @@ export function TemplateDetail({
     toast.success(`Downloading "${template.name}"...`);
   };
 
-  const handleEditTemplate = () => router.push(`/editor/${template?.uuid}`);
+  const handleEditTemplate = () =>
+    router.push(`/design/${template?.uuid}/edit`);
   const handleBack = () => router.push("/");
 
   const imageSrc =
-    template?.preview_url?.trim() || template?.image_url?.trim() || null;
+    `/placeholder/image/${template?.image?.trim()}` ||
+    `/placeholder/image/${template?.image?.trim()}` ||
+    null;
+  console.log(imageSrc);
 
   if (loading)
     return (
@@ -167,25 +180,64 @@ export function TemplateDetail({
           {/* Preview */}
           <div className="space-y-4">
             <div className="rounded-xl overflow-hidden shadow-lg bg-white dark:bg-[#121212] border dark:border-gray-800">
-              <div className="aspect-[3/4] w-full relative bg-gray-100 dark:bg-[#1a1a1a]">
-                {imageSrc && !imageError ? (
-                  <Image
-                    src={imageSrc}
-                    alt={`${template.name} preview`}
-                    fill
-                    className="object-cover"
-                    priority
-                    onError={() => setImageError(true)}
-                  />
+              <div className="aspect-3/4 w-full relative bg-gray-100 dark:bg-[#1a1a1a]">
+                {isPurchased ? (
+                  <>
+                    {imageSrc && !imageError ? (
+                      // <Image
+                      //   src={imageSrc || "/placeholder.svg"}
+                      //   alt={`${template.name} preview`}
+                      //   fill
+                      //   className="object-cover"
+                      //   priority
+                      //   onError={() => setImageError(true)}
+                      // />
+                      <div className="relative w-full h-full">
+                        <iframe
+                          src={`/api/getPdf/${template.pdf}#toolbar=0&navpanes=0&scrollbar=0`}
+                          className="w-full h-full rounded-xl"
+                          style={{
+                            border: "none",
+                          }}
+                          title="PDF Document"
+                          // ✅ Remove sandbox attribute as it was too restrictive
+                          // ✅ Keep basic event handlers but make them less intrusive
+                          onContextMenu={(e) => e.preventDefault()}
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <div className="text-center">
+                          <ImageIcon className="h-24 w-24 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+                          <p className="text-gray-400 dark:text-gray-500 text-sm">
+                            No preview available
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <div className="text-center">
-                      <ImageIcon className="h-24 w-24 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-                      <p className="text-gray-400 dark:text-gray-500 text-sm">
-                        No preview available
-                      </p>
-                    </div>
-                  </div>
+                  <>
+                    {imageSrc && !imageError ? (
+                      <Image
+                        src={imageSrc || "/placeholder.svg"}
+                        alt={`${template.name} preview`}
+                        fill
+                        className="object-cover"
+                        priority
+                        onError={() => setImageError(true)}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <div className="text-center">
+                          <ImageIcon className="h-24 w-24 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+                          <p className="text-gray-400 dark:text-gray-500 text-sm">
+                            No preview available
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -196,10 +248,25 @@ export function TemplateDetail({
               </div>
             )}
 
+            {!isPurchased && (
+              <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 rounded-lg p-4 text-center">
+                <p className="text-sm font-semibold text-purple-900 dark:text-purple-200 mb-2">
+                  🔒 Limited Preview
+                </p>
+                <p className="text-xs text-purple-700 dark:text-purple-300">
+                  Purchase to see the full template and unlock all customization
+                  features
+                </p>
+              </div>
+            )}
+
             {/* Stats */}
             <div className="grid grid-cols-3 gap-4 text-center">
               {[
-                { label: "Rating", value: template.rating?.toFixed(1) || "N/A" },
+                {
+                  label: "Rating",
+                  value: template.rating?.toFixed(1) || "N/A",
+                },
                 {
                   label: "Downloads",
                   value: template.downloads?.toLocaleString() || "0",
@@ -317,7 +384,7 @@ export function TemplateDetail({
                   <Button
                     variant="outline"
                     size="lg"
-                    className="w-full dark:border-gray-600 dark:text-gray-200"
+                    className="w-full dark:border-gray-600 dark:text-gray-200 bg-transparent"
                     onClick={handleDownload}
                   >
                     Download Files
@@ -328,7 +395,7 @@ export function TemplateDetail({
                   onClick={handlePurchase}
                   disabled={purchasing}
                   size="lg"
-                  className="w-full bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-800 text-white"
+                  className="w-full bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-800 text-white cursor-pointer"
                 >
                   {purchasing ? (
                     <>

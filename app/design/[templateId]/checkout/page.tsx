@@ -1,7 +1,13 @@
 "use client";
 import OrderSummary from "@/components/checkout/orderSummary";
+import PaymentInfoCard from "@/components/paymentInfocard";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { use } from "react";
+import { useUser } from "@clerk/nextjs";
+import { ArrowLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { use, useEffect, useState } from "react";
+import { toast } from "sonner";
 
 export default function Page({
   params,
@@ -9,14 +15,38 @@ export default function Page({
   params: Promise<{ templateId: string }>;
 }) {
   const { templateId } = use(params);
+  const router = useRouter();
+  const { user } = useUser();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [template, setTemplate] = useState<any>({});
+  useEffect(() => {
+    const getTemplate = async () => {
+      const template = await fetch(`/api/design/${templateId}`, {
+        method: "POST",
+        body: JSON.stringify({ userId: user?.id }),
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await template.json();
+      setTemplate(data.data);
+    };
+    getTemplate();
+  }, [user, templateId]);
+  console.log(template);
+
+  if (!template.uuid)
+    return (
+      <div className="flex items-center justify-center h-screen w-full text-3xl font-semibold text-muted-foreground animate-pulse">
+        Loading...
+      </div>
+    );
 
   const templateData = {
-    name: "Elegant Floral Wedding Invitation",
+    name: template.name,
     designer: "Nice Card",
-    image: "/placeholder/image/design-aaa-21.jpg",
-    originalPrice: 499.0,
-    discount: 499.0,
-    finalPrice: 10.0,
+    image: `/placeholder/image/${template.image}`,
+    originalPrice: Number(template.price),
+    discount: 0,
+    finalPrice: Number(template.price),
   };
 
   console.log("rpi---");
@@ -36,7 +66,7 @@ export default function Page({
     const paymentData = {
       key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
       order_id: data.data.razorpay.id,
-      
+
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       handler: async (response: any) => {
         const res = await fetch("/api/order/verify", {
@@ -51,7 +81,8 @@ export default function Page({
         console.log(data);
         if (data.isOk) {
           // do whatever page transition you want here as payment was successful
-          alert("Payment successful");
+          toast.success("Payment successful");
+          router.push(`/design/${templateId}/edit`);
         } else {
           alert("Payment failed");
         }
@@ -62,9 +93,20 @@ export default function Page({
     payment.open();
   };
 
+  const handleBack = () => router.push(`/design/${templateId}`);
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8 md:py-12">
+        <Button
+          variant="ghost"
+          onClick={handleBack}
+          className="mb-4 sm:mb-6 text-gray-700 dark:text-gray-300"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          <span className="hidden sm:inline">Back to Template</span>
+          <span className="sm:hidden">Back</span>
+        </Button>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 max-w-7xl mx-auto">
           {/* Left Column - Main Checkout Section */}
           <div className="lg:col-span-2 space-y-6">
@@ -148,16 +190,7 @@ export default function Page({
             </Card>
 
             {/* Payment Info - Desktop only */}
-            <Card className="p-6 hidden lg:block">
-              <div className="space-y-4">
-                <h2 className="text-xl font-semibold">Payment Information</h2>
-                <p className="text-sm text-muted-foreground">
-                  Your payment will be processed securely. By completing this
-                  purchase, you agree to our Terms of Service and Privacy
-                  Policy.
-                </p>
-              </div>
-            </Card>
+            <PaymentInfoCard />
           </div>
 
           {/* Right Column - Order Summary */}

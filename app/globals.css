@@ -120,3 +120,21 @@
     @apply bg-background text-foreground;
   }
 }
+
+
+
+/* Disable text selection on the PDF viewer */
+iframe {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Disable dragging */
+iframe {
+  -webkit-user-drag: none;
+  -khtml-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+}
