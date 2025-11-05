@@ -2,10 +2,11 @@ import prisma from "@/lib/db-init";
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function GET(request: Request) {
 
     try {
-        const { userId, sessionId } = await auth();
+        const { userId } = await auth();
 
         if (!userId) {
             console.log("No user found");

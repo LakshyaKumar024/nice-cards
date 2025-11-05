@@ -10,7 +10,7 @@ const razorpay = new Razorpay({
 });
 
 export async function POST(request: Request) {
-  const { userId, sessionId } = await auth();
+  const { userId } = await auth();
   const { productId } = await request.json();
 console.log(process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,process.env.RAZORPAY_SECRET!);
 
@@ -25,8 +25,6 @@ console.log(process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,process.env.RAZORPAY_SECRET
     if (!getTemplate) {
       return NextResponse.json({ error: "No template found", message: "give an valid product id" }, { status: 401 });
     }
-    const datetime = new Date().getSeconds();
-    console.log("LKHKBJKJNJ");
 
     const order = await razorpay.orders.create({
       amount: Math.round(Number(getTemplate.price) * 100),

@@ -28,6 +28,7 @@ import {
   FormDescription,
 } from "@/components/ui/form";
 import { toast } from "sonner";
+import Image from "next/image";
 
 const CATEGORIES = [
   "WEDDING",
@@ -309,7 +310,7 @@ export default function AddTemplatePage() {
                             onCheckedChange={field.onChange}
                           />
                         </FormControl>
-                        <FormLabel className="!mt-0">
+                        <FormLabel className="mt-0!">
                           Mark as paid template
                         </FormLabel>
                       </FormItem>
@@ -343,7 +344,7 @@ export default function AddTemplatePage() {
                         <FormMessage />
                         {imagePreview && (
                           <div className="relative w-full max-w-xs">
-                            <img
+                            <Image
                               src={imagePreview || "/placeholder.svg"}
                               alt="Preview"
                               className="w-full h-auto rounded-lg border border-border object-cover"

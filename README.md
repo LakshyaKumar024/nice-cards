@@ -7,18 +7,18 @@ This project is **private** and proprietary — not intended for open-source dis
 
 ## 🧠 Tech Stack Overview
 
-| Technology | Purpose |
-|-------------|----------|
-| **Next.js 16** | Framework for SSR/SSG |
-| **Bun** | Fast runtime and package manager |
-| **TypeScript** | Type safety and maintainability |
-| **Clerk** | Authentication and user management |
-| **Prisma** | ORM for database interactions |
-| **ShadCN/UI** | Prebuilt Radix-based UI components |
-| **Razorpay** | Payment gateway integration |
-| **Mailtrap + Nodemailer** | Email handling and testing |
-| **TailwindCSS** | Styling framework |
-| **Zod + React Hook Form** | Validation and form handling |
+| Technology                | Purpose                            |
+| ------------------------- | ---------------------------------- |
+| **Next.js 16**            | Framework for SSR/SSG              |
+| **Bun**                   | Fast runtime and package manager   |
+| **TypeScript**            | Type safety and maintainability    |
+| **Clerk**                 | Authentication and user management |
+| **Prisma**                | ORM for database interactions      |
+| **ShadCN/UI**             | Prebuilt Radix-based UI components |
+| **Razorpay**              | Payment gateway integration        |
+| **Mailtrap + Nodemailer** | Email handling and testing         |
+| **TailwindCSS**           | Styling framework                  |
+| **Zod + React Hook Form** | Validation and form handling       |
 
 ---
 
@@ -27,7 +27,8 @@ This project is **private** and proprietary — not intended for open-source dis
 ### 1. Prerequisites
 
 Ensure you have the following installed:
-- **Bun** ≥ 1.1  
+
+- **Bun** ≥ 1.1
 - **Node.js** ≥ 20 (for type compatibility)
 - **Prisma CLI**
 - **Git**
@@ -65,16 +66,19 @@ All environment variables are mandatory for production.
 ## 🗃️ Database Setup (Prisma)
 
 ### 1. Generate Prisma Client
+
 ```bash
 bunx prisma generate
 ```
 
 ### 2. Push Schema
+
 ```bash
 bunx prisma db push
 ```
 
 ### 3. View Database (optional)
+
 ```bash
 bunx prisma studio
 ```
@@ -83,12 +87,12 @@ bunx prisma studio
 
 ## 🧑‍💻 Development Commands
 
-| Command | Description |
-|----------|-------------|
-| `bun run dev` | Start development server |
-| `bun run build` | Build for production |
-| `bun run start` | Start production build |
-| `bun run lint` | Run ESLint checks |
+| Command         | Description              |
+| --------------- | ------------------------ |
+| `bun run dev`   | Start development server |
+| `bun run build` | Build for production     |
+| `bun run start` | Start production build   |
+| `bun run lint`  | Run ESLint checks        |
 
 ---
 
@@ -141,6 +145,7 @@ export const transporter = nodemailer.createTransport({
 
 UI built using [ShadCN/UI](https://ui.shadcn.com).  
 To add new components:
+
 ```bash
 bunx shadcn@latest add button input card
 ```
@@ -156,7 +161,7 @@ bunx shadcn@latest add button input card
 ├── lib/                  # Utilities and helpers
 ├── prisma/               # Prisma schema and DB setup
 ├── public/               # Static assets
-├── styles/               # Tailwind styles
+├── private/               # private files
 ├── .env.example          # Example env variables
 ├── package.json
 └── README.md
@@ -167,20 +172,24 @@ bunx shadcn@latest add button input card
 ## 👨‍💼 Developer Onboarding Guide
 
 ### Step 1. Clone the repository (Private Access Only)
+
 ```bash
 git clone <private_repo_url>
 cd nice-card
 ```
 
 ### Step 2. Setup Environment Variables
+
 Create `.env` file from `.env.example` and configure with **development credentials**.
 
 For sandbox testing:
+
 - **Clerk**: Use your test publishable/secret keys.
 - **Razorpay**: Use test mode keys from [Razorpay Dashboard → Settings → API Keys](https://dashboard.razorpay.com/).
 - **Mailtrap**: Get SMTP credentials from [Mailtrap Inboxes](https://mailtrap.io/inboxes).
 
 ### Step 3. Run Development Server
+
 ```bash
 bun run dev
 ```
@@ -188,6 +197,7 @@ bun run dev
 Visit [http://localhost:3000](http://localhost:3000) to verify.
 
 ### Step 4. Testing
+
 - Check authentication flow (Clerk sign-up & sign-in).
 - Perform a dummy Razorpay test payment.
 - Verify emails are being received in Mailtrap inbox.
@@ -196,11 +206,12 @@ Visit [http://localhost:3000](http://localhost:3000) to verify.
 
 ## 🚀 Deployment
 
-Recommended hosting: **Vercel**  
-Other supported: **Railway**, **Render**, **Bun.sh Deploy**
+Recommended hosting: **VPS**  
+Other supported: **Vercel**, **Desigital Ocean**, **AWS**
 
 **Steps:**
-1. Set all environment variables in the hosting platform.  
+
+1. Set all environment variables in the hosting platform.
 2. Run the production build:
    ```bash
    bun run build
@@ -211,10 +222,10 @@ Other supported: **Railway**, **Render**, **Bun.sh Deploy**
 
 ## 🔒 Notes
 
-- This repository is **private** and **client-owned**.  
-- Do **not** share, distribute, or publish code externally.  
-- All credentials (API keys, DB URLs) are confidential and environment-specific.  
-- Development environments must use **sandbox/test credentials** only.  
+- This repository is **private** and **client-owned**.
+- Do **not** share, distribute, or publish code externally.
+- All credentials (API keys, DB URLs) are confidential and environment-specific.
+- Development environments must use **sandbox/test credentials** only.
 
 ---
 
@@ -222,7 +233,7 @@ Other supported: **Railway**, **Render**, **Bun.sh Deploy**
 
 **Project Name:** Nice Card  
 **Version:** 0.1.0  
-**Maintained By:** DeepVoidLab
-**Client:** Confidential  
+**Maintained By:** DeepVoidLab  
+**Client:** Nice-Card
 
 ---

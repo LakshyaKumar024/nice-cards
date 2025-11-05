@@ -1,4 +1,3 @@
-import { IndianRupee } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import Router from "next/navigation"
@@ -20,7 +19,6 @@ export function TemplateCard({
   price,
   category,
   imageUrl,
-  onPurchase,
 }: TemplateCardProps) {
   const isPurchased = false;
 

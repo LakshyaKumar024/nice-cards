@@ -1,7 +1,7 @@
 "use client";
-import { User, LogOut, Home, ShoppingBag, Menu, X } from "lucide-react";
+import { User, Home, ShoppingBag, Menu, X } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "./ui/button";
 import {
   SignedIn,

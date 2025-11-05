@@ -4,11 +4,11 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(
     request: NextRequest,
-    { params }: { params: { designId: string } }
+    context: { params: Promise<{ designId: string }> }
 ) {
     const body = await request.json();
     const { userId } = body;
-    const { designId } = await params; // This is correct for API routes
+    const { designId } = await context.params;
 
     // Use the designId
     console.log('user ID:', userId);

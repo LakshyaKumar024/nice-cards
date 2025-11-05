@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Download, Save, Menu, X } from "lucide-react"
+import { Download, Save } from "lucide-react"
 
 
 
@@ -26,8 +26,9 @@ interface Template {
 
 
 export default function TemplateEditor() {
-    const [template, setTemplate] = useState<Template | null>(null);
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [template, setTemplate] = useState<Template | null>(null);
 
   const [cardData, setCardData] = useState({
     recipientName: "Guest Name",
@@ -39,6 +40,7 @@ export default function TemplateEditor() {
     customMessage: "We would be honored by your presence",
   })
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [sidebarOpen, setSidebarOpen] = useState(true)
 
   const handleInputChange = (field: keyof typeof cardData, value: string) => {
