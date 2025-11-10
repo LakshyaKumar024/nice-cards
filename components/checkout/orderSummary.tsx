@@ -21,9 +21,10 @@ interface TemplateData {
 interface OrderSummaryProps {
   templateData: TemplateData;
   handelPayment:()=>void;
+  isPurchasing: boolean;
 }
 
-const OrderSummary = ({ templateData, handelPayment}: OrderSummaryProps) => {
+const OrderSummary = ({ isPurchasing, templateData, handelPayment}: OrderSummaryProps) => {
     const [marketingConsent, setMarketingConsent] = useState<boolean>(false);
 
     return (
@@ -76,9 +77,10 @@ const OrderSummary = ({ templateData, handelPayment}: OrderSummaryProps) => {
             <Button
             onClick={handelPayment}
                 size="lg"
+                disabled={isPurchasing}
                 className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-base h-12"
             >
-                PLACE ORDER
+                {isPurchasing ? "placing order...":"PLACE ORDER"}
             </Button>
 
             <p className="text-xs text-center text-muted-foreground">

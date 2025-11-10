@@ -15,6 +15,7 @@ export default function Page({
   params: Promise<{ templateId: string }>;
 }) {
   const { templateId } = use(params);
+  const [isPurchasing, setIsPurchasing] = useState(false)
   const router = useRouter();
   const { user } = useUser();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -51,8 +52,9 @@ export default function Page({
 
 
   const handlePayment = async () => {
+    setIsPurchasing(true)
     // For free
-    if (Number(template.price === 0)) {
+    if (Number(template.price) === 0) {
       const res = await fetch("/api/order/verify/free", {
         method: "POST",
         body: JSON.stringify({
@@ -73,46 +75,49 @@ export default function Page({
     }
 
     // For Paid
-    const res = await fetch("/api/order/verify/free", {
-      method: "POST",
-      body: JSON.stringify({
-        productId: templateId,
-      }),
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-    const data = await res.json();
-    console.log("DTTATAT ---- ", data);
+    if ((Number(template.price) > 0)) {
+      const res = await fetch("/api/order", {
+        method: "POST",
+        body: JSON.stringify({
+          productId: templateId,
+        }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      const data = await res.json();
+      console.log("DTTATAT ---- ", data);
 
-    const paymentData = {
-      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
-      order_id: data.data.razorpay.id,
+      const paymentData = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
+        order_id: data.data.razorpay.id,
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        handler: async (response: any) => {
+          const res = await fetch("/api/order/verify", {
+            method: "POST",
+            body: JSON.stringify({
+              orderId: response.razorpay_order_id,
+              razorpayPaymentId: response.razorpay_payment_id,
+              razorpaySignature: response.razorpay_signature,
+            }),
+          });
+          const data = await res.json();
+          console.log(data);
+          if (data.isOk) {
+            // do whatever page transition you want here as payment was successful
+            toast.success("Payment successful");
+            router.push(`/design/${templateId}/edit`);
+          } else {
+            alert("Payment failed");
+          }
+          setIsPurchasing(false)
+        },
+      };
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      handler: async (response: any) => {
-        const res = await fetch("/api/order/verify", {
-          method: "POST",
-          body: JSON.stringify({
-            orderId: response.razorpay_order_id,
-            razorpayPaymentId: response.razorpay_payment_id,
-            razorpaySignature: response.razorpay_signature,
-          }),
-        });
-        const data = await res.json();
-        console.log(data);
-        if (data.isOk) {
-          // do whatever page transition you want here as payment was successful
-          toast.success("Payment successful");
-          router.push(`/design/${templateId}/edit`);
-        } else {
-          alert("Payment failed");
-        }
-      },
-    };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const payment = new (window as any).Razorpay(paymentData);
-    payment.open();
+      const payment = new (window as any).Razorpay(paymentData);
+      payment.open();
+    }
   };
 
   const handleBack = () => router.push(`/design/${templateId}`);
@@ -220,6 +225,7 @@ export default function Page({
             <OrderSummary
               templateData={templateData}
               handelPayment={handlePayment}
+              isPurchasing={isPurchasing}
             />
           </div>
         </div>
