@@ -14,28 +14,43 @@ const isProtectedRoute = createRouteMatcher([
 const isAdminRoute = createRouteMatcher([
   "/dashboard(.*)?",
 ]);
+const isDeveloperRoute = createRouteMatcher([
+  "/developer(.*)?",
+]);
 
+//@ts-ignore
 export default clerkMiddleware(async (auth, req) => {
-  const { userId, sessionClaims } = await auth();
+  const { userId } = await auth();
 
   if (isProtectedRoute(req)) await auth.protect()
-  console.log(isAdminRoute(req));
-
+  // check admin routs
   if (isAdminRoute(req)) {
-
     if (!userId) {
       return await auth.protect()
     }
 
     const client = await clerkClient();
     const user = await client.users.getUser(userId);
-    console.log(user.publicMetadata);
 
     if (String(user.publicMetadata.role).toLowerCase() === 'admin') {
       return NextResponse.next();
     }
     return NextResponse.redirect(new URL("/", req.url));
+  }
 
+  // check developer routs
+  if (isDeveloperRoute(req)) {
+    if (!userId) {
+      return await auth.protect()
+    }
+
+    const client = await clerkClient();
+    const user = await client.users.getUser(userId);
+
+    if (user.publicMetadata.developer === true) {
+      return NextResponse.next();
+    }
+    return NextResponse.redirect(new URL("/", req.url));
   }
 });
 

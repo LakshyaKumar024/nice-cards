@@ -49,9 +49,31 @@ export default function Page({
     finalPrice: Number(template.price),
   };
 
-  console.log("rpi---");
+
   const handlePayment = async () => {
-    const res = await fetch("/api/order", {
+    // For free
+    if (Number(template.price === 0)) {
+      const res = await fetch("/api/order/verify/free", {
+        method: "POST",
+        body: JSON.stringify({
+          userId: user?.id,
+          templateId,
+        }),
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        toast.success("Template purchased successfully!");
+        router.push(`/design/${templateId}/edit`);
+      } else {
+        toast.error(data.message || "Failed to purchase template");
+      }
+    }
+
+    // For Paid
+    const res = await fetch("/api/order/verify/free", {
       method: "POST",
       body: JSON.stringify({
         productId: templateId,

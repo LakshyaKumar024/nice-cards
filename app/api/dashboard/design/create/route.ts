@@ -5,25 +5,7 @@ import { success, z } from 'zod';
 import prisma from '@/lib/db-init';
 import { CATEGORYS } from '@/prisma/generated/prisma/enums';
 import { saveFile } from '@/lib/helpers';
-
-// Define Zod schemas
-const DesignSchema = z.object({
-    name: z.string().min(3, "Correct Design name is required").max(100, "Design name too long"),
-    description: z.string().max(500, "Description too long").optional().default(""),
-    catogary: z.string().min(1, "Category is required").max(500, "Category too long"), // Changed from optional to required
-    tags: z.array(z.string().min(1, "Tag cannot be empty")).default([]),
-    price: z.string().transform((val) => {
-        const num = parseFloat(val);
-        if (isNaN(num)) throw new Error("Price must be a valid number");
-        return num;
-    }).pipe(
-        z.number().min(0, "Price cannot be negative")
-    ),
-    paid: z.boolean().default(false),
-    svgFileName: z.string().min(4),
-    placeholderImageFileName: z.string().min(4),
-    pdfFileName: z.string().min(4)
-});
+import { DesignSchema } from '@/lib/types';
 
 
 // Helper function to parse tags safely
@@ -172,69 +154,24 @@ export async function POST(request: NextRequest) {
     }
 }
 
-
-
-function getImageExtension(mimeType: string): string {
-    const extensions: Record<string, string> = {
-        'image/jpeg': 'jpg',
-        'image/jpg': 'jpg',
-        'image/png': 'png',
-        'image/svg+xml': 'svg',
-        'application/pdf': 'pdf'
-    };
-    return extensions[mimeType] || 'bin';
-}
-
-
-
 export async function PUT(request: NextRequest) {
+  try {
+    const formData = await request.formData();
+    const type = formData.get("type") as "pdf" | "placeholder" | "svg";
+    const file = formData.get("file") as File;
+    
 
-    try {
-        const formData = await request.formData();
-
-        // Extract and validate form data
-        const type = formData.get("type") as "pdf" | "placeholder" | "svg";
-        const file = formData.get('file') as File;
-
-        // Check if required files are present and valid
-        if (!file || file.size === 0) {
-            return NextResponse.json(
-                { error: 'PDF file is required' },
-                { status: 422 }
-            );
-        }
-
-        // Sanitize filename
-        const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9-_]/g, '-');
-
-        const filePath = await saveFile(type, sanitizedFileName, file)
-        if (filePath === "") {
-            return NextResponse.json(
-                {
-                    error: 'server error',
-                    details: 'Unknown error occurred'
-                },
-                { status: 500 }
-            );
-
-        } else {
-            return NextResponse.json(
-                {
-                    success: true,
-                    data: { fileName: filePath }
-                },
-                { status: 201 }
-            );
-        }
-
-    } catch (error) {
-        console.error('Error processing request:', error);
-        return NextResponse.json(
-            {
-                error: 'Internal server error',
-                details: error instanceof Error ? error.message : 'Unknown error occurred'
-            },
-            { status: 500 } // 500 Internal Server Error
-        );
+    if (!file || file.size === 0) {
+      return NextResponse.json({ error: "file is required" }, { status: 422 });
     }
+
+    const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9-_\.]/g, "-");
+    const savedFileName = await saveFile(type, sanitizedFileName, file); // ✅ pass file directly
+
+    return NextResponse.json({ success: true, data: { fileName: savedFileName } }, { status: 201 });
+  } catch (err) {
+    console.error("Upload error:", err);
+    return NextResponse.json({ success: false, error: "Upload failed" }, { status: 500 });
+  }
 }
+
