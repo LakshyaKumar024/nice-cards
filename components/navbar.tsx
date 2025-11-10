@@ -43,7 +43,13 @@ export const Navbar = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden sm:flex items-center gap-3 lg:gap-4">
+            <Link href="/mytemplates">
+              <div className="flex justify-between items-center  gap-3 px-2 py-3">
+                <span className="text-foreground">My Templates</span>
+              </div>
+            </Link>
             <ThemeSwitch />
+
             <SignedOut>
               <div className="flex items-center gap-2 lg:gap-3">
                 <SignInButton>
@@ -131,7 +137,7 @@ export const Navbar = () => {
                           onClick={() => setIsOpen(false)}
                         >
                           <ShoppingBag className="h-5 w-5" />
-                          <span className="text-foreground">Templates</span>
+                          <span className="text-foreground">My Templates</span>
                         </Link>
                         <div className="flex items-center gap-3 px-2 py-3">
 
@@ -152,6 +158,7 @@ export const Navbar = () => {
                         </div>
                       </div>
                     </SignedIn>
+
                     <div className="flex justify-between items-center  gap-3 px-2 py-3">
                       <span className="text-foreground">Switch Theme</span>
                       <ThemeSwitch />
