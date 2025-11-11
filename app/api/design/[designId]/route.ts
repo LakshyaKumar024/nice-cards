@@ -6,13 +6,17 @@ export async function POST(
     request: NextRequest,
     context: { params: Promise<{ designId: string }> }
 ) {
-    const body = await request.json();
+    let body;
+    try {
+        body = await request.json();
+    } catch (err) {
+        body = {};
+    }
     const { userId } = body;
     const { designId } = await context.params;
 
     // Use the designId
     console.log('user ID:', userId);
-
 
     try {
         const template = await prisma.template.findUnique({
@@ -52,15 +56,12 @@ export async function POST(
 
         const savedTemplates = userId ? template.savedTemplates || [] : [];
         const hasPurchased = savedTemplates.length > 0;
-
-
         return NextResponse.json(
             {
                 success: true,
                 data: {
                     ...template,
                     hasPurchased,
-                    savedTemplate: hasPurchased ? template.savedTemplates[0] : null,
                 },
             },
             { status: 200 }

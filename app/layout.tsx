@@ -29,9 +29,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-        <ClerkProvider>
+      <ClerkProvider>
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+          suppressHydrationWarning
         >
           <Script
             id="razorpay-checkout-script"
@@ -44,7 +45,7 @@ export default function RootLayout({
             {children}
           </Providers>
         </body>
-    </ClerkProvider>
-      </html>
+      </ClerkProvider>
+    </html>
   );
 }
