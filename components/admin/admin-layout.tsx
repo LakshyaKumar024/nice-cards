@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { LayoutGrid, Users, FileText, DollarSign, LogOut, Settings, Menu, X } from "lucide-react"
+import { LayoutGrid, Users, FileText, DollarSign, LogOut, Menu, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -16,7 +16,7 @@ const navItems = [
   { id: "dashboard", label: "Dashboard", icon: LayoutGrid },
   { id: "templates", label: "Templates", icon: FileText },
   { id: "users", label: "Users & Analytics", icon: Users },
-  { id: "pricing", label: "Pricing", icon: DollarSign },
+  { id: "add-discounts", label: "Add Discounts", icon: DollarSign },
 ]
 
 export function AdminLayout({ activeTab, onTabChange, children }: AdminLayoutProps) {
@@ -57,10 +57,6 @@ export function AdminLayout({ activeTab, onTabChange, children }: AdminLayoutPro
         </nav>
 
         <div className="p-4 space-y-2 border-t border-sidebar-border">
-          <button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors text-left">
-            <Settings className="w-5 h-5 flex-shrink-0" />
-            <span className="font-medium">Settings</span>
-          </button>
           <button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors text-left">
             <LogOut className="w-5 h-5 flex-shrink-0" />
             <span className="font-medium">Logout</span>
@@ -103,10 +99,6 @@ export function AdminLayout({ activeTab, onTabChange, children }: AdminLayoutPro
             </nav>
             <div className="p-4 space-y-2 border-t border-sidebar-border">
               <button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors text-left text-sm">
-                <Settings className="w-5 h-5 flex-shrink-0" />
-                <span className="font-medium">Settings</span>
-              </button>
-              <button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors text-left text-sm">
                 <LogOut className="w-5 h-5 flex-shrink-0" />
                 <span className="font-medium">Logout</span>
               </button>
@@ -121,9 +113,6 @@ export function AdminLayout({ activeTab, onTabChange, children }: AdminLayoutPro
           </h2>
           <div className="flex items-center gap-4">
             <span className="text-sm text-muted-foreground">Admin User</span>
-            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-              <span className="text-sm font-bold text-primary">A</span>
-            </div>
           </div>
         </div>
 
