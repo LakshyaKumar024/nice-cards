@@ -164,72 +164,72 @@ export default function SvgEditPage({ params }: Props) {
 
   const handleSave = () => alert("Card design saved successfully!");
   const handleDownload = async () => {
-    try {
-      setIsDownloading(true);
+  try {
+    setIsDownloading(true);
+    
+    // Format the data as required: uppercase and replace spaces with underscores
+    const formattedData: Record<string, string> = {};
+    
+    Object.entries(cardData).forEach(([key, value]) => {
+      const formattedKey = key.toUpperCase().replace(/\s+/g, '_');
+      formattedData[formattedKey] = value;
+    });
 
-      // Format the data as required: uppercase and replace spaces with underscores
-      const formattedData: Record<string, string> = {};
+    console.log('Sending data:', formattedData);
 
-      Object.entries(cardData).forEach(([key, value]) => {
-        const formattedKey = key.toUpperCase().replace(/\s+/g, "_");
-        formattedData[formattedKey] = value;
-      });
+    // Convert data to URL search params
+    const searchParams = new URLSearchParams();
+    Object.entries(formattedData).forEach(([key, value]) => {
+      searchParams.append(key, value);
+    });
 
-      console.log("Sending data:", formattedData);
+    const queryString = searchParams.toString();
+    const url = `/api/design/${templateId}/edit/${svgId}${queryString ? `?${queryString}` : ''}`;
 
-      // Convert data to URL search params
-      const searchParams = new URLSearchParams();
-      Object.entries(formattedData).forEach(([key, value]) => {
-        searchParams.append(key, value);
-      });
+    console.log('Request URL:', url);
 
-      const queryString = searchParams.toString();
-      const url = `/api/design/${templateId}/edit/${svgId}${
-        queryString ? `?${queryString}` : ""
-      }`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
 
-      console.log("Request URL:", url);
-
-      const response = await fetch(url, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to download: ${response.statusText}`);
-      }
-
-      // Get the response with temporary download link
-      const result = await response.json();
-      console.log("API Response:", result);
-
-      // Check if we have a download URL in the response
-      if (result.downloadUrl) {
-        // Create a temporary anchor element to trigger download
-        const downloadLink = document.createElement("a");
-        downloadLink.href = result.downloadUrl;
-        downloadLink.download = `card-design-${templateId}-${svgId}.svg`;
-        downloadLink.target = "_blank"; // Open in new tab for safety
-        document.body.appendChild(downloadLink);
-        downloadLink.click();
-        document.body.removeChild(downloadLink);
-
-        alert("Card downloaded successfully!");
-      } else if (result.message) {
-        // If there's a message but no download URL
-        alert(result.message);
-      } else {
-        throw new Error("No download URL received from server");
-      }
-    } catch (error) {
-      console.error("Download error:", error);
-      toast.info("Failed to download card. Please try again.");
-    } finally {
-      setIsDownloading(false);
+    if (!response.ok) {
+      throw new Error(`Failed to download: ${response.statusText}`);
     }
-  };
+
+    // Get the response with temporary download link
+    const result = await response.json();
+    console.log('API Response:', result);
+
+    // Check if we have a download URL in the response
+    if (result.downloadUrl) {
+      // Create a temporary anchor element to trigger download
+      const downloadLink = document.createElement('a');
+      downloadLink.href = result.downloadUrl;
+      downloadLink.download = `card-design-${templateId}-${svgId}.svg`;
+      downloadLink.target = '_blank'; // Open in new tab for safety
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+      
+      alert('Card downloaded successfully!');
+    } else if (result.message) {
+      // If there's a message but no download URL
+      alert(result.message);
+    } else {
+      throw new Error('No download URL received from server');
+    }
+    
+  } catch (error) {
+    console.error('Download error:', error);
+    toast.info('Failed to download card. Please try again.');
+  } finally {
+    setIsDownloading(false);
+  }
+};
+
 
   const navigateToNextSvg = () => {
     if (currentSvgIndex < svgArray.length - 1) {
@@ -288,7 +288,7 @@ export default function SvgEditPage({ params }: Props) {
         <div className="text-center">
           <p className="text-red-500 text-xl mb-4">{error}</p>
           <Link
-            href="/templates"
+            href="/my-template"
             className="text-purple-600 hover:text-purple-700 underline"
           >
             Back to Templates
