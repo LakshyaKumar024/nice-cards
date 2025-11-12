@@ -1,10 +1,9 @@
 "use client";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Download, Save } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, Eye } from "lucide-react";
 import { use, useEffect, useState } from "react";
 import { SVGViewer } from "@/components/svg-viewer";
 import { useRouter } from "next/navigation";
-import * as React from "react"
 import {
   Dialog,
   DialogContent,
@@ -34,6 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { customizeSvg } from "@/lib/svg-helpers";
 
 
 export interface Template {
@@ -58,11 +58,13 @@ export default function SvgEditPage({ params }: Props) {
   const router = useRouter();
 
   const [isDownloading, setIsDownloading] = useState(false);
+  const [previewing, setPreviewing] = useState(false);
   const [cardData, setCardData] = useState<Record<string, string>>({});
   const [template, setTemplate] = useState<Template>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>();
   const [svgFileName, setSvgFileName] = useState<string>();
+  const [originalSvgContent, setOriginalSvgContent] = useState<string>("");
   const [svgContent, setSvgContent] = useState<string>("");
   const [svgArray, setSvgArray] = useState<string[]>([]);
   const [currentSvgIndex, setCurrentSvgIndex] = useState<number>(0);
@@ -157,7 +159,9 @@ export default function SvgEditPage({ params }: Props) {
         if (!res.ok) throw new Error("Failed to load SVG file");
 
         const svgText = await res.text();
+
         setSvgContent(svgText);
+        setOriginalSvgContent(svgText);
       } catch (err) {
         console.error(err);
         setSvgContent(`<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200">
@@ -173,73 +177,105 @@ export default function SvgEditPage({ params }: Props) {
     setCardData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSave = () => alert("Card design saved successfully!");
-  const handleDownload = async () => {
-  try {
-    setIsDownloading(true);
-    
-    // Format the data as required: uppercase and replace spaces with underscores
-    const formattedData: Record<string, string> = {};
-    
-    Object.entries(cardData).forEach(([key, value]) => {
-      const formattedKey = key.toUpperCase().replace(/\s+/g, '_');
-      formattedData[formattedKey] = value;
-    });
+  const handlePreview = async () => {
+    try {
+      setPreviewing(true);
+      console.log("Original SVG content length:", svgContent.length);
 
-    console.log('Sending data:', formattedData);
+      const userEdits = cardData;
+      const userEditsKeys = Object.keys(userEdits).map((key) =>
+        key.toUpperCase().replace(/\s+/g, '_')
+      );
+      const userEditsValues = Object.values(userEdits);
+      const userEditsObj = userEditsKeys.reduce((acc, key, index) => {
+        acc[key] = userEditsValues[index];
+        return acc;
+      }, {} as Record<string, string>);
 
-    // Convert data to URL search params
-    const searchParams = new URLSearchParams();
-    Object.entries(formattedData).forEach(([key, value]) => {
-      searchParams.append(key, value);
-    });
+      console.log("User edits:", userEditsObj);
 
-    const queryString = searchParams.toString();
-    const url = `/api/design/${templateId}/edit/${svgId}${queryString ? `?${queryString}` : ''}`;
+      // Check what customizeSvg returns
+      const newSvg = await customizeSvg(originalSvgContent, userEditsObj);
+      console.log("New SVG content length:", newSvg.length);
+      console.log("New SVG content (first 200 chars):", newSvg.substring(0, 200));
 
-    console.log('Request URL:', url);
+      setSvgContent(newSvg);
+      console.log("SVG content updated in state");
 
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to download: ${response.statusText}`);
+    } catch (err) {
+      console.error("Preview error:", err);
+      toast.info('Failed to preview card. Please try again.');
+    } finally {
+      setPreviewing(false);
     }
-
-    // Get the response with temporary download link
-    const result = await response.json();
-    console.log('API Response:', result);
-
-    // Check if we have a download URL in the response
-    if (result.downloadUrl) {
-      // Create a temporary anchor element to trigger download
-      const downloadLink = document.createElement('a');
-      downloadLink.href = result.downloadUrl;
-      downloadLink.download = `card-design-${templateId}-${svgId}.svg`;
-      downloadLink.target = '_blank'; // Open in new tab for safety
-      document.body.appendChild(downloadLink);
-      downloadLink.click();
-      document.body.removeChild(downloadLink);
-      
-      alert('Card downloaded successfully!');
-    } else if (result.message) {
-      // If there's a message but no download URL
-      alert(result.message);
-    } else {
-      throw new Error('No download URL received from server');
-    }
-    
-  } catch (error) {
-    console.error('Download error:', error);
-    toast.info('Failed to download card. Please try again.');
-  } finally {
-    setIsDownloading(false);
   }
-};
+
+  const handleDownload = async () => {
+    try {
+      setIsDownloading(true);
+
+      // Format the data as required: uppercase and replace spaces with underscores
+      const formattedData: Record<string, string> = {};
+
+      Object.entries(cardData).forEach(([key, value]) => {
+        const formattedKey = key.toUpperCase().replace(/\s+/g, '_');
+        formattedData[formattedKey] = value;
+      });
+
+      console.log('Sending data:', formattedData);
+
+      // Convert data to URL search params
+      const searchParams = new URLSearchParams();
+      Object.entries(formattedData).forEach(([key, value]) => {
+        searchParams.append(key, value);
+      });
+
+      const queryString = searchParams.toString();
+      const url = `/api/design/${templateId}/edit/${svgId}${queryString ? `?${queryString}` : ''}`;
+
+      console.log('Request URL:', url);
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to download: ${response.statusText}`);
+      }
+
+      // Get the response with temporary download link
+      const result = await response.json();
+      console.log('API Response:', result);
+
+      // Check if we have a download URL in the response
+      if (result.downloadUrl) {
+        // Create a temporary anchor element to trigger download
+        const downloadLink = document.createElement('a');
+        downloadLink.href = result.downloadUrl;
+        downloadLink.download = `card-design-${templateId}-${svgId}.svg`;
+        downloadLink.target = '_blank'; // Open in new tab for safety
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+
+        alert('Card downloaded successfully!');
+      } else if (result.message) {
+        // If there's a message but no download URL
+        alert(result.message);
+      } else {
+        throw new Error('No download URL received from server');
+      }
+
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.info('Failed to download card. Please try again.');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
 
   const navigateToNextSvg = () => {
@@ -396,25 +432,25 @@ export default function SvgEditPage({ params }: Props) {
             <main className="max-w-6xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Editor */}
               <Card className="sticky top-20 max-h-[calc(100vh-120px)] overflow-y-auto">
-                   <CardHeader>
-              {/* Title + Dropdown side-by-side */}
-      <div className="flex items-center justify-between">
-        <CardTitle>Edit Card Details</CardTitle>
+                <CardHeader>
+                  {/* Title + Dropdown side-by-side */}
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Edit Card Details</CardTitle>
 
-        <Select>
-          <SelectTrigger className="w-[180px] border-2 border-zinc-500">
-            <SelectValue placeholder="Select language" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              <SelectLabel>Select Language</SelectLabel>
-              <SelectItem value="English">English</SelectItem>
-              <SelectItem value="Hindi">Hindi</SelectItem>
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-      </div>
-    </CardHeader>
+                    <Select>
+                      <SelectTrigger className="w-[180px] border-2 border-zinc-500">
+                        <SelectValue placeholder="Select language" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          <SelectLabel>Select Language</SelectLabel>
+                          <SelectItem value="English">English</SelectItem>
+                          <SelectItem value="Hindi">Hindi</SelectItem>
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </CardHeader>
                 <CardContent>
                   <div className="flex flex-col gap-4">
                     {Object.entries(cardData).map(([key, value]) => (
@@ -423,6 +459,7 @@ export default function SvgEditPage({ params }: Props) {
                           {key.replace(/([A-Z])/g, " $1")}
                         </label>
                         <Input
+                          // style={{fontFamily:'Kruti Dev 010'}}
                           value={value}
                           onChange={(e) =>
                             handleInputChange(key, e.target.value)
@@ -436,15 +473,24 @@ export default function SvgEditPage({ params }: Props) {
                     {/* Buttons */}
                     <div className="flex gap-3 pt-3">
                       <Button
-                        onClick={handleSave}
-                        className="flex-1 flex items-center gap-2"
+                        onClick={handlePreview}
+                        disabled={previewing}
+                        className="flex-1 flex items-center gap-2 cursor-pointer"
                       >
-                        <Save size={16} /> Save
+                        <Eye size={16} /> {!previewing ?
+                          <>
+                            Preview
+                          </>
+                          :
+                          <>
+                            Previewing....
+                          </>
+                        }
                       </Button>
                       <Button
                         onClick={handleDownload}
                         variant="outline"
-                        className="flex-1 flex items-center gap-2"
+                        className="flex-1 flex items-center gap-2 cursor-pointer"
                         disabled={isDownloading}
                       >
                         <Download size={16} />

@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import prisma from '@/lib/db-init';
 import { storeTemporaryLink, cleanupExpiredLinks } from '@/lib/file-storage';
+import { customizeSvg } from '@/lib/svg-helpers';
 
 
 console.log('🔄 API route loaded: /api/design/[designId]/edit/[sno]');
@@ -92,7 +93,6 @@ export async function GET(
 
 
 
-
 // Helper function to get SVG filename from your database
 async function getSvgFileName(designId: string, sno: string): Promise<string | null> {
     // Implement your logic to get SVG filename from database
@@ -133,17 +133,4 @@ async function getSvgTemplate(filename: string): Promise<string | null> {
         console.error('Error reading SVG file:', error);
         return null;
     }
-}
-
-// Helper function to customize SVG with user data
-function customizeSvg(svgTemplate: string, userData: URLSearchParams): string {
-    let customizedSvg = svgTemplate;
-
-    // Replace each placeholder with user data
-    userData.forEach((value, key) => {
-        const placeholder = `{{${key}}}`; // Assuming your SVG uses {{PLACEHOLDER}} syntax
-        customizedSvg = customizedSvg.replace(new RegExp(placeholder, 'g'), value);
-    });
-
-    return customizedSvg;
 }

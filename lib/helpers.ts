@@ -1,5 +1,8 @@
 import { mkdir, writeFile } from "fs/promises";
-import path from "path";
+import fs from 'fs';
+import path from 'path';
+import prisma from '@/lib/db-init';
+
 
 // Helper function to parse tags safely
 function parseTags(tagsString: string | null): string[] {
@@ -108,6 +111,9 @@ const saveFile = async (
         throw new Error("Failed to save file on server");
     }
 };
+
+
+
 
 
 export { getImageExtension, parseTags, saveFile, sanitizeFileName };
