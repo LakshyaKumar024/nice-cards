@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, Download, Save } from "lucide-react";
 import { use, useEffect, useState } from "react";
 import { SVGViewer } from "@/components/svg-viewer";
 import { useRouter } from "next/navigation";
+import * as React from "react"
 import {
   Dialog,
   DialogContent,
@@ -24,6 +25,16 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+
 
 export interface Template {
   uuid: string;
@@ -385,9 +396,25 @@ export default function SvgEditPage({ params }: Props) {
             <main className="max-w-6xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
               {/* Editor */}
               <Card className="sticky top-20 max-h-[calc(100vh-120px)] overflow-y-auto">
-                <CardHeader>
-                  <CardTitle>Edit Card Details</CardTitle>
-                </CardHeader>
+                   <CardHeader>
+              {/* Title + Dropdown side-by-side */}
+      <div className="flex items-center justify-between">
+        <CardTitle>Edit Card Details</CardTitle>
+
+        <Select>
+          <SelectTrigger className="w-[180px] border-2 border-zinc-500">
+            <SelectValue placeholder="Select language" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              <SelectLabel>Select Language</SelectLabel>
+              <SelectItem value="English">English</SelectItem>
+              <SelectItem value="Hindi">Hindi</SelectItem>
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+      </div>
+    </CardHeader>
                 <CardContent>
                   <div className="flex flex-col gap-4">
                     {Object.entries(cardData).map(([key, value]) => (
@@ -406,7 +433,6 @@ export default function SvgEditPage({ params }: Props) {
                         />
                       </div>
                     ))}
-
                     {/* Buttons */}
                     <div className="flex gap-3 pt-3">
                       <Button

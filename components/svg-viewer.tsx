@@ -78,9 +78,9 @@ export function SVGViewer({ svgContent, title = "SVG Document" }: SVGViewerProps
 
         <div className="flex-1" />
 
-        <Button variant="outline" size="sm" onClick={handleDownload} title="Download SVG" className="gap-2 bg-transparent">
+        {/* <Button variant="outline" size="sm" onClick={handleDownload} title="Download SVG" className="gap-2 bg-transparent">
           <Download className="h-4 w-4" />
-        </Button>
+        </Button> */}
       </div>
 
       {/* SVG Display Area */}
