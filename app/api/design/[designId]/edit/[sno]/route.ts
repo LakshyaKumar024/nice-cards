@@ -2,13 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import prisma from '@/lib/db-init';
-import { storeTemporaryLink, cleanupExpiredLinks } from '@/lib/file-storage';
+import { storeTemporarySvg, generatePdfFromSvgUrl, cleanupExpiredFiles } from '@/lib/file-storage';
 import { customizeSvg } from '@/lib/svg-helpers';
 
-
 console.log('🔄 API route loaded: /api/design/[designId]/edit/[sno]');
-
-
 
 export async function GET(
     request: NextRequest,
@@ -47,39 +44,55 @@ export async function GET(
         const customizedSvg = customizeSvg(svgTemplate, searchParams);
         console.log('🎨 Customized SVG length:', customizedSvg.length);
 
-        // 4. Generate temporary download link
-        const downloadId = `${designId}-${sno}-${Date.now()}`;
-        const downloadUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/download/${downloadId}`;
+        // 4. Generate temporary file ID
+        const fileId = `${designId}-${sno}-${Date.now()}`;
 
-        console.log('🔗 Generated download info:', {
-            downloadId,
-            downloadUrl,
-            filename: `custom-design-${designId}-${sno}.svg`
-        });
-
-        // 5. Store the customized SVG in file storage
-        const storageSuccess = await storeTemporaryLink(downloadId, {
-            svgContent: customizedSvg,
-            expiresAt: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
-            filename: `custom-design-${designId}-${sno}.svg`
-        });
-
-        if (!storageSuccess) {
+        // 5. Save SVG to public/tmp folder and get public URL
+        const svgUrl = await storeTemporarySvg(fileId, customizedSvg);
+        
+        if (!svgUrl) {
             return NextResponse.json(
-                { error: 'Failed to create download link' },
+                { error: 'Failed to save SVG file' },
                 { status: 500 }
             );
         }
 
-        // 6. Clean up expired links
-        await cleanupExpiredLinks();
+        console.log('🔗 SVG public URL:', svgUrl);
+
+        // 6. Convert SVG URL to PDF using Puppeteer
+        console.log('🔄 Converting SVG URL to PDF...');
+        const pdfGenerated = await generatePdfFromSvgUrl(
+            fileId, 
+            svgUrl, 
+            `custom-design-${designId}-${sno}.pdf`
+        );
+
+        if (!pdfGenerated) {
+            return NextResponse.json(
+                { error: 'Failed to convert SVG to PDF' },
+                { status: 500 }
+            );
+        }
+
+        // 7. Generate download URL for PDF
+        const downloadUrl = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/download/${fileId}`;
+
+        console.log('🔗 Generated download info:', {
+            fileId,
+            downloadUrl,
+            filename: `custom-design-${designId}-${sno}.pdf`
+        });
+
+        // 8. Clean up expired files
+        await cleanupExpiredFiles();
 
         return NextResponse.json({
             success: true,
             downloadUrl: downloadUrl,
-            downloadId: downloadId, // Include for debugging
-            message: 'Design customized successfully. Your download will start automatically.',
-            expiresIn: '24 hours'
+            fileId: fileId,
+            message: 'Design customized and converted to PDF successfully. Your download will start automatically.',
+            expiresIn: '24 hours',
+            fileType: 'pdf'
         });
 
     } catch (error) {
@@ -91,12 +104,8 @@ export async function GET(
     }
 }
 
-
-
 // Helper function to get SVG filename from your database
 async function getSvgFileName(designId: string, sno: string): Promise<string | null> {
-    // Implement your logic to get SVG filename from database
-    // This is just an example - replace with your actual implementation
     try {
         console.log(designId);
 
@@ -107,14 +116,12 @@ async function getSvgFileName(designId: string, sno: string): Promise<string | n
             }
         });
         if (!template) {
-            console.error('Error fetching SVG filename:',);
+            console.error('Error fetching SVG filename:');
             return null
         }
 
         const svg = JSON.parse(template?.svg as string)[sno];
         console.log("SVG -->", svg);
-
-
 
         return svg;
     } catch (error) {
@@ -126,7 +133,6 @@ async function getSvgFileName(designId: string, sno: string): Promise<string | n
 // Helper function to read SVG template
 async function getSvgTemplate(filename: string): Promise<string | null> {
     try {
-        // Adjust the path according to your file structure
         const filePath = path.join(process.cwd(), 'private', 'designs', 'design', 'svg', filename);
         return fs.readFileSync(filePath, 'utf8');
     } catch (error) {

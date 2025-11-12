@@ -44,16 +44,6 @@ export default function Page({
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  // const [cardData, setCardData] = useState({
-  //   recipientName: "Guest Name",
-  //   senderName: "Your Name",
-  //   senderAddress: "123 Main Street, City, State 12345",
-  //   eventDate: "2024-06-15",
-  //   eventTime: "6:00 PM",
-  //   eventLocation: "Grand Ballroom",
-  //   customMessage: "We would be honored by your presence",
-  // });
-
   useEffect(() => {
     const fetchTemplate = async () => {
       setLoading(true);

@@ -46,4 +46,7 @@ next-env.d.ts
 
 /prisma/generated/prisma
 
-/tmp/
+# Temporary files
+/public/tmp/*
+/tmp/*
+!public/tmp/.gitkeep

@@ -35,7 +35,6 @@ import {
 } from "@/components/ui/select"
 import { customizeSvg } from "@/lib/svg-helpers";
 
-
 export interface Template {
   uuid: string;
   name: string;
@@ -73,6 +72,7 @@ export default function SvgEditPage({ params }: Props) {
     type: "next" | "prev";
     svgId: string;
   } | null>(null);
+  const [selectedLanguage, setSelectedLanguage] = useState<string>("English");
 
   // Fetch template info
   useEffect(() => {
@@ -175,6 +175,10 @@ export default function SvgEditPage({ params }: Props) {
 
   const handleInputChange = (field: string, value: string) => {
     setCardData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleLanguageChange = (value: string) => {
+    setSelectedLanguage(value);
   };
 
   const handlePreview = async () => {
@@ -437,7 +441,7 @@ export default function SvgEditPage({ params }: Props) {
                   <div className="flex items-center justify-between">
                     <CardTitle>Edit Card Details</CardTitle>
 
-                    <Select>
+                    <Select value={selectedLanguage} onValueChange={handleLanguageChange}>
                       <SelectTrigger className="w-[180px] border-2 border-zinc-500">
                         <SelectValue placeholder="Select language" />
                       </SelectTrigger>
@@ -459,7 +463,6 @@ export default function SvgEditPage({ params }: Props) {
                           {key.replace(/([A-Z])/g, " $1")}
                         </label>
                         <Input
-                          // style={{fontFamily:'Kruti Dev 010'}}
                           value={value}
                           onChange={(e) =>
                             handleInputChange(key, e.target.value)
@@ -468,6 +471,28 @@ export default function SvgEditPage({ params }: Props) {
                             .replace(/([A-Z])/g, " $1")
                             .toLowerCase()}`}
                         />
+                        
+                        {/* Language Preview */}
+                        {value && (
+                          <div className="p-2 bg-muted rounded-md border">
+                            <div className="text-xs text-muted-foreground mb-1">
+                              {selectedLanguage} Preview:
+                            </div>
+                            <div 
+                              className={`text-sm ${
+                                selectedLanguage === "Hindi" ? "mangal-regular" : "font-roboto"
+                              }`}
+                              
+                              style={{
+                                fontFamily: selectedLanguage === "Hindi" 
+                                  ? "" 
+                                  : "Roboto, sans-serif"
+                              }}
+                            >
+                              {value}
+                            </div>
+                          </div>  
+                        )}
                       </div>
                     ))}
                     {/* Buttons */}

@@ -1,6 +1,30 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+@font-face {
+  font-family: "Kruti Dev 010";
+  src: url("/fonts/kruti-dev-010.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Mangal Regular";
+  src: url("/fonts/mangal-Regular.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+.kruti-dev-010 {
+  font-family: "Kruti Dev 010";
+}
+
+.mangal-regular {
+  font-family: "Mangal Regular", sans-serif;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -120,8 +144,6 @@
     @apply bg-background text-foreground;
   }
 }
-
-
 
 /* Disable text selection on the PDF viewer */
 iframe {
