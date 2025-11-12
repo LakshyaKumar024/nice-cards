@@ -33,6 +33,7 @@ export interface Template {
   rating: number;
   downloads: number;
   created_at: string;
+  isPurchased: boolean;
   tags: string[];
 }
 
@@ -55,10 +56,7 @@ export default function Home() {
       ? templates
       : templates.filter((template) => template.catogery === selectedCategory);
 
-  const handlePurchase = (templateId: string) => {
-    // setPurchasedIds((prev) => new Set([...Array.from(prev), templateId]));
-    alert(`Template ${templateId} purchased successfully!`);
-  };
+  const handlePurchase = (templateId: string) => {};
 
   return (
     <div className="min-h-screen bg-gradient-subtle">
@@ -118,6 +116,7 @@ export default function Home() {
               price={template.price}
               category={template.catogery}
               imageUrl={template.image}
+              isPurchased={template.isPurchased}
               onPurchase={handlePurchase}
             />
           ))}

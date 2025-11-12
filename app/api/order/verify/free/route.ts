@@ -48,12 +48,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Save the template for the user
-    await prisma.savedTemplate.create({
-      data: {
-        userId,
-        templateId,
-      },
+
+    await prisma.$transaction(async (tx) => {
+      const order = await tx.order.create({
+        data: {
+          userId: userId,
+          templateId: templateId,
+          razorpayOrderId: `free-${userId}`,
+          amount: 0,
+          status: "completed",
+        },
+        select: {
+          id: true,
+          razorpayOrderId: true,
+          userId: true,
+          templateId: true,
+          status: true,
+        }
+      })
+
+      const saveTemplate = await tx.savedTemplate.create({
+        data: {
+          userId: userId,
+          templateId: templateId,
+        }
+      })
+      return { order, saveTemplate };
     });
 
     return NextResponse.json(

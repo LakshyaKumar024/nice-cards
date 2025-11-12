@@ -1,6 +1,8 @@
+import { ArrowRight, Check, Gift, ShoppingCart, Sparkles } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import Router from "next/navigation"
+import { Badge } from "./ui/badge";
 
 interface TemplateCardProps {
   uuid: string;
@@ -9,6 +11,7 @@ interface TemplateCardProps {
   price: number;
   category: string;
   imageUrl: string;
+  isPurchased: boolean,
   onPurchase: (templateId: string) => void;
 }
 
@@ -19,58 +22,69 @@ export function TemplateCard({
   price,
   category,
   imageUrl,
+  isPurchased,
 }: TemplateCardProps) {
-  const isPurchased = false;
 
   return (
-    <Link href={`/design/${uuid}`}>
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md dark:shadow-gray-700/30 overflow-hidden hover:shadow-lg dark:hover:shadow-gray-700/50 transition-shadow">
-      <div className="h-48 bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-        {imageUrl ? (
-          <Image
-            src={`/placeholder/image/${imageUrl}`}
-            alt={name}
-            width={200}
-            height={200}
-            className="h-48 w-auto rounded-lg"
-          />
-        ) : (
-          <span className="text-gray-500 dark:text-gray-400">
-            Template Image: {name}
-          </span>
+    <Link href={`/design/${uuid}`} className="group h-full">
+      <div className="relative h-full flex flex-col bg-card border border-border rounded-xl shadow-sm hover:shadow-lg hover:border-primary/50 transition-all duration-300 overflow-hidden">
+        {price === 0 && (
+          <div className="absolute top-3 right-3 z-10 flex items-center gap-1 bg-gradient-to-r from-green-500 to-emerald-600 px-3 py-1.5 rounded-full">
+  <Gift className="h-4 w-4 text-white" />
+  <span className="text-xs font-semibold text-white">Free</span>
+</div>
         )}
-      </div>
-      <div className="p-4">
-        <div className="flex justify-between items-start mb-2">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            {name}
-          </h3>
-          <span className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs px-2 py-1 rounded">
-            {category}
-          </span>
-        </div>
-        <p className="text-gray-600 dark:text-gray-300 text-sm mb-3">
-          {description}
-        </p>
-        <div className="flex justify-between items-center">
-          <div className="flex text-xl font-bold text-green-600 dark:text-green-400">
-            ₹ {price}
-          </div>
-          <button
-            onClick={() => Router.redirect(`/design/${uuid}`)}
-            disabled={isPurchased}
-            className={`px-4 py-2 rounded-md ${
-              isPurchased
-                ? "bg-gray-400 dark:bg-gray-600 cursor-not-allowed text-white dark:text-gray-300"
-                : "bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 text-white"
-            }`}
-          >
-            {isPurchased ? "Purchased" : "Buy Now"}
-          </button>
-        </div>
-      </div>
-    </div>
-    </Link>
 
+        <div className="relative h-48 bg-muted overflow-hidden flex items-center justify-center flex-shrink-0">
+          {imageUrl ? (
+            <Image
+              src={`/placeholder/image/${imageUrl}`}
+              alt={name}
+              width={300}
+              height={200}
+              className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+            />
+          ) : (
+            <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
+              <div className="h-12 w-12 rounded-lg bg-border" />
+              <span className="text-xs">Template Preview</span>
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-col flex-grow p-4">
+          <div className="flex items-start justify-between gap-2 mb-2">
+            <h3 className="text-sm font-semibold text-foreground line-clamp-2">{name}</h3>
+            <Badge variant="secondary" className="text-xs font-medium whitespace-nowrap flex-shrink-0">
+              {category}
+            </Badge>
+          </div>
+
+          <p className="text-xs text-muted-foreground line-clamp-2 mb-4 flex-grow">{description}</p>
+
+          <div className="flex items-center justify-between gap-2 pt-3 border-t border-border">
+            <div className="text-sm font-semibold">
+              {price === 0 ? (
+                <span className="text-green-600 dark:text-green-400">Free</span>
+              ) : (
+                <span className="text-foreground">₹ {price}</span>
+              )}
+            </div>
+
+            <button
+              onClick={() => Router.redirect(`/design/${uuid}`)}
+              disabled={isPurchased}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${isPurchased
+                  ? "bg-muted text-muted-foreground cursor-not-allowed"
+                  : "bg-primary text-primary-foreground hover:bg-primary/90 group-hover:translate-x-0.5"
+                }`}
+            >
+              {isPurchased ? "Purchased" : "View"}
+              {!isPurchased && <ArrowRight className="h-3 w-3" />}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Link>
   );
 }

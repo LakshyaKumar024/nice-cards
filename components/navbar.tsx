@@ -43,11 +43,7 @@ export const Navbar = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden sm:flex items-center gap-3 lg:gap-4">
-            <Link href="/my-template">
-              <div className="flex justify-between items-center  gap-3 px-2 py-3">
-                <span className="text-foreground">My Templates</span>
-              </div>
-            </Link>
+
             <ThemeSwitch />
 
             <SignedOut>
@@ -68,6 +64,11 @@ export const Navbar = () => {
               </div>
             </SignedOut>
             <SignedIn>
+              <Link href="/my-template">
+                <div className="flex justify-between items-center  gap-3 px-2 py-3">
+                  <span className="text-foreground">My Templates</span>
+                </div>
+              </Link>
               <UserButton />
             </SignedIn>
           </div>
@@ -131,17 +132,18 @@ export const Navbar = () => {
                           <Home className="h-5 w-5" />
                           <span className="text-foreground">Dashboard</span>
                         </Link>
-                        <Link
-                          href="/my-template"
-                          className="flex items-center gap-3 px-2 py-3 rounded-lg hover:bg-muted transition-colors"
-                          onClick={() => setIsOpen(false)}
-                        >
-                          <ShoppingBag className="h-5 w-5" />
-                          <span className="text-foreground">My Templates</span>
-                        </Link>
+
                         <div className="flex items-center gap-3 px-2 py-3">
                           <User className="h-5 w-5" />
                           <SignedIn>
+                            <Link
+                              href="/my-template"
+                              className="flex items-center gap-3 px-2 py-3 rounded-lg hover:bg-muted transition-colors"
+                              onClick={() => setIsOpen(false)}
+                            >
+                              <ShoppingBag className="h-5 w-5" />
+                              <span className="text-foreground">My Templates</span>
+                            </Link>
                             <UserButton
                               appearance={{
                                 elements: {

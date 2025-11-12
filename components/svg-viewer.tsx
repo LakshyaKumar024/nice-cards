@@ -115,7 +115,7 @@ export function SVGViewer({ svgContent, title = "SVG Document" }: SVGViewerProps
       {/* SVG Display Area */}
       <div
         ref={containerRef}
-        className="relative border border-border bg-white dark:bg-slate-950 rounded-lg overflow-hidden cursor-move"
+        className="relative border border-border bg-white dark:bg-slate-950 rounded-lg overflow-hidden cursor-move bg-white"
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
@@ -128,8 +128,10 @@ export function SVGViewer({ svgContent, title = "SVG Document" }: SVGViewerProps
       >
         <div
           ref={svgContainerRef}
+          className="bg-white"
           dangerouslySetInnerHTML={{ __html: svgContent }}
           style={{
+            background:"white",
             transform: `translate(${panX}px, ${panY}px) scale(${scale})`,
             transformOrigin: "0 0",
             transition: isDragging ? "none" : "transform 0.1s ease-out",
