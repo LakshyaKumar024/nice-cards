@@ -15,6 +15,7 @@ interface AdminLayoutProps {
 const navItems = [
   { id: "dashboard", label: "Dashboard", icon: LayoutGrid },
   { id: "templates", label: "Templates", icon: FileText },
+  
 ]
 
 export function AdminLayout({ activeTab, onTabChange, children }: AdminLayoutProps) {

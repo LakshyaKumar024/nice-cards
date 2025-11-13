@@ -113,7 +113,7 @@ export function TemplateManagerDialogbox({
 
             {/* Price */}
             <div className="grid gap-2">
-              <Label htmlFor="price">Price ($)</Label>
+              <Label htmlFor="price">Price (₹)</Label>
               <Input
                 id="price"
                 type="number"
