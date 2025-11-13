@@ -177,6 +177,7 @@ export async function getTemporaryFile(fileId: string) {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-explicit-any
 async function cleanupFile(fileId: string, metadata: any) {
   try {
     const metaFilePath = path.join(privateTmpPath, `${fileId}.json`);

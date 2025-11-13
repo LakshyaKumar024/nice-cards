@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useState, useEffect } from "react";
-import { ZoomIn, ZoomOut, Download, Move } from "lucide-react";
+import { ZoomIn, ZoomOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface SVGViewerProps {
@@ -9,7 +9,7 @@ interface SVGViewerProps {
   title?: string;
 }
 
-export function SVGViewer({ svgContent, title = "SVG Document" }: SVGViewerProps) {
+export function SVGViewer({ svgContent}: SVGViewerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgContainerRef = useRef<HTMLDivElement>(null);
 
@@ -18,11 +18,6 @@ export function SVGViewer({ svgContent, title = "SVG Document" }: SVGViewerProps
   const [panY, setPanY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-
-  // Center SVG on initial load and when content changes
-  useEffect(() => {
-    centerSVG();
-  }, [svgContent]);
 
   const centerSVG = () => {
     if (!svgContainerRef.current || !containerRef.current) return;
@@ -53,6 +48,13 @@ export function SVGViewer({ svgContent, title = "SVG Document" }: SVGViewerProps
     setPanX(centerX);
     setPanY(centerY);
   };
+
+  // Center SVG on initial load and when content changes
+  useEffect(() => {
+    centerSVG();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [svgContent]);
+
 
   // 🖱️ Drag to pan
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -85,6 +87,7 @@ export function SVGViewer({ svgContent, title = "SVG Document" }: SVGViewerProps
   // Re-center when scale changes
   useEffect(() => {
     centerSVG();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scale]);
 
   return (
@@ -115,7 +118,7 @@ export function SVGViewer({ svgContent, title = "SVG Document" }: SVGViewerProps
       {/* SVG Display Area */}
       <div
         ref={containerRef}
-        className="relative border border-border bg-white dark:bg-slate-950 rounded-lg overflow-hidden cursor-move bg-white"
+        className="relative border border-border dark:bg-slate-950 rounded-lg overflow-hidden cursor-move bg-white"
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}

@@ -1,4 +1,4 @@
-import { ArrowRight, Check, Gift, ShoppingCart, Sparkles } from "lucide-react";
+import { ArrowRight, Gift  } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import Router from "next/navigation"

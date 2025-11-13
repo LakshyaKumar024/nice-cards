@@ -41,6 +41,7 @@ export default function Page({
   const [template, setTemplate] = useState<Template | null>(null);
   const [templateSvgs, setTemplateSvgs] = useState<string[]>([]);
   const { isLoaded, user } = useUser();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 

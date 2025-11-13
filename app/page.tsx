@@ -56,7 +56,7 @@ export default function Home() {
       ? templates
       : templates.filter((template) => template.catogery === selectedCategory);
 
-  const handlePurchase = (templateId: string) => {};
+  const handlePurchase = () => {};
 
   return (
     <div className="min-h-screen bg-gradient-subtle">

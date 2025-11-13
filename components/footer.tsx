@@ -1,8 +1,7 @@
 "use client";
 import React from "react";
 import Link from "next/link";
-import { useTheme } from "next-themes";
-import { Sun, Moon, Github } from "lucide-react";
+import { Github } from "lucide-react";
 
 type FooterProps = {
   companyName?: string;
@@ -13,7 +12,6 @@ type FooterProps = {
 
 export default function ShadcnFooter({
   companyName = "DeepVoid Labs",
-  companyHref = "/",
   termsHref = "/terms",
   privacyHref = "/privacy",
 }: FooterProps) {
