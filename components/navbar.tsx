@@ -1,5 +1,12 @@
 "use client";
-import { User, Home, ShoppingBag, Menu, X } from "lucide-react";
+import {
+  User,
+  ShoppingBag,
+  Menu,
+  X,
+  Palette,
+  LogOut,
+} from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { Button } from "./ui/button";
@@ -7,6 +14,7 @@ import {
   SignedIn,
   SignedOut,
   SignInButton,
+  SignOutButton,
   SignUpButton,
   UserButton,
 } from "@clerk/nextjs";
@@ -43,7 +51,6 @@ export const Navbar = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden sm:flex items-center gap-3 lg:gap-4">
-
             <ThemeSwitch />
 
             <SignedOut>
@@ -83,11 +90,12 @@ export const Navbar = () => {
                   ) : (
                     <Menu className="h-5 w-5" />
                   )}
+                  <span className="sr-only">Toggle menu</span>
                 </Button>
               </SheetTrigger>
               <SheetContent side="right" className="w-[280px] sm:w-[400px]">
                 <div className="flex flex-col h-full">
-                  {/* Mobile Menu Header */}
+                  {/* Mobile Menu Header with DialogTitle */}
                   <div className="flex items-center gap-3 pb-6 border-b m-4">
                     <div className="w-10 h-10 rounded-lg flex items-center justify-center">
                       <Image src="/logo.jpg" width={30} height={30} alt="NC" />
@@ -97,81 +105,99 @@ export const Navbar = () => {
                     </span>
                   </div>
 
+                  {/* DialogTitle for accessibility - visually hidden */}
+                  <h2 className="sr-only">Navigation Menu</h2>
+
                   {/* Mobile Menu Content */}
-                  <div className="flex flex-col gap-6 py-8 flex-1 m-2">
+                  <div className="flex flex-col gap-4 py-6 flex-1 px-4">
+                    {/* Authentication Section */}
                     <SignedOut>
-                      <div className="flex flex-col gap-4">
+                      <div className="flex flex-col gap-3">
                         <SignInButton>
                           <Button
                             variant="outline"
-                            className="w-full justify-start text-foreground h-12"
+                            className="w-full justify-center gap-2 py-3 h-11 border-2 hover:bg-accent/50 transition-all duration-200"
                             onClick={() => setIsOpen(false)}
                           >
-                            <User className="h-4 w-4 mr-2" />
+                            <User className="h-4 w-4" />
                             Sign In
                           </Button>
                         </SignInButton>
                         <SignUpButton>
                           <Button
-                            className="w-full justify-start bg-[#6c47ff] hover:bg-[#5a3fe0] text-white h-12"
+                            className="w-full justify-center gap-2 py-3 h-11 bg-linear-to-r from-[#6c47ff] to-[#5a3fe0] hover:from-[#5a3fe0] hover:to-[#4a32c4] text-white shadow-md hover:shadow-lg transition-all duration-200"
                             onClick={() => setIsOpen(false)}
                           >
-                            <ShoppingBag className="h-4 w-4 mr-2" />
+                            <ShoppingBag className="h-4 w-4" />
                             Sign Up
                           </Button>
                         </SignUpButton>
                       </div>
                     </SignedOut>
+
+                    {/* User Menu Section */}
                     <SignedIn>
-                      <div className="flex flex-col gap-4">
+                      <div className="flex flex-col gap-3">
+                        <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <User className="h-5 w-5 text-muted-foreground" />
+                            <span className="font-medium text-foreground">
+                              Account
+                            </span>
+                          </div>
+                          <UserButton
+                            afterSignOutUrl="/"
+                            appearance={{
+                              elements: {
+                                avatarBox: "h-8 w-8 ring-2 ring-background",
+                                rootBox: "flex items-center cursor-pointer",
+                              },
+                              variables: {
+                                colorPrimary: "#e5c846",
+                              },
+                            }}
+                          />
+                        </div>
+
+                        {/* Manual Sign Out Button */}
+                        <SignOutButton>
+                          <Button
+                            variant="outline"
+                            className="w-full justify-center gap-2 py-3 h-11 border-2 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20 transition-all duration-200"
+                            onClick={() => setIsOpen(false)}
+                          >
+                            <LogOut className="h-4 w-4" />
+                            Sign Out
+                          </Button>
+                        </SignOutButton>
+
                         <Link
-                          href="/dashboard"
-                          className="flex items-center gap-3 px-2 py-3 rounded-lg hover:bg-muted transition-colors"
+                          href="/my-template"
+                          className="flex items-center gap-3 p-3 rounded-lg hover:bg-accent/50 transition-colors group border border-transparent hover:border-accent"
                           onClick={() => setIsOpen(false)}
                         >
-                          <Home className="h-5 w-5" />
-                          <span className="text-foreground">Dashboard</span>
+                          <div className="flex items-center justify-center w-8 h-8 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                            <ShoppingBag className="h-4 w-4 text-primary" />
+                          </div>
+                          <span className="text-foreground font-medium">
+                            My Templates
+                          </span>
                         </Link>
-
-                        <div className="flex items-center gap-3 px-2 py-3">
-                          <User className="h-5 w-5" />
-                          <SignedIn>
-                            <Link
-                              href="/my-template"
-                              className="flex items-center gap-3 px-2 py-3 rounded-lg hover:bg-muted transition-colors"
-                              onClick={() => setIsOpen(false)}
-                            >
-                              <ShoppingBag className="h-5 w-5" />
-                              <span className="text-foreground">My Templates</span>
-                            </Link>
-                            <UserButton
-                              appearance={{
-                                elements: {
-                                  avatarBox: "h-8 w-8", // Compact avatar size
-                                },
-                                variables: {
-                                  colorPrimary: "#e5c846ff", // Tailwind indigo-600 for accent
-                                },
-                              }}
-                            />
-                          </SignedIn>
-                        </div>
                       </div>
                     </SignedIn>
 
-                    <div className="flex justify-between items-center  gap-3 px-2 py-3">
-                      <span className="text-foreground">Switch Theme</span>
+                    {/* Theme Switcher Section */}
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 mt-2">
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center justify-center w-8 h-8 bg-primary/10 rounded-lg">
+                          <Palette className="h-4 w-4 text-primary" />
+                        </div>
+                        <span className="text-foreground font-medium">
+                          Theme
+                        </span>
+                      </div>
                       <ThemeSwitch />
                     </div>
-                  </div>
-
-                  {/* Mobile Menu Footer */}
-                  <div className="pt-6 border-t">
-                    <SignedIn>
-                      <div className="flex justify-center">
-                        <UserButton />
-                      </div>
-                    </SignedIn>
                   </div>
                 </div>
               </SheetContent>

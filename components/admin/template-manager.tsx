@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,68 +8,82 @@ import { Badge } from "@/components/ui/badge";
 import { Trash2, Edit, Plus } from "lucide-react";
 import Link from "next/link";
 import { TemplateManagerDialogbox } from "./template-manager-dialogbox";
+import { toast } from "sonner";
 
 interface Template {
-  id: string;
+  uuid: string;
   name: string;
-  category: string;
-  status: "active" | "inactive";
+  catogery: string;
+  status: boolean;
+  paid: boolean;
   price: number;
-  uses: number;
-  createdDate: string;
+  _count: { savedTemplates: number };
+  createdAt: string;
   description?: string;
 }
 
-const mockTemplates: Template[] = [
-  {
-    id: "1",
-    name: "Blog Starter",
-    category: "Blog",
-    status: "active",
-    price: 29,
-    uses: 324,
-    createdDate: "2024-01-15",
-    description: "A clean starter for blogs.",
-  },
-  {
-    id: "2",
-    name: "Portfolio Pro",
-    category: "Portfolio",
-    status: "active",
-    price: 49,
-    uses: 287,
-    createdDate: "2024-01-10",
-    description: "Perfect for personal portfolios.",
-  },
-  {
-    id: "3",
-    name: "SaaS Landings",
-    category: "SaaS",
-    status: "active",
-    price: 79,
-    uses: 256,
-    createdDate: "2024-01-08",
-    description: "Landing pages for SaaS startups.",
-  },
-  {
-    id: "4",
-    name: "Ecommerce Store",
-    category: "Ecommerce",
-    status: "inactive",
-    price: 99,
-    uses: 189,
-    createdDate: "2024-01-05",
-    description: "Modern e-commerce storefront.",
-  },
-];
+// const mockTemplates: Template[] = [
+//   {
+//     id: "1",
+//     name: "Blog Starter",
+//     category: "Blog",
+//     status: "active",
+//     price: 29,
+//     uses: 324,
+//     createdDate: "2024-01-15",
+//     description: "A clean starter for blogs.",
+//   },
+//   {
+//     id: "2",
+//     name: "Portfolio Pro",
+//     category: "Portfolio",
+//     status: "active",
+//     price: 49,
+//     uses: 287,
+//     createdDate: "2024-01-10",
+//     description: "Perfect for personal portfolios.",
+//   },
+//   {
+//     id: "3",
+//     name: "SaaS Landings",
+//     category: "SaaS",
+//     status: "active",
+//     price: 79,
+//     uses: 256,
+//     createdDate: "2024-01-08",
+//     description: "Landing pages for SaaS startups.",
+//   },
+//   {
+//     id: "4",
+//     name: "Ecommerce Store",
+//     category: "Ecommerce",
+//     status: "inactive",
+//     price: 99,
+//     uses: 189,
+//     createdDate: "2024-01-05",
+//     description: "Modern e-commerce storefront.",
+//   },
+// ];
 
 export function TemplateManager() {
-  const [templates, setTemplates] = useState<Template[]>(mockTemplates);
+  const [templates, setTemplates] = useState<Template[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
 
   // Dialog states
-  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(
+    null
+  );
   const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      const response = await fetch("/api/dashboard/stats/templates");
+      const data = await response.json();
+      setTemplates(data);
+      console.log(data);
+    };
+    fetchTemplates();
+  }, []);
 
   const handleEdit = (template: Template) => {
     setSelectedTemplate(template);
@@ -77,8 +91,9 @@ export function TemplateManager() {
   };
 
   const handleSave = (updatedTemplate: Template) => {
+    console.log("handleSave", updatedTemplate);
     setTemplates((prev) =>
-      prev.map((t) => (t.id === updatedTemplate.id ? updatedTemplate : t))
+      prev.map((t) => (t.uuid === updatedTemplate.uuid ? updatedTemplate : t))
     );
   };
 
@@ -86,8 +101,27 @@ export function TemplateManager() {
     template.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const removeTemplate = (id: string) => {
-    setTemplates(templates.filter((t) => t.id !== id));
+  const removeTemplate = async (id: string) => {
+    const deletingToaster = toast.loading("deleting...");
+
+    const removeRequest = await fetch(`/api/dashboard/design/${id}/delete`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!removeRequest.ok) {
+      toast.error("Error deleting template", {
+        id: deletingToaster,
+        description: "Failed to delete template",
+        duration: 5000,
+      });
+      throw new Error("Failed to delete template");
+    }
+
+    toast.success("template deleted successfully", { id: deletingToaster });
+    setTemplates(templates.filter((t) => t.uuid !== id));
   };
 
   return (
@@ -150,7 +184,7 @@ export function TemplateManager() {
               <tbody>
                 {filteredTemplates.map((template) => (
                   <tr
-                    key={template.id}
+                    key={template.uuid}
                     className="border-b border-border hover:bg-muted/20 transition-colors"
                   >
                     <td className="px-6 py-4">
@@ -160,7 +194,7 @@ export function TemplateManager() {
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-sm text-muted-foreground">
-                        {template.category}
+                        {template.catogery.toLowerCase()}
                       </span>
                     </td>
                     <td className="px-6 py-4">
@@ -171,20 +205,20 @@ export function TemplateManager() {
                     <td className="px-6 py-4">
                       <Badge
                         variant={
-                          template.status === "active" ? "default" : "secondary"
+                          template.status === true ? "default" : "secondary"
                         }
                       >
-                        {template.status}
+                        {template.status === true ? "Active" : "Inactive"}
                       </Badge>
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-sm text-muted-foreground">
-                        {template.uses}
+                        {template._count.savedTemplates}
                       </span>
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-sm text-muted-foreground">
-                        {template.createdDate}
+                        {template.createdAt.split("T")[0]}
                       </span>
                     </td>
                     <td className="px-6 py-4">
@@ -206,7 +240,7 @@ export function TemplateManager() {
                           variant="ghost"
                           size="sm"
                           className="text-destructive hover:bg-destructive/10"
-                          onClick={() => removeTemplate(template.id)}
+                          onClick={() => removeTemplate(template.uuid)}
                           title="Delete template"
                         >
                           <Trash2 className="w-4 h-4" />

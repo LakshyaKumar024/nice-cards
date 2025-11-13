@@ -37,6 +37,7 @@ model Template {
   paid        Boolean    @default(false)
   svg         String
   pdf         String
+  status      Boolean?    @default(true)
   createdAt   DateTime   @default(now())
 
   savedTemplates SavedTemplate[]
