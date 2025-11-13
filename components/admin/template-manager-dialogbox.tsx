@@ -1,5 +1,7 @@
 "use client";
 
+import type React from "react";
+
 import {
   Dialog,
   DialogClose,
@@ -12,16 +14,18 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { useState, useEffect } from "react";
 
 interface Template {
-  id: string;
+  uuid: string;
   name: string;
-  category: string;
-  status: "active" | "inactive";
+  catogery: string;
+  status: boolean;
+  paid: boolean;
   price: number;
-  uses: number;
-  createdDate: string;
+  _count: { savedTemplates: number };
+  createdAt: string;
   description?: string;
 }
 
@@ -46,13 +50,13 @@ export function TemplateManagerDialogbox({
 
   const categoryOptions = [
     "WEDDING",
-  "BIRTHDAY",
-  "ANNIVERSARY",
-  "GRADUATION",
-  "BABYSHOWER",
-  "FESTIVAL",
-  "INVITATION",
-  "CORPORATE",
+    "BIRTHDAY",
+    "ANNIVERSARY",
+    "GRADUATION",
+    "BABYSHOWER",
+    "FESTIVAL",
+    "INVITATION",
+    "CORPORATE",
   ];
 
   if (!formData) return null;
@@ -92,9 +96,9 @@ export function TemplateManagerDialogbox({
               <Label htmlFor="category">Category</Label>
               <select
                 id="category"
-                value={formData?.category ?? ""}
+                value={formData?.catogery ?? ""}
                 onChange={(e) =>
-                  setFormData({ ...formData, category: e.target.value })
+                  setFormData({ ...formData, catogery: e.target.value })
                 }
                 className="border border-input bg-background rounded-md p-2 text-sm"
               >
@@ -117,7 +121,7 @@ export function TemplateManagerDialogbox({
                 onChange={(e) =>
                   setFormData({
                     ...formData,
-                    price: parseFloat(e.target.value) || 0,
+                    price: Number.parseFloat(e.target.value) || 0,
                   })
                 }
               />
@@ -131,6 +135,29 @@ export function TemplateManagerDialogbox({
                 value={formData?.description ?? ""}
                 onChange={(e) =>
                   setFormData({ ...formData, description: e.target.value })
+                }
+              />
+            </div>
+
+            {/* Paid Toggle */}
+            <div className="flex items-center justify-between">
+              <Label htmlFor="paid">Paid</Label>
+              <Switch
+                id="paid"
+                checked={formData?.paid ?? false}
+                onCheckedChange={(checked: boolean) =>
+                  setFormData({ ...formData, paid: checked })
+                }
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <Label htmlFor="statusActive">Active</Label>
+              <Switch
+                id="statusActive"
+                checked={formData?.status ?? false}
+                onCheckedChange={(checked: boolean) =>
+                  setFormData({ ...formData, status: checked })
                 }
               />
             </div>
