@@ -378,14 +378,14 @@ export default function SvgEditPage({ params }: Props) {
             {/* Header */}
             <header className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-6 border-b">
               <div className="w-full sm:w-auto">
-                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold break-words">Edit Invitation</h1>
-                <CardDescription className="text-xs sm:text-sm mt-1 break-words">
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold wrap-break-word">Edit Invitation</h1>
+                <CardDescription className="text-xs sm:text-sm mt-1 wrap-break-word">
                   Template ID: {templateId} • Customize your {template?.catogery.toLowerCase()} card
                 </CardDescription>
               </div>
 
               {/* Navigation Arrows - Top */}
-              <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto justify-between sm:justify-end flex-shrink-0">
+              <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto justify-between sm:justify-end shrink-0">
                 <Button
                   onClick={navigateToPrevSvg}
                   disabled={currentSvgIndex === 0}
@@ -444,7 +444,7 @@ export default function SvgEditPage({ params }: Props) {
                   <div className="flex flex-col gap-4">
                     {Object.entries(cardData).map(([key, value]) => (
                       <div key={key} className="space-y-2">
-                        <label className="text-sm font-medium capitalize break-words">
+                        <label className="text-sm font-medium capitalize wrap-break-word">
                           {key.replace(/([A-Z])/g, " $1")}
                         </label>
                         <Input
@@ -456,10 +456,10 @@ export default function SvgEditPage({ params }: Props) {
 
                         {/* Language Preview */}
                         {value && (
-                          <div className="p-2 bg-muted rounded-md border break-words">
+                          <div className="p-2 bg-muted rounded-md border wrap-break-word">
                             <div className="text-xs text-muted-foreground mb-1">{selectedLanguage} Preview:</div>
                             <div
-                              className={`text-sm break-words ${
+                              className={`text-sm wrap-break-word ${
                                 selectedLanguage === "Hindi" ? "mangal-regular" : "font-roboto"
                               }`}
                               style={{
@@ -499,7 +499,7 @@ export default function SvgEditPage({ params }: Props) {
               <Card className="w-full">
                 <CardHeader className="p-4 sm:p-6">
                   <CardTitle className="text-lg sm:text-xl">Live Preview</CardTitle>
-                  <CardDescription className="text-xs sm:text-sm break-words">
+                  <CardDescription className="text-xs sm:text-sm wrap-break-word">
                     Real-time preview of your invitation card
                   </CardDescription>
                 </CardHeader>
@@ -509,8 +509,8 @@ export default function SvgEditPage({ params }: Props) {
                   </div>
 
                   <Alert className="w-full mt-4 sm:mt-6">
-                    <AlertDescription className="flex items-start sm:items-center gap-2 text-xs sm:text-sm break-words">
-                      <span className="flex-shrink-0">💡</span>
+                    <AlertDescription className="flex items-start sm:items-center gap-2 text-xs sm:text-sm wrap-break-word">
+                      <span className="shrink-0">💡</span>
                       <span>
                         <strong>Tip:</strong> Edits update instantly in the preview. Use arrows to navigate between
                         designs.

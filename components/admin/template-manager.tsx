@@ -22,11 +22,10 @@ interface Template {
   description?: string;
 }
 
-
 export function TemplateManager() {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-
+const [isUpdating, setIsUpdating] = useState(false);
   // Dialog states
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(
     null
@@ -48,11 +47,36 @@ export function TemplateManager() {
     setOpen(true);
   };
 
-  const handleSave = (updatedTemplate: Template) => {
+  const handleSave = async (updatedTemplate: Template) => {
+    setIsUpdating(true)
     console.log("handleSave", updatedTemplate);
-    setTemplates((prev) =>
-      prev.map((t) => (t.uuid === updatedTemplate.uuid ? updatedTemplate : t))
+    const updateToast = toast.loading("Updating template...");
+    try {
+      const updatedTemplates = await fetch(
+        `/api/dashboard/design/${updatedTemplate.uuid}/edit`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(updatedTemplate),
+        }
+      );
+      if (!updatedTemplates.ok) {
+        toast.error("Error updating template", { id: updateToast });
+        throw new Error("Failed to update template");
+      }
+      setTemplates((prev) =>
+        prev.map((t) => (t.uuid === updatedTemplate.uuid ? updatedTemplate : t))
     );
+    toast.success("Template updated successfully", { id: updateToast });
+  } catch (error) {
+    console.error("Error updating template:", error);
+    toast.error("Error updating template", { id: updateToast });
+  } finally {
+    setIsUpdating(false)
+    toast.dismiss(updateToast);
+    }
   };
 
   const filteredTemplates = templates.filter((template) =>
@@ -218,6 +242,7 @@ export function TemplateManager() {
         open={open}
         setOpen={setOpen}
         template={selectedTemplate}
+        isUpdating={isUpdating}
         onSave={handleSave}
       />
     </div>

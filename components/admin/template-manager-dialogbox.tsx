@@ -32,6 +32,7 @@ interface Template {
 interface TemplateManagerDialogboxProps {
   open: boolean;
   setOpen: (value: boolean) => void;
+  isUpdating: boolean;
   template: Template | null;
   onSave: (updatedTemplate: Template) => void;
 }
@@ -40,6 +41,7 @@ export function TemplateManagerDialogbox({
   open,
   setOpen,
   template,
+  isUpdating,
   onSave,
 }: TemplateManagerDialogboxProps) {
   const [formData, setFormData] = useState<Template | null>(template);
@@ -167,7 +169,7 @@ export function TemplateManagerDialogbox({
             <DialogClose asChild>
               <Button variant="outline">Cancel</Button>
             </DialogClose>
-            <Button type="submit">Save changes</Button>
+            <Button disabled={isUpdating} type="submit">{isUpdating ? "Updating..." : "Save changes"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>
