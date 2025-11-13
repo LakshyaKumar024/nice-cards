@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/form"
 import { toast } from "sonner"
 import Image from "next/image"
-import { Upload, FileText, ImageIcon, FileJson } from "lucide-react"
+import { FileText, ImageIcon, FileJson } from "lucide-react"
 
 const CATEGORIES = [
   "WEDDING",

@@ -2,6 +2,18 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Users, FileText, TrendingUp, DollarSign } from "lucide-react"
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts"
 
 const dashboardStats = [
   {
@@ -34,6 +46,23 @@ const dashboardStats = [
   },
 ]
 
+const signInData = [
+  { date: "Mon", signIns: 400, newUsers: 120 },
+  { date: "Tue", signIns: 520, newUsers: 180 },
+  { date: "Wed", signIns: 380, newUsers: 90 },
+  { date: "Thu", signIns: 650, newUsers: 240 },
+  { date: "Fri", signIns: 890, newUsers: 380 },
+  { date: "Sat", signIns: 720, newUsers: 290 },
+  { date: "Sun", signIns: 580, newUsers: 160 },
+]
+
+const templateUsageData = [
+  { name: "Blog", usage: 324 },
+  { name: "Portfolio", usage: 287 },
+  { name: "Landing", usage: 412 },
+  { name: "SaaS", usage: 256 },
+  { name: "Ecommerce", usage: 189 },
+]
 
 export function DashboardOverview() {
   return (

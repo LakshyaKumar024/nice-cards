@@ -10,6 +10,8 @@ export async function POST(
     try {
         body = await request.json();
     } catch (err) {
+        console.log(err);
+        
         body = {};
     }
     const { userId } = body;

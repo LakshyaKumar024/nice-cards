@@ -1,7 +1,21 @@
 "use client";
 import Link from "next/link";
+import { useTheme } from "next-themes";
+import { Sun, Moon, Github } from "lucide-react";
 
-export default function ShadcnFooter() {
+type FooterProps = {
+  companyName?: string;
+  companyHref?: string;
+  termsHref?: string;
+  privacyHref?: string;
+};
+
+export default function ShadcnFooter({
+  companyName = "DeepVoid Labs",
+  companyHref = "/",
+  termsHref = "/terms",
+  privacyHref = "/privacy",
+}: FooterProps) {
   return (
     <footer className="text-sm py-4">
       <div className="px-4 w-full">

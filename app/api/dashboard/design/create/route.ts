@@ -1,7 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile, mkdir } from 'fs/promises';
-import path from 'path';
-import { success, z } from 'zod';
 import prisma from '@/lib/db-init';
 import { CATEGORYS } from '@/prisma/generated/prisma/enums';
 import { saveFile } from '@/lib/helpers';
