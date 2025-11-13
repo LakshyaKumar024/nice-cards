@@ -12,18 +12,7 @@ export async function GET(
     const { fileId } = await params;
     
     console.log('📥 Download requested for:', fileId);
-
-    // First check if PDF is ready
-    // const pdfReady = await isPdfReady(fileId);
-    // console.log("pdfReady ,",pdfReady);
     
-    // if (!pdfReady) {
-    //   return NextResponse.json(
-    //     { error: 'PDF is not ready yet. Please try again in a moment.' },
-    //     { status: 404 }
-    //   );
-    // }
-
     // Check if file exists and is not expired
     const fileData = await getTemporaryFile(fileId);
     console.log("📦 File data:", fileData ? "FOUND" : "NOT FOUND");

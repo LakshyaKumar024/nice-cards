@@ -46,9 +46,6 @@ export default function RootLayout({
             <Toaster />
             {children}
             <ShadcnFooter />
-            
-
-
           </Providers>
         </body>
       </ClerkProvider>

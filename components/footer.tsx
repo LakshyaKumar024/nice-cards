@@ -17,12 +17,8 @@ export default function ShadcnFooter({
   termsHref = "/terms",
   privacyHref = "/privacy",
 }: FooterProps) {
-  const { theme, setTheme } = useTheme();
-
-  const toggleTheme = () => setTheme(theme === "dark" ? "light" : "dark");
-
   return (
-    <footer className="border-t border-slate-200/10 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm dark:border-slate-700/50 text-sm">
+    <footer className="text-sm">
       <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
         {/* LEFT: Terms + Privacy */}
         <div className="flex gap-4 text-slate-600 dark:text-slate-300 text-sm">
