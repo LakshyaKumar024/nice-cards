@@ -43,7 +43,7 @@ export default function RootLayout({
           />
           <Providers>
             <Navbar />
-            <Toaster />
+            <Toaster richColors />
             {children}
             <ShadcnFooter />
           </Providers>
