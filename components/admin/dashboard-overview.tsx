@@ -1,8 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { clerkClient } from "@clerk/nextjs/server";
-import { Users, FileText, TrendingUp, DollarSign, IndianRupee } from "lucide-react";
+import { Users, FileText, TrendingUp, IndianRupee } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export function DashboardOverview() {
@@ -67,7 +66,7 @@ setDashboardStats([
       title: "Revenue",
       value: `₹ ${data.totlaRevenue}`,
       description: "+% from last month",
-      icon: DollarSign,
+      icon: IndianRupee,
       color: "text-purple-500",
     },
     ])      
