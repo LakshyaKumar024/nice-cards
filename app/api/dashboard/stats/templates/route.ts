@@ -10,7 +10,9 @@ export async function GET(request: NextRequest) {
                 name: true, 
                 createdAt: true, 
                 catogery: true, 
+                description: true,
                 price: true, 
+                paid: true,
                 status: true,
                 _count: {
                     select: {

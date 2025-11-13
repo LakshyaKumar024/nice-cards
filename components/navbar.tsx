@@ -20,7 +20,7 @@ import {
 } from "@clerk/nextjs";
 import ThemeSwitch from "./theme-switch";
 import Image from "next/image";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 
 export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -95,7 +95,7 @@ export const Navbar = () => {
               </SheetTrigger>
               <SheetContent side="right" className="w-[280px] sm:w-[400px]">
                 <div className="flex flex-col h-full">
-                  {/* Mobile Menu Header with DialogTitle */}
+                  {/* Mobile Menu Header */}
                   <div className="flex items-center gap-3 pb-6 border-b m-4">
                     <div className="w-10 h-10 rounded-lg flex items-center justify-center">
                       <Image src="/logo.jpg" width={30} height={30} alt="NC" />
@@ -105,8 +105,10 @@ export const Navbar = () => {
                     </span>
                   </div>
 
-                  {/* DialogTitle for accessibility - visually hidden */}
-                  <h2 className="sr-only">Navigation Menu</h2>
+                  {/* SheetTitle for accessibility - visually hidden */}
+                  <SheetTitle className="sr-only">
+                    Navigation Menu
+                  </SheetTitle>
 
                   {/* Mobile Menu Content */}
                   <div className="flex flex-col gap-4 py-6 flex-1 px-4">
@@ -125,7 +127,7 @@ export const Navbar = () => {
                         </SignInButton>
                         <SignUpButton>
                           <Button
-                            className="w-full justify-center gap-2 py-3 h-11 bg-linear-to-r from-[#6c47ff] to-[#5a3fe0] hover:from-[#5a3fe0] hover:to-[#4a32c4] text-white shadow-md hover:shadow-lg transition-all duration-200"
+                            className="w-full justify-center gap-2 py-3 h-11 bg-gradient-to-r from-[#6c47ff] to-[#5a3fe0] hover:from-[#5a3fe0] hover:to-[#4a32c4] text-white shadow-md hover:shadow-lg transition-all duration-200"
                             onClick={() => setIsOpen(false)}
                           >
                             <ShoppingBag className="h-4 w-4" />

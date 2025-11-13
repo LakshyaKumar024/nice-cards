@@ -48,7 +48,7 @@ export function AdminLayout({ activeTab, onTabChange, children }: AdminLayoutPro
                     : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                 )}
               >
-                <Icon className="w-5 h-5 flex-shrink-0" />
+                <Icon className="w-5 h-5 shrink-0" />
                 <span className="font-medium">{item.label}</span>
               </button>
             )
@@ -57,7 +57,7 @@ export function AdminLayout({ activeTab, onTabChange, children }: AdminLayoutPro
 
         <div className="p-4 space-y-2 border-t border-sidebar-border">
           <button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors text-left">
-            <LogOut className="w-5 h-5 flex-shrink-0" />
+            <LogOut className="w-5 h-5 shrink-0" />
             <span className="font-medium">Logout</span>
           </button>
         </div>
@@ -90,7 +90,7 @@ export function AdminLayout({ activeTab, onTabChange, children }: AdminLayoutPro
                         : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                     )}
                   >
-                    <Icon className="w-5 h-5 flex-shrink-0" />
+                    <Icon className="w-5 h-5 shrink-0" />
                     <span className="font-medium">{item.label}</span>
                   </button>
                 )
@@ -98,7 +98,7 @@ export function AdminLayout({ activeTab, onTabChange, children }: AdminLayoutPro
             </nav>
             <div className="p-4 space-y-2 border-t border-sidebar-border">
               <button className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent transition-colors text-left text-sm">
-                <LogOut className="w-5 h-5 flex-shrink-0" />
+                <LogOut className="w-5 h-5 shrink-0" />
                 <span className="font-medium">Logout</span>
               </button>
             </div>
@@ -120,7 +120,7 @@ export function AdminLayout({ activeTab, onTabChange, children }: AdminLayoutPro
           <h2 className="text-lg sm:text-xl font-bold text-card-foreground">
             {navItems.find((item) => item.id === activeTab)?.label}
           </h2>
-          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
             <span className="text-xs sm:text-sm font-bold text-primary">A</span>
           </div>
         </div>

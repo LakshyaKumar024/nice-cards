@@ -22,48 +22,6 @@ interface Template {
   description?: string;
 }
 
-// const mockTemplates: Template[] = [
-//   {
-//     id: "1",
-//     name: "Blog Starter",
-//     category: "Blog",
-//     status: "active",
-//     price: 29,
-//     uses: 324,
-//     createdDate: "2024-01-15",
-//     description: "A clean starter for blogs.",
-//   },
-//   {
-//     id: "2",
-//     name: "Portfolio Pro",
-//     category: "Portfolio",
-//     status: "active",
-//     price: 49,
-//     uses: 287,
-//     createdDate: "2024-01-10",
-//     description: "Perfect for personal portfolios.",
-//   },
-//   {
-//     id: "3",
-//     name: "SaaS Landings",
-//     category: "SaaS",
-//     status: "active",
-//     price: 79,
-//     uses: 256,
-//     createdDate: "2024-01-08",
-//     description: "Landing pages for SaaS startups.",
-//   },
-//   {
-//     id: "4",
-//     name: "Ecommerce Store",
-//     category: "Ecommerce",
-//     status: "inactive",
-//     price: 99,
-//     uses: 189,
-//     createdDate: "2024-01-05",
-//     description: "Modern e-commerce storefront.",
-//   },
-// ];
 
 export function TemplateManager() {
   const [templates, setTemplates] = useState<Template[]>([]);
