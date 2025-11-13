@@ -1,59 +1,5 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Users, FileText, TrendingUp, DollarSign, IndianRupee } from "lucide-react"
-
-
-const dashboardStats = [
-  {
-    title: "Total Members",
-    value: "2,543",
-    description: "+320 this month",
-    icon: Users,
-    color: "text-blue-500",
-  },
-  {
-    title: "Total Templates",
-    value: "127",
-    description: "+12 this week",
-    icon: FileText,
-    color: "text-orange-500",
-  },
-  {
-    title: "Total Sign-ins",
-    value: "15,843",
-    description: "+2,450 this week",
-    icon: TrendingUp,
-    color: "text-green-500",
-  },
-  {
-    title: "Revenue",
-    value: "₹24,590",
-    description: "+15% from last month",
-    icon: IndianRupee,
-    color: "text-purple-500",
-  },
-]
-
-const signInData = [
-  { date: "Mon", signIns: 400, newUsers: 120 },
-  { date: "Tue", signIns: 520, newUsers: 180 },
-  { date: "Wed", signIns: 380, newUsers: 90 },
-  { date: "Thu", signIns: 650, newUsers: 240 },
-  { date: "Fri", signIns: 890, newUsers: 380 },
-  { date: "Sat", signIns: 720, newUsers: 290 },
-  { date: "Sun", signIns: 580, newUsers: 160 },
-]
-
-const templateUsageData = [
-  { name: "Blog", usage: 324 },
-  { name: "Portfolio", usage: 287 },
-  { name: "Landing", usage: 412 },
-  { name: "SaaS", usage: 256 },
-  { name: "Ecommerce", usage: 189 },
-]
-
-export function DashboardOverview() {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { clerkClient } from "@clerk/nextjs/server";
 import { Users, FileText, TrendingUp, DollarSign } from "lucide-react";
