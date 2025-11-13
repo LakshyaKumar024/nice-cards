@@ -397,7 +397,7 @@ export function TemplateDetail({
                   ) : (
                     <>
                       <ShoppingCart className="mr-2 h-5 w-5" />
-                      Purchase Template - $
+                      Purchase Template - ₹ 
                       {typeof template.price === "number"
                         ? template.price.toFixed(2)
                         : "0.00"}

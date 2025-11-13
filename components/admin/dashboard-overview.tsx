@@ -1,19 +1,8 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Users, FileText, TrendingUp, DollarSign } from "lucide-react"
-import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts"
+import { Users, FileText, TrendingUp, DollarSign, IndianRupee } from "lucide-react"
+
 
 const dashboardStats = [
   {
@@ -41,7 +30,7 @@ const dashboardStats = [
     title: "Revenue",
     value: "₹24,590",
     description: "+15% from last month",
-    icon: DollarSign,
+    icon: IndianRupee,
     color: "text-purple-500",
   },
 ]

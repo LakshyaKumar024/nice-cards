@@ -358,7 +358,7 @@ export default function AddTemplatePage() {
                       <FormControl>
                         <Input type="number" placeholder="0" {...field} className="bg-secondary/50" />
                       </FormControl>
-                      <FormDescription className="text-xs">In cents (e.g., 999 = $9.99)</FormDescription>
+                      <FormDescription className="text-xs">In cents (e.g., 999 = 9.99)</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}

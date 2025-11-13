@@ -165,7 +165,7 @@ export function TemplateManager() {
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-sm font-semibold text-foreground">
-                        ${template.price}
+                        ₹ {template.price}
                       </span>
                     </td>
                     <td className="px-6 py-4">
