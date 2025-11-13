@@ -15,6 +15,7 @@ import { useUser } from "@clerk/nextjs";
 import { toast } from "sonner";
 
 interface Template {
+  pages?: number | null;
   uuid: string;
   name: string;
   description: string;
@@ -255,8 +256,8 @@ export function TemplateDetail({
             <div className="grid grid-cols-3 gap-4 text-center">
               {[
                 {
-                  label: "Rating",
-                  value: template.rating?.toFixed(1) || "N/A",
+                  label: "Pages",
+                  value: template.pages?.toFixed(1) || "N/A",
                 },
                 {
                   label: "Downloads",
@@ -311,7 +312,7 @@ export function TemplateDetail({
                 </div>
                 <div className="sm:text-right">
                   <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">
-                    $
+                    ₹
                     {typeof template.price === "number"
                       ? template.price.toFixed(2)
                       : "0.00"}
