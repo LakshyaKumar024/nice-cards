@@ -1,7 +1,6 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { clerkClient } from "@clerk/nextjs/server";
 import { Users, FileText, TrendingUp, DollarSign } from "lucide-react";
 import { useEffect, useState } from "react";
 
