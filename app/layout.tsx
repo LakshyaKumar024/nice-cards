@@ -6,6 +6,8 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { Navbar } from "@/components/navbar";
 import { Toaster } from "sonner";
 import Script from "next/script";
+import ShadcnFooter from "@/components/footer"; 
+
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -43,6 +45,10 @@ export default function RootLayout({
             <Navbar />
             <Toaster />
             {children}
+            <ShadcnFooter />
+            
+
+
           </Providers>
         </body>
       </ClerkProvider>
