@@ -2,6 +2,11 @@
 import { TemplateCard } from "@/components/template-card";
 import Image from "next/image";
 import React, { useEffect, useState } from "react";
+import { Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { useRouter } from "next/navigation";
+// Import proper shadcn components (make sure these are installed)
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const categories = [
   "All",
@@ -15,9 +20,6 @@ const categories = [
   "CORPORATE",
 ];
 
-// Import proper shadcn components (make sure these are installed)
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "sonner";
 
 export interface Template {
   uuid: string;
@@ -39,8 +41,10 @@ export interface Template {
 }
 
 export default function Home() {
+  const router = useRouter();
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [templates, setTemplates] = useState<Template[]>([]);
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
   useEffect(() => {
     fetch("/api/design")
@@ -51,6 +55,14 @@ export default function Home() {
       });
   }, []);
 
+  // Handle search - navigate to search page
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/search?query=${encodeURIComponent(searchQuery)}`);
+    }
+  };
+
   // Filter templates based on selected category
   const filteredTemplates =
     selectedCategory === "All"
@@ -58,6 +70,7 @@ export default function Home() {
       : templates.filter((template) => template.catogery === selectedCategory);
 
   const handlePurchase = () => {};
+
   return (
     <div className="min-h-screen bg-gradient-subtle">
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
@@ -87,6 +100,21 @@ export default function Home() {
           </p>
         </div>
 
+        {/* Search Bar */}
+        <div className="max-w-2xl mx-auto mb-6 sm:mb-8 lg:mb-10">
+          <form onSubmit={handleSearch} className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
+            <Input
+              type="text"
+              placeholder="Search templates..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 pr-4 py-6 text-base sm:text-lg rounded-xl shadow-sm border-2 focus:border-primary transition-colors"
+            />
+          </form>
+        </div>
+
+        {/* Categories Tabs */}
         <Tabs
           value={selectedCategory}
           onValueChange={setSelectedCategory}

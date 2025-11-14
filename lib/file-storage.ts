@@ -47,7 +47,12 @@ export async function storeTemporarySvg(fileId: string, svgContent: string): Pro
   }
 }
 
-export async function generatePdfFromSvgUrl(fileId: string, svgUrl: string, pdfFilename: string): Promise<boolean> {
+
+export async function generatePdfFromSvgUrl(
+  fileId: string,
+  svgUrl: string,
+  pdfFilename: string
+): Promise<boolean> {
   let browser;
   try {
     console.log('🔄 Starting Puppeteer to convert SVG URL to PDF...');
@@ -60,94 +65,101 @@ export async function generatePdfFromSvgUrl(fileId: string, svgUrl: string, pdfF
 
     const page = await browser.newPage();
 
-    // Navigate to the SVG URL
-    console.log('🌐 Navigating to SVG URL:', svgUrl);
-    await page.goto(svgUrl, { waitUntil: 'networkidle0' });
+    // Fetch SVG content (because we will inline it inside HTML)
+    console.log("📥 Fetching SVG content from:", svgUrl);
+    const svgContent = await fetch(svgUrl).then(res => res.text());
 
-    // Wait for SVG to load completely
+    // Build HTML wrapper (fonts will load here)
+    const html = `
+    <html>
+      <head>
+        <link rel="stylesheet" href="${process.env.NEXT_PUBLIC_BASE_URL}/fontsDeclaration/fonts.css" />
+        <style>
+          body { margin: 0; padding: 0; }
+          svg { width: 100%; height: auto; }
+        </style>
+      </head>
+      <body>
+        ${svgContent}
+      </body>
+    </html>
+    `;
+
+    // Load the HTML content
+    await page.setContent(html, { waitUntil: "networkidle0" });
+
+    // Wait for fonts to load
+    await page.evaluate(() => document.fonts.ready);
+
+    console.log("⏳ Fonts loaded in Puppeteer.");
+
+    // Ensure SVG exists
     await page.waitForSelector('svg', { timeout: 10000 });
 
-    // Get SVG dimensions and apply proper scaling
+    // Get SVG dimensions AFTER it's inside HTML
     const dimensions = await page.evaluate(() => {
       const svg = document.querySelector('svg');
-      if (!svg) return { width: 800, height: 600, scale: 3 };
-
       const viewBox = svg.getAttribute('viewBox');
-      let width = 800;
-      let height = 600;
 
       if (viewBox) {
         const parts = viewBox.split(' ');
-        width = parseFloat(parts[2]) || 800;
-        height = parseFloat(parts[3]) || 600;
-      } else {
-        width = parseFloat(svg.getAttribute('width') || svg.getBoundingClientRect().width.toString() || '800');
-        height = parseFloat(svg.getAttribute('height') || svg.getBoundingClientRect().height.toString() || '600');
+        return {
+          width: parseFloat(parts[2]) || 800,
+          height: parseFloat(parts[3]) || 600
+        };
       }
 
-      // Calculate scale factor - convert pixels to points (96 DPI to 72 DPI)
-      // Or use a fixed scale for better control
-      const scale = 0.1; // Adjust this value as needed (1.5 = 150% scale)
-
       return {
-        width: width * scale,
-        height: height * scale,
-        scale
+        width: svg.getBoundingClientRect().width || 800,
+        height: svg.getBoundingClientRect().height || 600
       };
     });
 
-    console.log('📐 SVG dimensions (scaled):', dimensions);
+    console.log("📏 SVG Dimensions:", dimensions);
 
-    // Set viewport to match SVG size for proper rendering
+    // Match viewport to SVG
     await page.setViewport({
       width: Math.ceil(dimensions.width),
       height: Math.ceil(dimensions.height),
-      deviceScaleFactor: 2 // Higher DPI for better quality
+      deviceScaleFactor: 2
     });
 
-    // Generate PDF with proper scaling
+    // Generate the PDF
     const pdfBuffer = await page.pdf({
-      width: Math.ceil(dimensions.width) + 40, // Add padding
-      height: Math.ceil(dimensions.height) + 40,
       printBackground: true,
-      margin: {
-        top: 20,
-        right: 20,
-        bottom: 20,
-        left: 20
-      },
-      scale: 1.0 // Use the scale we calculated above
+      width: `${dimensions.width}px`,
+      height: `${dimensions.height}px`,
+      margin: { top: 0, right: 0, bottom: 0, left: 0 }
     });
 
     await browser.close();
 
-    // Save PDF to private tmp folder
+    // Save PDF
     const pdfFileName = `${fileId}.pdf`;
-    const pdfFilePath = path.join(privateTmpPath, pdfFileName);
-    await fs.promises.writeFile(pdfFilePath, pdfBuffer);
+    const pdfPath = path.join(privateTmpPath, pdfFileName);
+    await fs.promises.writeFile(pdfPath, pdfBuffer);
 
-    // Update metadata with PDF file info
-    const metaFilePath = path.join(privateTmpPath, `${fileId}.json`);
-    if (fs.existsSync(metaFilePath)) {
-      const metadata = JSON.parse(await fs.promises.readFile(metaFilePath, 'utf8'));
+    // Update metadata
+    const metaPath = path.join(privateTmpPath, `${fileId}.json`);
+    if (fs.existsSync(metaPath)) {
+      const metadata = JSON.parse(await fs.promises.readFile(metaPath, "utf8"));
       metadata.pdfFileName = pdfFileName;
-      metadata.filename = pdfFilename; // Ensure PDF filename is set
-      metadata.status = 'pdf_created';
+      metadata.filename = pdfFilename;
+      metadata.status = "pdf_created";
       metadata.pdfCreatedAt = Date.now();
-      await fs.promises.writeFile(metaFilePath, JSON.stringify(metadata));
+      await fs.promises.writeFile(metaPath, JSON.stringify(metadata));
     }
 
-    console.log('✅ PDF conversion successful:', pdfFileName);
+    console.log("✅ PDF converted:", pdfFilename);
     return true;
 
   } catch (error) {
     console.error('❌ Error converting SVG URL to PDF:', error);
-    if (browser) {
-      await browser.close();
-    }
+    if (browser) await browser.close();
     return false;
   }
 }
+
 
 export async function getTemporaryFile(fileId: string) {
   try {

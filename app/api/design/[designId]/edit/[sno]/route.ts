@@ -4,6 +4,7 @@ import path from 'path';
 import prisma from '@/lib/db-init';
 import { storeTemporarySvg, generatePdfFromSvgUrl, cleanupExpiredFiles } from '@/lib/file-storage';
 import { customizeSvg } from '@/lib/svg-helpers';
+import { toast } from 'sonner';
 
 console.log('🔄 API route loaded: /api/design/[designId]/edit/[sno]');
 

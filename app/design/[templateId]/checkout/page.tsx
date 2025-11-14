@@ -15,7 +15,7 @@ export default function Page({
   params: Promise<{ templateId: string }>;
 }) {
   const { templateId } = use(params);
-  const [isPurchasing, setIsPurchasing] = useState(false)
+  const [isPurchasing, setIsPurchasing] = useState(false);
   const router = useRouter();
   const { user } = useUser();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -28,6 +28,10 @@ export default function Page({
         headers: { "Content-Type": "application/json" },
       });
       const data = await template.json();
+      if (data.data.hasPurchased) {
+        toast.info("This template is already purchased.");
+        return router.push(`/design/${templateId}/edit`);
+      }
       setTemplate(data.data);
     };
     getTemplate();
@@ -50,9 +54,8 @@ export default function Page({
     finalPrice: Number(template.price),
   };
 
-
   const handlePayment = async () => {
-    setIsPurchasing(true)
+    setIsPurchasing(true);
     // For free
     if (Number(template.price) === 0) {
       const res = await fetch("/api/order/verify/free", {
@@ -75,7 +78,7 @@ export default function Page({
     }
 
     // For Paid
-    if ((Number(template.price) > 0)) {
+    if (Number(template.price) > 0) {
       const res = await fetch("/api/order", {
         method: "POST",
         body: JSON.stringify({
@@ -111,7 +114,7 @@ export default function Page({
           } else {
             alert("Payment failed");
           }
-          setIsPurchasing(false)
+          setIsPurchasing(false);
         },
       };
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -50,3 +50,6 @@ next-env.d.ts
 /public/tmp/*
 /tmp/*
 !public/tmp/.gitkeep
+
+/public/fonts
+/public/fontsDeclaration

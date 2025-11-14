@@ -7,9 +7,12 @@ export async function GET(request: NextRequest) {
   try {
     // Get the current user from Clerk
     const { userId } = await auth();
-    
+
     const templates = await prisma.template.findMany({
-      orderBy: { createdAt: 'desc' }, 
+      where: {
+        status: true,
+      },
+      orderBy: { createdAt: 'desc' },
       select: {
         uuid: true,
         name: true,
@@ -17,6 +20,7 @@ export async function GET(request: NextRequest) {
         catogery: true,
         tags: true,
         price: true,
+        status: true,
         paid: true,
         svg: true,
         pdf: true,
@@ -36,7 +40,7 @@ export async function GET(request: NextRequest) {
         {
           success: true,
           data: templatesWithPurchaseStatus
-        }, 
+        },
         { status: 200 }
       );
     }
@@ -67,7 +71,7 @@ export async function GET(request: NextRequest) {
       {
         success: true,
         data: templatesWithPurchaseStatus
-      }, 
+      },
       { status: 200 }
     );
 

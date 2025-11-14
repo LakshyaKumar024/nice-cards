@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { toast } from "sonner";
 
 interface Template {
   uuid: string;
@@ -63,6 +64,10 @@ export default function Page({
 
         const result = await res.json();
         const data = result.data;
+        if (!data.hasPurchased){
+          toast.error("purchase the template first.");
+          return router.push(`/design/${templateId}`);
+        }
         if (!data?.uuid) throw new Error("Invalid template data");
         setTemplate(data);
         console.log(data.svg);
