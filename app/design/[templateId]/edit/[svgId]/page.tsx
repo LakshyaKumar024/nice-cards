@@ -83,6 +83,7 @@ export default function SvgEditPage({ params }: Props) {
         setLoading(true);
         const res = await fetch(`/api/design/${templateId}`, {
           method: "POST",
+          body: JSON.stringify({ userId: user?.id }),
           headers: { "Content-Type": "application/json" },
           cache: "no-store",
         });
@@ -90,6 +91,8 @@ export default function SvgEditPage({ params }: Props) {
         if (!res.ok) throw new Error("Failed to fetch template");
         const result = await res.json();
         const data = result.data;
+        console.log("data", data);
+        
         if(!data.hasPurchased){
           toast.error("purchase the template first.");
           return router.push(`/design/${templateId}`);
