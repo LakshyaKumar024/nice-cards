@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db-init";
+import { uuidv4 } from "zod";
 
 
 export async function POST(request: NextRequest) {
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
         data: {
           userId: userId,
           templateId: templateId,
-          razorpayOrderId: `free-${userId}`,
+          razorpayOrderId: `free-${userId+uuidv4()}`,
           amount: 0,
           status: "completed",
         },

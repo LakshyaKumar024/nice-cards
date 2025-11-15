@@ -14,6 +14,11 @@ const isProtectedRoute = createRouteMatcher([
 const isAdminRoute = createRouteMatcher([
   "/dashboard(.*)?",
 ]);
+
+// Exclude API routes from admin matcher to prevent body consumption
+const isAdminApiRoute = createRouteMatcher([
+  "/api/dashboard(.*)?",
+]);
 const isDeveloperRoute = createRouteMatcher([
   "/developer(.*)?",
 ]);
@@ -24,7 +29,8 @@ export default clerkMiddleware(async (auth, req) => {
   const { userId } = await auth();
 
   if (isProtectedRoute(req)) await auth.protect()
-  // check admin routs
+  
+  // check admin routes
   if (isAdminRoute(req)) {
     if (!userId) {
       return await auth.protect()
@@ -56,5 +62,8 @@ export default clerkMiddleware(async (auth, req) => {
 });
 
 export const config = {
-  matcher: ["/((?!_next|.*\\..*).*)", "/(api|trpc)(.*)"],
+  matcher: [
+    "/((?!_next|.*\\..*).*)", 
+    "/(api|trpc)((?!/dashboard/design/create).*)"
+  ],
 };

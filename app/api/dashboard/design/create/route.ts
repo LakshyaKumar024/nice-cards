@@ -153,6 +153,12 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    // Auth check (since we excluded this route from middleware)
+    const { userId } = await import('@clerk/nextjs/server').then(m => m.auth());
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const formData = await request.formData();
     const type = formData.get("type") as "pdf" | "placeholder" | "svg";
     const file = formData.get("file") as File;

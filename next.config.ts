@@ -1,21 +1,28 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  assetPrefix: process.env.DEV_TUNNEL_URL || "",
-  allowedDevOrigins: ["*"],
-  experimental: {
-    serverActions:{
-      allowedOrigins:["*"]
+  webpack: (config, { isServer }) => {
+    // Only apply these fixes on the server side
+    if (isServer) {
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        'pdfjs-dist': 'pdfjs-dist/legacy/build/pdf',
+      };
+      
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        canvas: false,
+        fs: false,
+      };
     }
+    return config;
   },
+  
   images: {
     remotePatterns: [
       {
         protocol: "https",
         hostname: 'img.clerk.com',
-        port: '',
-        pathname: '**',
       }
     ],
   },
