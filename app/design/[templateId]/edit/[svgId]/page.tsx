@@ -92,11 +92,11 @@ export default function SvgEditPage({ params }: Props) {
         const result = await res.json();
         const data = result.data;
         console.log("data", data);
-        
-        if(!data.hasPurchased){
-          toast.error("purchase the template first.");
-          return router.push(`/design/${templateId}`);
-        }
+
+        // if(!data.hasPurchased){
+        //   toast.error("purchase the template first.");
+        //   return router.push(`/design/${templateId}`);
+        // }
         
         if (!data?.uuid) throw new Error("Invalid template data");
 

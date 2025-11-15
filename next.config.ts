@@ -2,6 +2,13 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
+  assetPrefix: process.env.DEV_TUNNEL_URL || "",
+  allowedDevOrigins: ["*"],
+  experimental: {
+    serverActions:{
+      allowedOrigins:["*"]
+    }
+  },
   images: {
     remotePatterns: [
       {
@@ -13,5 +20,6 @@ const nextConfig: NextConfig = {
     ],
   },
 };
+
 
 export default nextConfig;
