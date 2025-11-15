@@ -131,7 +131,7 @@ export function SVGViewer({ svgContent}: SVGViewerProps) {
       >
         <div
           ref={svgContainerRef}
-          className="bg-white"
+          className="bg-white svg-fonts-loaded"
           dangerouslySetInnerHTML={{ __html: svgContent }}
           style={{
             background:"white",

@@ -209,7 +209,12 @@ export default function AddTemplatePage() {
             });
 
             if (!svgRes.ok) {
-              const errorText = await svgRes.text();
+              let errorText = "Unknown error";
+              try {
+                errorText = await svgRes.text();
+              } catch (e) {
+                console.error("Could not read error response:", e);
+              }
               throw new Error(`Upload failed: ${svgRes.status} - ${errorText}`);
             }
 

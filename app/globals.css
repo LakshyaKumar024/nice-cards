@@ -1,6 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-
+/* 
 @font-face {
   font-family: "Kruti Dev 010";
   src: url("/fonts/kruti-dev-010.ttf") format("truetype");
@@ -23,7 +23,7 @@
 
 .mangal-regular {
   font-family: "Mangal Regular", sans-serif;
-}
+} */
 
 @custom-variant dark (&:is(.dark *));
 
@@ -159,4 +159,13 @@ iframe {
   -khtml-user-drag: none;
   -moz-user-drag: none;
   -o-user-drag: none;
+}
+
+
+/* SVG Font Support - Ensure all fonts are available to SVG elements */
+svg text,
+svg tspan,
+.svg-fonts-loaded svg text,
+.svg-fonts-loaded svg tspan {
+  font-family: inherit;
 }
