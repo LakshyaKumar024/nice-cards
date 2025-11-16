@@ -17,7 +17,6 @@ interface PDFCanvasProps {
   selectedOverlayId: string | null;
   onSelectOverlay: (id: string | null) => void;
   onUpdateOverlay: (id: string, updates: Partial<TextOverlay>) => void;
-  onDeleteOverlay: (id: string) => void;
   onAddOverlay: (overlay: Omit<TextOverlay, 'id'>) => void;
 }
 
@@ -28,7 +27,6 @@ export function PDFCanvas({
   selectedOverlayId,
   onSelectOverlay,
   onUpdateOverlay,
-  onDeleteOverlay,
   onAddOverlay,
 }: PDFCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -37,19 +35,12 @@ export function PDFCanvas({
   const [pageDimensions, setPageDimensions] = useState({ width: 0, height: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [editingOverlayId, setEditingOverlayId] = useState<string | null>(null);
-  const [newOverlayId, setNewOverlayId] = useState<string | null>(null);
-  const renderTaskRef = useRef<any>(null);
+  const renderTaskRef = useRef<pdfjsLib.RenderTask | null>(null);
 
-  // Handle keyboard delete and enter to edit
+  // Handle keyboard for editing only
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if ((event.key === 'Delete' || event.key === 'Backspace') && selectedOverlayId) {
-        event.preventDefault();
-        onDeleteOverlay(selectedOverlayId);
-      }
       if (event.key === 'Enter' && selectedOverlayId && !editingOverlayId) {
         event.preventDefault();
         setEditingOverlayId(selectedOverlayId);
@@ -64,9 +55,9 @@ export function PDFCanvas({
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [selectedOverlayId, editingOverlayId, onDeleteOverlay]);
+  }, [selectedOverlayId, editingOverlayId]);
 
-  // Render PDF page
+  // Render PDF page - ORIGINAL SCALING
   useEffect(() => {
     const renderPage = async () => {
       if (!canvasRef.current || !pdfDocument) return;
@@ -88,9 +79,8 @@ export function PDFCanvas({
 
         context.clearRect(0, 0, canvas.width, canvas.height);
 
-        const containerWidth = containerRef.current?.clientWidth || 800;
-        const viewport = page.getViewport({ scale: 1 });
-        const scale = Math.min((containerWidth - 64) / viewport.width, 1.5);
+        // ORIGINAL SCALING - Fixed scale like your initial version
+        const scale = 1.5; // Fixed scale as in your original code
         
         const scaledViewport = page.getViewport({ scale });
         canvas.width = scaledViewport.width;
@@ -104,7 +94,7 @@ export function PDFCanvas({
           viewport: scaledViewport,
         };
 
-        renderTaskRef.current = page.render(renderContext as any);
+        renderTaskRef.current = page.render(renderContext);
         await renderTaskRef.current.promise;
         renderTaskRef.current = null;
         
@@ -128,7 +118,7 @@ export function PDFCanvas({
     };
   }, [pdfDocument, pageNumber]);
 
-  // Handle double-click to add new text (original behavior)
+  // Handle double-click to add new text
   const handleCanvasDoubleClick = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
     if (!canvasRef.current || isLoading) return;
 
@@ -141,9 +131,8 @@ export function PDFCanvas({
     const normalizedX = x / pageDimensions.width;
     const normalizedY = y / pageDimensions.height;
 
-    // Create new overlay on double-click
     const newOverlay: Omit<TextOverlay, 'id'> = {
-      text: 'New Text',
+      text: '', // Start with empty text
       x: normalizedX,
       y: normalizedY,
       fontSize: 16,
@@ -156,15 +145,12 @@ export function PDFCanvas({
       zIndex: overlays.length,
     };
     
-    // Add the overlay and get the generated ID
     onAddOverlay(newOverlay);
-    
-    // We'll set the editing state when the overlay is actually created in the parent
   }, [pageDimensions, pageNumber, overlays.length, isLoading, onAddOverlay]);
 
   // Handle single click to select
   const handleCanvasClick = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!canvasRef.current || isLoading || isDragging) return;
+    if (!canvasRef.current || isLoading) return;
 
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
@@ -180,54 +166,56 @@ export function PDFCanvas({
 
     if (clickedOverlay) {
       onSelectOverlay(clickedOverlay.id);
-      setEditingOverlayId(null); // Stop editing when selecting another overlay
+      setEditingOverlayId(null);
     } else {
       onSelectOverlay(null);
-      setEditingOverlayId(null); // Stop editing when clicking empty space
+      setEditingOverlayId(null);
     }
-  }, [overlays, pageNumber, pageDimensions, isLoading, isDragging, onSelectOverlay]);
+  }, [overlays, pageNumber, pageDimensions, isLoading, onSelectOverlay]);
 
   const handleDragStart = useCallback((event: React.MouseEvent<HTMLDivElement>, overlayId: string) => {
     event.stopPropagation();
     const overlay = overlays.find(o => o.id === overlayId);
     if (!overlay) return;
 
-    setIsDragging(true);
     onSelectOverlay(overlayId);
-    setEditingOverlayId(null); // Stop editing when dragging
+    setEditingOverlayId(null);
     
     const rect = event.currentTarget.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
     
-    setDragOffset({
+    const dragOffset = {
       x: event.clientX - centerX,
       y: event.clientY - centerY
-    });
-  }, [overlays, onSelectOverlay]);
+    };
 
-  const handleDrag = useCallback((event: React.MouseEvent) => {
-    if (!isDragging || !selectedOverlayId || !canvasRef.current) return;
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      if (!canvasRef.current) return;
 
-    const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
-    
-    const x = (event.clientX - rect.left - dragOffset.x);
-    const y = (event.clientY - rect.top - dragOffset.y);
+      const canvas = canvasRef.current;
+      const canvasRect = canvas.getBoundingClientRect();
+      
+      const newX = (moveEvent.clientX - canvasRect.left - dragOffset.x);
+      const newY = (moveEvent.clientY - canvasRect.top - dragOffset.y);
 
-    const normalizedX = Math.max(0, Math.min(1, x / pageDimensions.width));
-    const normalizedY = Math.max(0, Math.min(1, y / pageDimensions.height));
+      const normalizedX = Math.max(0, Math.min(1, newX / pageDimensions.width));
+      const normalizedY = Math.max(0, Math.min(1, newY / pageDimensions.height));
 
-    onUpdateOverlay(selectedOverlayId, {
-      x: normalizedX,
-      y: normalizedY
-    });
-  }, [isDragging, selectedOverlayId, dragOffset, pageDimensions, onUpdateOverlay]);
+      onUpdateOverlay(overlayId, {
+        x: normalizedX,
+        y: normalizedY
+      });
+    };
 
-  const handleDragEnd = useCallback(() => {
-    setIsDragging(false);
-    setDragOffset({ x: 0, y: 0 });
-  }, []);
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, [overlays, pageDimensions, onSelectOverlay, onUpdateOverlay]);
 
   // Handle inline text editing
   const handleTextChange = useCallback((id: string, newText: string) => {
@@ -241,33 +229,12 @@ export function PDFCanvas({
   // Start editing when a new overlay is selected
   useEffect(() => {
     if (selectedOverlayId && !editingOverlayId) {
-      // Check if this is a newly created overlay (starts with "overlay-" and was just selected)
       const overlay = overlays.find(o => o.id === selectedOverlayId);
-      if (overlay && overlay.text === 'New Text') {
+      if (overlay && overlay.text === '') {
         setEditingOverlayId(selectedOverlayId);
       }
     }
   }, [selectedOverlayId, editingOverlayId, overlays]);
-
-  useEffect(() => {
-    if (isDragging) {
-      const handleMouseMove = (event: MouseEvent) => {
-        handleDrag(event as unknown as React.MouseEvent);
-      };
-
-      const handleMouseUp = () => {
-        handleDragEnd();
-      };
-
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-
-      return () => {
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
-      };
-    }
-  }, [isDragging, handleDrag, handleDragEnd]);
 
   const currentPageOverlays = overlays
     .filter(overlay => overlay.page === pageNumber)
@@ -287,7 +254,7 @@ export function PDFCanvas({
     <div ref={containerRef} className="flex justify-center">
       <div className="relative">
         {isLoading && (
-          <Skeleton className="w-[612px] h-[792px]" />
+          <Skeleton className="w-[612px] h-[792px]" /> // Default A4 size
         )}
         
         <canvas
@@ -304,8 +271,8 @@ export function PDFCanvas({
             key={overlay.id}
             className={`absolute cursor-move p-1 ${
               selectedOverlayId === overlay.id 
-                ? 'ring-2 ring-blue-500 bg-blue-50 bg-opacity-50' 
-                : 'hover:ring-1 hover:ring-gray-400'
+                ? 'ring-2 ring-blue-500 border border-blue-300' 
+                : 'border border-dashed border-gray-400 hover:border-gray-600'
             } ${overlay.visible ? '' : 'opacity-30'}`}
             style={{
               left: `${overlay.x * pageDimensions.width}px`,
@@ -320,6 +287,7 @@ export function PDFCanvas({
               pointerEvents: 'auto',
               maxWidth: `${pageDimensions.width * 0.8}px`,
               wordBreak: 'break-word',
+              backgroundColor: 'transparent', // No background
             }}
             onMouseDown={(e) => handleDragStart(e, overlay.id)}
             onClick={(e) => {
@@ -328,35 +296,52 @@ export function PDFCanvas({
             }}
           >
             {editingOverlayId === overlay.id ? (
-              <input
-                type="text"
-                value={overlay.text}
-                onChange={(e) => handleTextChange(overlay.id, e.target.value)}
-                onBlur={handleTextBlur}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleTextBlur();
-                  }
-                }}
-                className="bg-transparent border-none outline-none min-w-[60px]"
-                autoFocus
-                style={{
-                  fontFamily: overlay.fontFamily,
-                  fontSize: `${overlay.fontSize}px`,
-                  fontWeight: overlay.bold ? 'bold' : 'normal',
-                  fontStyle: overlay.italic ? 'italic' : 'normal',
-                  color: overlay.color,
-                }}
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  value={overlay.text}
+                  onChange={(e) => handleTextChange(overlay.id, e.target.value)}
+                  onBlur={handleTextBlur}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleTextBlur();
+                    }
+                  }}
+                  className="bg-white border border-blue-400 outline-none min-w-[120px] max-w-[200px] px-2 py-1 rounded shadow-sm"
+                  autoFocus
+                  placeholder="Type your text..."
+                  style={{
+                    fontFamily: overlay.fontFamily,
+                    fontSize: `${overlay.fontSize}px`,
+                    fontWeight: overlay.bold ? 'bold' : 'normal',
+                    fontStyle: overlay.italic ? 'italic' : 'normal',
+                    color: overlay.color,
+                    width: 'auto',
+                    minWidth: `${Math.max(overlay.text.length * (overlay.fontSize * 0.6), 120)}px`,
+                  }}
+                />
+              </div>
             ) : (
-              <span
+              <div
                 onDoubleClick={(e) => {
                   e.stopPropagation();
                   setEditingOverlayId(overlay.id);
                 }}
+                style={{
+                  display: 'inline-block',
+                  maxWidth: `${pageDimensions.width * 0.8}px`,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  padding: '2px 4px',
+                }}
               >
-                {overlay.text}
-              </span>
+                {overlay.text || (
+                  <span className="text-gray-500 italic">
+                    Double-click to edit
+                  </span>
+                )}
+              </div>
             )}
           </div>
         ))}

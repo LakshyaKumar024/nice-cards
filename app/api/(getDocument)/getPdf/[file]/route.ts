@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { NextRequest, NextResponse } from "next/server";
+import prisma from "@/lib/db-init";
 
 export async function GET(
   request: NextRequest,
@@ -8,12 +9,30 @@ export async function GET(
 ) {
   try {
     const resolvedParams = await params;
-    
+    const { file } = resolvedParams;
+    let fileName: string;
+    if (!file) {
+      return NextResponse.json({ error: "File parameter is required" }, { status: 400 });
+    }
+
+    try {
+      const fileData = await prisma.template.findUnique({
+        where: {
+          uuid: file,
+        },
+        select: {
+          pdf: true,
+        },
+      });
+      fileName = fileData.pdf as string;
+    } catch (error) {
+      fileName = file;
+    }
+
     if (!resolvedParams?.file) {
       return NextResponse.json({ error: "File parameter is required" }, { status: 400 });
     }
 
-    const fileName = resolvedParams.file;
     if (fileName.includes('..') || fileName.includes('/') || fileName.includes('\\')) {
       return NextResponse.json({ error: "Invalid file name" }, { status: 400 });
     }
@@ -29,7 +48,7 @@ export async function GET(
     }
 
     const fileBuffer = fs.readFileSync(filePath);
-    
+
     // ✅ Fixed: Remove overly restrictive headers that block Chrome
     return new NextResponse(fileBuffer, {
       headers: {
