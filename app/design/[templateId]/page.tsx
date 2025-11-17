@@ -112,7 +112,7 @@ export function TemplateDetail({
   };
 
   const handleEditTemplate = () =>
-    router.push(`/design/${template?.uuid}/edit`);
+    router.push(`/edit/${template?.uuid}`);
   const handleBack = () => router.push("/");
 
   const imageSrc =

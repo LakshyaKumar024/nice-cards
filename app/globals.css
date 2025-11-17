@@ -1,7 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-/* 
-@font-face {
+
+/* @font-face {
   font-family: "Kruti Dev 010";
   src: url("/fonts/kruti-dev-010.ttf") format("truetype");
   font-weight: normal;
@@ -15,15 +15,23 @@
   font-weight: normal;
   font-style: normal;
   font-display: swap;
-}
+  } */
 
+/* 
 .kruti-dev-010 {
   font-family: "Kruti Dev 010";
-}
+  }
+  
+  .mangal-regular {
+    font-family: "Mangal Regular", sans-serif;
+    } */
 
-.mangal-regular {
-  font-family: "Mangal Regular", sans-serif;
-} */
+.ams-aasmi {
+  font-family: "AMS Assami" !important;
+}
+.kruti-dev-640 {
+  font-family: "Kruti Dev 640" !important;
+}
 
 @custom-variant dark (&:is(.dark *));
 
@@ -160,7 +168,6 @@ iframe {
   -moz-user-drag: none;
   -o-user-drag: none;
 }
-
 
 /* SVG Font Support - Ensure all fonts are available to SVG elements */
 svg text,

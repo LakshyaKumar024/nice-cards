@@ -13,17 +13,17 @@ import {
   DragEndEvent,
 } from '@dnd-kit/core';
 import {
-  arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import type { TextOverlay } from './pdf-editor';
+import type { Overlay } from './pdf-editor';
+import { Square } from 'lucide-react';
 
 interface LayersPanelProps {
-  overlays: TextOverlay[];
+  overlays: Overlay[];
   selectedOverlayId: string | null;
   onSelectOverlay: (id: string) => void;
   onDeleteOverlay: (id: string) => void;
@@ -33,7 +33,7 @@ interface LayersPanelProps {
 }
 
 interface SortableOverlayItemProps {
-  overlay: TextOverlay;
+  overlay: Overlay;
   selectedOverlayId: string | null;
   onSelectOverlay: (id: string) => void;
   onDeleteOverlay: (id: string) => void;
@@ -85,18 +85,34 @@ function SortableOverlayItem({
         className="flex-1 cursor-pointer min-w-0"
         onClick={() => onSelectOverlay(overlay.id)}
       >
-        <p className="text-sm font-medium truncate" style={{ 
-          fontFamily: overlay.fontFamily,
-          fontSize: Math.max(12, overlay.fontSize * 0.6),
-          fontWeight: overlay.bold ? 'bold' : 'normal',
-          fontStyle: overlay.italic ? 'italic' : 'normal',
-          color: overlay.color,
-        }}>
-          {overlay.text || 'Empty text'}
-        </p>
-        <p className="text-xs text-muted-foreground">
-          {Math.round(overlay.x * 100)}%, {Math.round(overlay.y * 100)}%
-        </p>
+        {overlay.type === 'shape' ? (
+          <>
+            <div className="flex items-center gap-2">
+              <Square className="w-4 h-4" style={{ color: overlay.color }} />
+              <p className="text-sm font-medium truncate">
+                Square Shape
+              </p>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {Math.round(overlay.x * 100)}%, {Math.round(overlay.y * 100)}% • {Math.round(overlay.width * 100)}% × {Math.round(overlay.height * 100)}%
+            </p>
+          </>
+        ) : (
+          <>
+            <p className="text-sm font-medium truncate" style={{ 
+              fontFamily: overlay.fontFamily,
+              fontSize: Math.max(12, overlay.fontSize * 0.6),
+              fontWeight: overlay.bold ? 'bold' : 'normal',
+              fontStyle: overlay.italic ? 'italic' : 'normal',
+              color: overlay.color,
+            }}>
+              {overlay.text || 'Empty text'}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {Math.round(overlay.x * 100)}%, {Math.round(overlay.y * 100)}%
+            </p>
+          </>
+        )}
       </div>
 
       <div className="flex items-center gap-1">
@@ -144,7 +160,7 @@ export function LayersPanel({
 
   const currentPageOverlays = overlays
     .filter(overlay => overlay.page === currentPage)
-    .sort((a, b) => a.zIndex - b.zIndex);
+    .sort((a, b) => b.zIndex - a.zIndex); // Top layer (higher zIndex) first
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;

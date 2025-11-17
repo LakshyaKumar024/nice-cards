@@ -35,7 +35,7 @@ export default function Page({
       setTemplate(data.data);
     };
     getTemplate();
-  }, [user, templateId]);
+  }, [user, templateId, router]);
   console.log(template);
 
   if (!template.uuid)
@@ -71,7 +71,7 @@ export default function Page({
 
       if (data.success) {
         toast.success("Template purchased successfully!");
-        router.push(`/design/${templateId}/edit`);
+        router.push(`/edit/${templateId}`);
       } else {
         toast.error(data.message || "Failed to purchase template");
       }
@@ -110,7 +110,7 @@ export default function Page({
           if (data.isOk) {
             // do whatever page transition you want here as payment was successful
             toast.success("Payment successful");
-            router.push(`/design/${templateId}/edit`);
+            router.push(`/edit/${templateId}`);
           } else {
             alert("Payment failed");
           }

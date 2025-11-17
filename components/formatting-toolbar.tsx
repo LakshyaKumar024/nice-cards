@@ -14,12 +14,23 @@ interface FormattingToolbarProps {
   bold: boolean;
   italic: boolean;
   color: string;
-  onFontSizeChange: (size: number) => void;
-  onFontFamilyChange: (family: string) => void;
-  onBoldToggle: () => void;
-  onItalicToggle: () => void;
+  onFontSizeChange?: (size: number) => void;
+  onFontFamilyChange?: (family: string) => void;
+  onBoldToggle?: () => void;
+  onItalicToggle?: () => void;
   onColorChange: (color: string) => void;
+  shapeWidth?: number;
+  shapeHeight?: number;
+  onShapeWidthChange?: (width: number) => void;
+  onShapeHeightChange?: (height: number) => void;
 }
+
+// Custom fonts from public/fonts folder
+// These fonts are defined in app/fonts.css
+const customFonts = [
+  'AMS Aasmi', // Hindi font
+  'Kruti Dev 640', // Devanagari font
+];
 
 const fontFamilies = [
   'Arial',
@@ -29,6 +40,7 @@ const fontFamilies = [
   'Verdana',
   'Georgia',
   'Palatino',
+  ...customFonts, // Add custom fonts to the list
 ];
 
 export function FormattingToolbar({
@@ -42,73 +54,125 @@ export function FormattingToolbar({
   onBoldToggle,
   onItalicToggle,
   onColorChange,
+  shapeWidth,
+  shapeHeight,
+  onShapeWidthChange,
+  onShapeHeightChange,
 }: FormattingToolbarProps) {
+  const isShapeMode = shapeWidth !== undefined && shapeHeight !== undefined;
+
   return (
     <div className="p-4 space-y-4">
-      {/* Font Family */}
-      <div className="space-y-2">
-        <Label htmlFor="font-family">Font Family</Label>
-        <Select value={fontFamily} onValueChange={onFontFamilyChange}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select font" />
-          </SelectTrigger>
-          <SelectContent>
-            {fontFamilies.map((font) => (
-              <SelectItem key={font} value={font}>
-                {font}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      {isShapeMode ? (
+        <>
+          {/* Shape Size - Width */}
+          <div className="space-y-2">
+            <Label htmlFor="shape-width">Width: {Math.round(shapeWidth * 100)}%</Label>
+            <Slider
+              value={[Math.min(shapeWidth * 100, 200)]}
+              onValueChange={([value]) => onShapeWidthChange?.(value / 100)}
+              min={1}
+              max={200}
+              step={1}
+              className="w-full"
+            />
+          </div>
 
-      {/* Font Size */}
-      <div className="space-y-2">
-        <Label htmlFor="font-size">Font Size: {fontSize}px</Label>
-        <Slider
-          value={[fontSize]}
-          onValueChange={([value]) => onFontSizeChange(value)}
-          min={8}
-          max={72}
-          step={1}
-          className="w-full"
-        />
-      </div>
+          {/* Shape Size - Height */}
+          <div className="space-y-2">
+            <Label htmlFor="shape-height">Height: {Math.round(shapeHeight * 100)}%</Label>
+            <Slider
+              value={[Math.min(shapeHeight * 100, 200)]}
+              onValueChange={([value]) => onShapeHeightChange?.(value / 100)}
+              min={1}
+              max={200}
+              step={1}
+              className="w-full"
+            />
+          </div>
 
-      {/* Text Style */}
-      <div className="space-y-2">
-        <Label>Text Style</Label>
-        <div className="flex gap-2">
-          <Button
-            variant={bold ? "default" : "outline"}
-            size="sm"
-            onClick={onBoldToggle}
-          >
-            <Bold className="w-4 h-4" />
-          </Button>
-          <Button
-            variant={italic ? "default" : "outline"}
-            size="sm"
-            onClick={onItalicToggle}
-          >
-            <Italic className="w-4 h-4" />
-          </Button>
-        </div>
-      </div>
+          {/* Color */}
+          <div className="space-y-2">
+            <Label htmlFor="color">Shape Color</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                type="color"
+                value={color}
+                onChange={(e) => onColorChange(normalizeHexColor(e.target.value))}
+                className="w-12 h-8 p-1"
+              />
+              <span className="text-sm text-muted-foreground">{color}</span>
+            </div>
+          </div>
+        </>
+      ) : (
+        <>
+          {/* Font Family */}
+          <div className="space-y-2">
+            <Label htmlFor="font-family">Font Family</Label>
+            <Select value={fontFamily} onValueChange={onFontFamilyChange}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select font" />
+              </SelectTrigger>
+              <SelectContent>
+                {fontFamilies.map((font) => (
+                  <SelectItem key={font} value={font}>
+                    {font}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-      {/* Color */}
-      <div className="space-y-2">
-        <Label htmlFor="color">Text Color</Label>
-        <div className="flex items-center gap-2">
-          <Input
-            type="color"
-            value={color}
-            onChange={(e) => onColorChange(normalizeHexColor(e.target.value))}
-            className="w-12 h-8 p-1"
-          />
-          <span className="text-sm text-muted-foreground">{color}</span>
-        </div>
-      </div>
+          {/* Font Size */}
+          <div className="space-y-2">
+            <Label htmlFor="font-size">Font Size: {fontSize}px</Label>
+            <Slider
+              value={[fontSize]}
+              onValueChange={([value]) => onFontSizeChange?.(value)}
+              min={8}
+              max={72}
+              step={1}
+              className="w-full"
+            />
+          </div>
+
+          {/* Text Style */}
+          <div className="space-y-2">
+            <Label>Text Style</Label>
+            <div className="flex gap-2">
+              <Button
+                variant={bold ? "default" : "outline"}
+                size="sm"
+                onClick={onBoldToggle}
+              >
+                <Bold className="w-4 h-4" />
+              </Button>
+              <Button
+                variant={italic ? "default" : "outline"}
+                size="sm"
+                onClick={onItalicToggle}
+              >
+                <Italic className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Color */}
+          <div className="space-y-2">
+            <Label htmlFor="color">Text Color</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                type="color"
+                value={color}
+                onChange={(e) => onColorChange(normalizeHexColor(e.target.value))}
+                className="w-12 h-8 p-1"
+              />
+              <span className="text-sm text-muted-foreground">{color}</span>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

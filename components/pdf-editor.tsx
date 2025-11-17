@@ -1,10 +1,10 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import { ChevronLeft, ChevronRight, Download, Type, Menu, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
@@ -33,6 +33,7 @@ export interface TextOverlay {
   page: number;
   visible: boolean;
   zIndex: number;
+  fontFamilyClassName?: string;
 }
 
 export interface ShapeOverlay {
@@ -53,6 +54,11 @@ export type Overlay = TextOverlay | ShapeOverlay;
 
 interface PDFEditorProps {
   pdfId: string;
+}
+
+// Utility to convert a font family (like "Open Sans") to a class name ("open-sans")
+function fontFamilyToClassName(fontFamily: string) {
+  return fontFamily.replace(/\s+/g, '-').toLowerCase();
 }
 
 export default function PDFEditor({ pdfId }: PDFEditorProps) {
@@ -98,11 +104,46 @@ export default function PDFEditor({ pdfId }: PDFEditorProps) {
     loadPDF();
   }, [pdfId]);
 
+
+  const debugExportPositions = () => {
+    if (!pdfDocument) return;
+    
+    const currentPageOverlays = overlays.filter(o => o.page === currentPage);
+    
+    console.log('=== EXPORT POSITION DEBUG ===');
+    console.log('Current Page:', currentPage);
+    console.log('Overlays on this page:');
+    
+    currentPageOverlays.forEach(overlay => {
+      if (overlay.type === 'text') {
+        console.log(`Text: "${overlay.text}"`);
+        console.log(`  Normalized: (${overlay.x.toFixed(3)}, ${overlay.y.toFixed(3)})`);
+        console.log(`  Font Size: ${overlay.fontSize}px`);
+        console.log(`  Font Family: ${overlay.fontFamily}`);
+      } else {
+        console.log(`Shape at (${overlay.x.toFixed(3)}, ${overlay.y.toFixed(3)})`);
+        console.log(`  Size: ${(overlay.width * 100).toFixed(1)}% x ${(overlay.height * 100).toFixed(1)}%`);
+      }
+    });
+  };
+  
+
   const handleAddOverlay = useCallback((overlay: Omit<TextOverlay, 'id'> | Omit<ShapeOverlay, 'id'>) => {
-    const newOverlay: Overlay = {
-      ...overlay,
-      id: `overlay-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-    } as Overlay;
+    // Add fontFamilyClassName for text overlays on creation
+    let newOverlay: Overlay;
+    if ((overlay as any).type === 'text') {
+      const fontFamily = (overlay as Omit<TextOverlay, 'id'>).fontFamily || '';
+      newOverlay = {
+        ...overlay,
+        id: `overlay-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        fontFamilyClassName: fontFamilyToClassName(fontFamily),
+      } as Overlay;
+    } else {
+      newOverlay = {
+        ...overlay,
+        id: `overlay-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      } as Overlay;
+    }
     setOverlays((prev) => [...prev, newOverlay]);
     setSelectedOverlayId(newOverlay.id);
   }, []);
@@ -123,13 +164,31 @@ export default function PDFEditor({ pdfId }: PDFEditorProps) {
     handleAddOverlay(newShape);
   }, [currentPage, overlays.length, handleAddOverlay]);
 
-  const handleUpdateOverlay = useCallback((id: string, updates: Partial<TextOverlay> | Partial<ShapeOverlay>) => {
-    setOverlays((prev) =>
-      prev.map((overlay) =>
-        overlay.id === id ? { ...overlay, ...updates } : overlay
-      )
-    );
-  }, []);
+  // Extended: When updating fontFamily, also set fontFamilyClassName
+  const handleUpdateOverlay = useCallback(
+    (id: string, updates: Partial<TextOverlay> | Partial<ShapeOverlay>) => {
+      setOverlays((prev) =>
+        prev.map((overlay) => {
+          if (overlay.id !== id) return overlay as Overlay;
+          // If text overlay and updating fontFamily, also assign className
+          if (
+            overlay.type === 'text' &&
+            Object.prototype.hasOwnProperty.call(updates, 'fontFamily') &&
+            typeof (updates as Partial<TextOverlay>).fontFamily === 'string'
+          ) {
+            const fontFamily = (updates as Partial<TextOverlay>).fontFamily!;
+            return {
+              ...overlay,
+              ...updates,
+              fontFamilyClassName: fontFamilyToClassName(fontFamily),
+            } as Overlay;
+          }
+          return { ...overlay, ...updates } as Overlay;
+        })
+      );
+    },
+    []
+  );
 
   const handleDeleteOverlay = useCallback((id: string) => {
     setOverlays((prev) => prev.filter((overlay) => overlay.id !== id));
@@ -148,22 +207,40 @@ export default function PDFEditor({ pdfId }: PDFEditorProps) {
 
   const handleReorderLayers = useCallback((sourceId: string, targetId: string) => {
     setOverlays((prev) => {
-      const sourceIdx = prev.findIndex((o) => o.id === sourceId);
-      const targetIdx = prev.findIndex((o) => o.id === targetId);
-      if (sourceIdx === -1 || targetIdx === -1) return prev;
+      // Get current page overlays sorted by zIndex descending (as displayed in panel)
+      const currentPageOverlays = prev
+        .filter(o => o.page === currentPage)
+        .sort((a, b) => b.zIndex - a.zIndex);
+      
+      const sourceDisplayIdx = currentPageOverlays.findIndex((o) => o.id === sourceId);
+      const targetDisplayIdx = currentPageOverlays.findIndex((o) => o.id === targetId);
+      
+      if (sourceDisplayIdx === -1 || targetDisplayIdx === -1) return prev;
 
-      const newOverlays = [...prev];
-      const [removed] = newOverlays.splice(sourceIdx, 1);
-      newOverlays.splice(targetIdx, 0, removed);
+      // Reorder in the displayed order (top to bottom)
+      const reordered = [...currentPageOverlays];
+      const [removed] = reordered.splice(sourceDisplayIdx, 1);
+      reordered.splice(targetDisplayIdx, 0, removed);
 
-      return newOverlays.map((overlay, index) => ({
-        ...overlay,
-        zIndex: index,
-      }));
+      // Create a map of new zIndex values (higher zIndex for items at top of display)
+      const zIndexMap = new Map<string, number>();
+      reordered.forEach((overlay, displayIdx) => {
+        // Top of display (index 0) gets highest zIndex
+        zIndexMap.set(overlay.id, currentPageOverlays.length - 1 - displayIdx);
+      });
+
+      // Update all overlays with new zIndex values
+      return prev.map((overlay) => {
+        if (overlay.page === currentPage && zIndexMap.has(overlay.id)) {
+          return { ...overlay, zIndex: zIndexMap.get(overlay.id)! };
+        }
+        return overlay;
+      });
     });
-  }, []);
+  }, [currentPage]);
 
   const handleExport = useCallback(async () => {
+    debugExportPositions();
     if (!pdfFile) return;
 
     setIsExporting(true);
@@ -227,21 +304,36 @@ export default function PDFEditor({ pdfId }: PDFEditorProps) {
       
       <ScrollArea className="flex-1">
         {selectedOverlay ? (
-          <FormattingToolbar
-            fontSize={selectedOverlay.fontSize}
-            fontFamily={selectedOverlay.fontFamily}
-            bold={selectedOverlay.bold}
-            italic={selectedOverlay.italic}
-            color={selectedOverlay.color}
-            onFontSizeChange={(size) => handleUpdateOverlay(selectedOverlay.id, { fontSize: size })}
-            onFontFamilyChange={(family) => handleUpdateOverlay(selectedOverlay.id, { fontFamily: family })}
-            onBoldToggle={() => handleUpdateOverlay(selectedOverlay.id, { bold: !selectedOverlay.bold })}
-            onItalicToggle={() => handleUpdateOverlay(selectedOverlay.id, { italic: !selectedOverlay.italic })}
-            onColorChange={(color) => handleUpdateOverlay(selectedOverlay.id, { color })}
-          />
+          selectedOverlay.type === 'text' ? (
+            <FormattingToolbar
+              fontSize={selectedOverlay.fontSize}
+              fontFamily={selectedOverlay.fontFamily}
+              bold={selectedOverlay.bold}
+              italic={selectedOverlay.italic}
+              color={selectedOverlay.color}
+              onFontSizeChange={(size) => handleUpdateOverlay(selectedOverlay.id, { fontSize: size })}
+              onFontFamilyChange={(family) => handleUpdateOverlay(selectedOverlay.id, { fontFamily: family })}
+              onBoldToggle={() => handleUpdateOverlay(selectedOverlay.id, { bold: !selectedOverlay.bold })}
+              onItalicToggle={() => handleUpdateOverlay(selectedOverlay.id, { italic: !selectedOverlay.italic })}
+              onColorChange={(color) => handleUpdateOverlay(selectedOverlay.id, { color })}
+            />
+          ) : (
+            <FormattingToolbar
+              fontSize={12}
+              fontFamily="Arial"
+              bold={false}
+              italic={false}
+              color={selectedOverlay.color}
+              onColorChange={(color) => handleUpdateOverlay(selectedOverlay.id, { color })}
+              shapeWidth={selectedOverlay.width}
+              shapeHeight={selectedOverlay.height}
+              onShapeWidthChange={(width) => handleUpdateOverlay(selectedOverlay.id, { width })}
+              onShapeHeightChange={(height) => handleUpdateOverlay(selectedOverlay.id, { height })}
+            />
+          )
         ) : (
           <div className="p-4 text-center text-sm text-muted-foreground">
-            Select a text overlay to edit formatting
+            Select an overlay to edit properties
           </div>
         )}
 
@@ -321,6 +413,29 @@ export default function PDFEditor({ pdfId }: PDFEditorProps) {
 
             <Separator orientation="vertical" className="h-8" />
 
+            <div className="flex items-center gap-2">
+              <Button
+                variant={toolMode === 'text' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setToolMode('text')}
+                title="Text Tool"
+              >
+                <Type className="w-4 h-4 mr-2" />
+                Text
+              </Button>
+              <Button
+                variant={toolMode === 'shape' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setToolMode('shape')}
+                title="Square Shape Tool"
+              >
+                <Square className="w-4 h-4 mr-2" />
+                Square
+              </Button>
+            </div>
+
+            <Separator orientation="vertical" className="h-8" />
+
             <Button
               onClick={handleExport}
               disabled={isExporting}
@@ -343,6 +458,8 @@ export default function PDFEditor({ pdfId }: PDFEditorProps) {
               onSelectOverlay={setSelectedOverlayId}
               onUpdateOverlay={handleUpdateOverlay}
               onAddOverlay={handleAddOverlay}
+              onAddShape={handleAddShape}
+              toolMode={toolMode}
             />
           </div>
         </div>
