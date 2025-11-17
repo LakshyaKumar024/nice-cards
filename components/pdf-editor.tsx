@@ -74,6 +74,25 @@ export default function PDFEditor({ pdfId }: PDFEditorProps) {
 
   const selectedOverlay = overlays.find((o) => o.id === selectedOverlayId);
 
+  useEffect(() => {
+    // Preload custom fonts for export
+    const preloadFonts = async () => {
+      try {
+        console.log('Preloading custom fonts for export...');
+        await Promise.all([
+          fetch('/fonts/AMS Aasmi.ttf'),
+          fetch('/fonts/KR640.TTF')
+        ]);
+        console.log('✅ Custom fonts preloaded successfully');
+      } catch (error) {
+        console.warn('Failed to preload custom fonts:', error);
+      }
+    };
+  
+    preloadFonts();
+  }, []);
+  
+
   // Load PDF from API route
   useEffect(() => {
     const loadPDF = async () => {
@@ -132,11 +151,19 @@ export default function PDFEditor({ pdfId }: PDFEditorProps) {
     // Add fontFamilyClassName for text overlays on creation
     let newOverlay: Overlay;
     if ((overlay as any).type === 'text') {
-      const fontFamily = (overlay as Omit<TextOverlay, 'id'>).fontFamily || '';
+      const textOverlay = overlay as Omit<TextOverlay, 'id'>;
+      const fontFamily = textOverlay.fontFamily || '';
+      
+      // Map font families to their CSS class names
+      const fontClassMap: { [key: string]: string } = {
+        'AMS Aasmi': 'ams-aasmi',
+        'Kruti Dev 640': 'kruti-dev-640'
+      };
+      
       newOverlay = {
-        ...overlay,
+        ...textOverlay,
         id: `overlay-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        fontFamilyClassName: fontFamilyToClassName(fontFamily),
+        fontFamilyClassName: fontClassMap[fontFamily] || fontFamilyToClassName(fontFamily),
       } as Overlay;
     } else {
       newOverlay = {
@@ -147,6 +174,7 @@ export default function PDFEditor({ pdfId }: PDFEditorProps) {
     setOverlays((prev) => [...prev, newOverlay]);
     setSelectedOverlayId(newOverlay.id);
   }, []);
+  
 
   const handleAddShape = useCallback((x: number, y: number) => {
     const newShape: Omit<ShapeOverlay, 'id'> = {
@@ -170,6 +198,7 @@ export default function PDFEditor({ pdfId }: PDFEditorProps) {
       setOverlays((prev) =>
         prev.map((overlay) => {
           if (overlay.id !== id) return overlay as Overlay;
+          
           // If text overlay and updating fontFamily, also assign className
           if (
             overlay.type === 'text' &&
@@ -177,10 +206,17 @@ export default function PDFEditor({ pdfId }: PDFEditorProps) {
             typeof (updates as Partial<TextOverlay>).fontFamily === 'string'
           ) {
             const fontFamily = (updates as Partial<TextOverlay>).fontFamily!;
+            
+            // Map font families to their CSS class names
+            const fontClassMap: { [key: string]: string } = {
+              'AMS Aasmi': 'ams-aasmi',
+              'Kruti Dev 640': 'kruti-dev-640'
+            };
+            
             return {
               ...overlay,
               ...updates,
-              fontFamilyClassName: fontFamilyToClassName(fontFamily),
+              fontFamilyClassName: fontClassMap[fontFamily] || fontFamilyToClassName(fontFamily),
             } as Overlay;
           }
           return { ...overlay, ...updates } as Overlay;
@@ -189,6 +225,7 @@ export default function PDFEditor({ pdfId }: PDFEditorProps) {
     },
     []
   );
+  
 
   const handleDeleteOverlay = useCallback((id: string) => {
     setOverlays((prev) => prev.filter((overlay) => overlay.id !== id));

@@ -28,8 +28,9 @@ interface FormattingToolbarProps {
 // Custom fonts from public/fonts folder
 // These fonts are defined in app/fonts.css
 const customFonts = [
-  'AMS Aasmi', // Hindi font
-  'Kruti Dev 640', // Devanagari font
+  'Noto Sans Devanagari', // Unicode Hindi font (recommended for copy-paste)
+  'AMS Aasmi', // Legacy Hindi font (typing only)
+  'Kruti Dev 640', // Legacy Devanagari font (typing only)
 ];
 
 const fontFamilies = [

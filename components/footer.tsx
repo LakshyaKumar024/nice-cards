@@ -1,7 +1,5 @@
 "use client";
 import Link from "next/link";
-import { useTheme } from "next-themes";
-import { Sun, Moon, Github } from "lucide-react";
 
 type FooterProps = {
   companyName?: string;
@@ -11,10 +9,7 @@ type FooterProps = {
 };
 
 export default function ShadcnFooter({
-  companyName = "DeepVoid Labs",
-  companyHref = "/",
-  termsHref = "/terms",
-  privacyHref = "/privacy",
+
 }: FooterProps) {
   return (
     <footer className="text-sm py-4">
@@ -40,7 +35,7 @@ export default function ShadcnFooter({
           <div className="flex gap-4">
             <a href="#" className="hover:underline">GitHub</a>
             <a href="#" className="hover:underline">LinkedIn</a>
-            <a href="#" className="hover:underline">Twitter</a>
+            <a className="hover:underline">Twitter</a>
           </div>
         </div>
 
@@ -54,21 +49,23 @@ export default function ShadcnFooter({
           </div>
 
           {/* CENTER */}
-          <div className="text-center text-black dark:text-gray-300">
-            © {new Date().getFullYear()} Made by{" "}
+          <div className="text-center text-black dark:text-gray-300 text-sm">
+            {new Date().getFullYear()} Made by{" "}
             <Link
               href="https://www.linkedin.com/in/deepvoid-lab/"
               className="hover:underline"
+              target="_blank"
+              rel="noopener noreferrer"
             >
               DeepVoid Labs
             </Link>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;© All rights reserved — Nice Cards.
           </div>
+
 
           {/* RIGHT */}
           <div className="flex gap-4 justify-end text-black dark:text-gray-300">
-            <a href="#" className="hover:underline">GitHub</a>
-            <a href="#" className="hover:underline">LinkedIn</a>
-            <a href="#" className="hover:underline">Twitter</a>
+            <a href="https://mail.google.com/mail/?view=cm&fs=1&to=nicecardramgarh@gmail.com" className="hover:underline">Email</a>
           </div>
 
         </div>

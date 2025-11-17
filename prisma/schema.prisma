@@ -35,7 +35,7 @@ model Template {
   image       String
   price       Int?
   paid        Boolean    @default(false)
-  svg         String
+  svg         String?
   pdf         String
   status      Boolean?    @default(true)
   createdAt   DateTime   @default(now())

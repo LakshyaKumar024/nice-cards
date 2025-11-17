@@ -1,7 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // lib/export-utils.ts
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import * as fontkit from 'fontkit';
 import type { Overlay, TextOverlay, ShapeOverlay } from '@/components/pdf-editor';
+import { customFonts, loadCustomFont, isCustomFont } from './custom-fonts';
 
 function hexToRgb(hex: string) {
   const r = parseInt(hex.slice(1, 3), 16) / 255;
@@ -10,7 +12,6 @@ function hexToRgb(hex: string) {
   return rgb(r, g, b);
 }
 
-// Map custom fonts to standard PDF fonts
 function getStandardFont(fontFamily: string): StandardFonts {
   const fontMap: { [key: string]: StandardFonts } = {
     'Arial': StandardFonts.Helvetica,
@@ -20,73 +21,102 @@ function getStandardFont(fontFamily: string): StandardFonts {
     'Verdana': StandardFonts.Helvetica,
     'Georgia': StandardFonts.TimesRoman,
     'Palatino': StandardFonts.TimesRoman,
-    'AMS Aasmi': StandardFonts.Helvetica,
-    'Kruti Dev 640': StandardFonts.Helvetica,
   };
-
   return fontMap[fontFamily] || StandardFonts.Helvetica;
 }
 
 export async function exportPDFWithOverlays(
-  pdfFile: File, 
+  pdfFile: File,
   overlays: Overlay[]
 ): Promise<Blob> {
+  console.log('=== STARTING PDF EXPORT ===');
+
   try {
-    // Load the original PDF
     const arrayBuffer = await pdfFile.arrayBuffer();
     const pdfDoc = await PDFDocument.load(arrayBuffer);
-    
+
+    // ✅ REGISTER FONTKIT - THIS IS THE KEY FIX
+    pdfDoc.registerFontkit(fontkit);
+    console.log('✅ FontKit registered successfully');
+
     const pages = pdfDoc.getPages();
-    
-    // Sort overlays by zIndex (lower zIndex = drawn first, higher zIndex = drawn on top)
     const sortedOverlays = [...overlays].sort((a, b) => a.zIndex - b.zIndex);
-    
-    // Pre-embed fonts
     const fontCache = new Map();
-    const uniqueFonts = [...new Set(overlays.filter(o => o.type === 'text').map(o => (o as TextOverlay).fontFamily))];
-    
+
+    // Get unique fonts from overlays
+    const textOverlays = overlays.filter(o => o.type === 'text') as TextOverlay[];
+    const uniqueFonts = [...new Set(textOverlays.map(o => o.fontFamily))];
+
+    console.log('📊 Fonts to process:', uniqueFonts);
+
+    // Embed fonts
     for (const fontFamily of uniqueFonts) {
-      const standardFont = getStandardFont(fontFamily);
-      fontCache.set(fontFamily, await pdfDoc.embedFont(standardFont));
-      
-      // Also embed bold and italic variants
-      if (standardFont === StandardFonts.Helvetica) {
-        fontCache.set(fontFamily + '-bold', await pdfDoc.embedFont(StandardFonts.HelveticaBold));
-        fontCache.set(fontFamily + '-italic', await pdfDoc.embedFont(StandardFonts.HelveticaOblique));
-        fontCache.set(fontFamily + '-bolditalic', await pdfDoc.embedFont(StandardFonts.HelveticaBoldOblique));
-      } else if (standardFont === StandardFonts.TimesRoman) {
-        fontCache.set(fontFamily + '-bold', await pdfDoc.embedFont(StandardFonts.TimesRomanBold));
-        fontCache.set(fontFamily + '-italic', await pdfDoc.embedFont(StandardFonts.TimesRomanItalic));
-        fontCache.set(fontFamily + '-bolditalic', await pdfDoc.embedFont(StandardFonts.TimesRomanBoldItalic));
+      console.log(`🎨 Processing font: "${fontFamily}"`);
+
+      if (isCustomFont(fontFamily)) {
+        console.log(`   🔧 Identified as custom font`);
+        const fontBytes = await loadCustomFont(fontFamily);
+
+        if (fontBytes) {
+          try {
+            console.log(`   📥 Embedding custom font into PDF...`);
+            const customFont = await pdfDoc.embedFont(fontBytes);
+            fontCache.set(fontFamily, customFont);
+            console.log(`   ✅ Successfully embedded custom font: ${fontFamily}`);
+          } catch (embedError) {
+            console.error(`   ❌ Failed to embed custom font ${fontFamily}:`, embedError);
+            console.log(`   🔄 Using fallback font`);
+            const standardFont = getStandardFont(fontFamily);
+            fontCache.set(fontFamily, await pdfDoc.embedFont(standardFont));
+          }
+        } else {
+          console.log(`   ❌ No font bytes, using fallback`);
+          const standardFont = getStandardFont(fontFamily);
+          fontCache.set(fontFamily, await pdfDoc.embedFont(standardFont));
+        }
+      } else {
+        console.log(`   🔧 Identified as standard font`);
+        const standardFont = getStandardFont(fontFamily);
+        fontCache.set(fontFamily, await pdfDoc.embedFont(standardFont));
+
+        // Also embed bold and italic variants for standard fonts
+        if (standardFont === StandardFonts.Helvetica) {
+          fontCache.set(fontFamily + '-bold', await pdfDoc.embedFont(StandardFonts.HelveticaBold));
+          fontCache.set(fontFamily + '-italic', await pdfDoc.embedFont(StandardFonts.HelveticaOblique));
+          fontCache.set(fontFamily + '-bolditalic', await pdfDoc.embedFont(StandardFonts.HelveticaBoldOblique));
+        } else if (standardFont === StandardFonts.TimesRoman) {
+          fontCache.set(fontFamily + '-bold', await pdfDoc.embedFont(StandardFonts.TimesRomanBold));
+          fontCache.set(fontFamily + '-italic', await pdfDoc.embedFont(StandardFonts.TimesRomanItalic));
+          fontCache.set(fontFamily + '-bolditalic', await pdfDoc.embedFont(StandardFonts.TimesRomanBoldItalic));
+        }
       }
     }
-    
-    // Add overlays to each page in zIndex order
+
+    // Add overlays to each page
     for (const overlay of sortedOverlays) {
       if (!overlay.visible || overlay.page > pages.length) continue;
-      
+
       const page = pages[overlay.page - 1];
       const { width, height } = page.getSize();
-      
+
       if (overlay.type === 'text' && overlay.text.trim()) {
-        drawTextOverlay(page, overlay, width, height, fontCache);
+        await drawTextOverlay(page, overlay, width, height, fontCache);
       } else if (overlay.type === 'shape' && overlay.shapeType === 'square') {
         drawShapeOverlay(page, overlay, width, height);
       }
     }
-    
+
     const pdfBytes = await pdfDoc.save();
-    
-    // Convert to Blob
     const uint8Array = new Uint8Array(pdfBytes);
     return new Blob([uint8Array], { type: 'application/pdf' });
+
   } catch (error) {
-    console.error('Error exporting PDF with overlays:', error);
+    console.error('💥 Error exporting PDF with overlays:', error);
     throw new Error('Failed to export PDF');
   }
 }
 
-function drawTextOverlay(
+async function drawTextOverlay(
   page: any,
   overlay: TextOverlay,
   pageWidth: number,
@@ -94,6 +124,15 @@ function drawTextOverlay(
   fontCache: Map<string, any>
 ) {
   try {
+    // Normalize Unicode text to NFC form (composed characters)
+    // This fixes issues with pasted text from Google Translate
+    const normalizedText = overlay.text.normalize('NFC');
+    
+    console.log(`📝 Original text: "${overlay.text}"`);
+    if (normalizedText !== overlay.text) {
+      console.log(`   🔄 Normalized to: "${normalizedText}"`);
+    }
+
     // Get the appropriate font based on style
     let fontKey = overlay.fontFamily;
     if (overlay.bold && overlay.italic) {
@@ -103,42 +142,65 @@ function drawTextOverlay(
     } else if (overlay.italic) {
       fontKey = overlay.fontFamily + '-italic';
     }
-    
-    const font = fontCache.get(fontKey) || fontCache.get(overlay.fontFamily);
-    
+
+    let font = fontCache.get(fontKey) || fontCache.get(overlay.fontFamily);
+
+    // Fallback if font not found
     if (!font) {
-      console.warn(`Font not found for: ${overlay.fontFamily}`);
-      return;
+      console.warn(`Font not found for: ${overlay.fontFamily}, using Helvetica fallback`);
+      font = fontCache.get('Arial') || fontCache.values().next().value;
     }
+
+    // CANVAS SCALE ADJUSTMENT: The canvas is rendered at 1.5x scale
+    // So we need to divide the font size by 1.5 to match the actual PDF size
+    const CANVAS_SCALE = 1.5;
+    const adjustedFontSize = overlay.fontSize / CANVAS_SCALE;
 
     // Convert coordinates - match canvas positioning
     const x = overlay.x * pageWidth;
-    const y = pageHeight - (overlay.y * pageHeight); // PDF y-axis is bottom-up
-    
-    // Calculate text dimensions for centering (matching canvas behavior)
-    const textWidth = font.widthOfTextAtSize(overlay.text, overlay.fontSize);
-    const textHeight = overlay.fontSize * 0.8; // Approximate height factor
-    
-    // Center the text (matching canvas transform: translate(-50%, -50%))
+    const y = pageHeight - (overlay.y * pageHeight);
+
+    // Calculate text dimensions for centering with adjusted font size
+    const textWidth = font.widthOfTextAtSize(normalizedText, adjustedFontSize);
+    const textHeight = adjustedFontSize * 0.8;
+
+    // Vertical offset adjustment to move text up slightly
+    const VERTICAL_OFFSET = adjustedFontSize * 0.3;
+
+    // Center the text
     const centeredX = x - (textWidth / 2);
-    const centeredY = y - (textHeight / 2);
-    
-    console.log(`Exporting text: "${overlay.text}"`);
-    console.log(`  Original: (${overlay.x}, ${overlay.y})`);
-    console.log(`  Page coords: (${x}, ${y})`);
-    console.log(`  Centered: (${centeredX}, ${centeredY})`);
-    console.log(`  Font size: ${overlay.fontSize}px`);
-    console.log(`  Text width: ${textWidth}px`);
-    
-    page.drawText(overlay.text, {
+    const centeredY = y - (textHeight / 2) + VERTICAL_OFFSET;
+
+    console.log(`   Font: ${overlay.fontFamily}, Original Size: ${overlay.fontSize}px, Adjusted: ${adjustedFontSize.toFixed(1)}px`);
+    console.log(`   Position: (${centeredX.toFixed(2)}, ${centeredY.toFixed(2)})`);
+
+    page.drawText(normalizedText, {
       x: centeredX,
       y: centeredY,
-      size: overlay.fontSize, // Use exact font size
+      size: adjustedFontSize,
       font: font,
       color: hexToRgb(overlay.color),
     });
   } catch (error) {
     console.error('Error drawing text overlay in export:', error);
+
+    // Fallback: draw with basic font
+    try {
+      const normalizedText = overlay.text.normalize('NFC');
+      const CANVAS_SCALE = 1.5;
+      const adjustedFontSize = overlay.fontSize / CANVAS_SCALE;
+      const x = overlay.x * pageWidth;
+      const y = pageHeight - (overlay.y * pageHeight);
+
+      page.drawText(normalizedText, {
+        x: x,
+        y: y,
+        size: adjustedFontSize,
+        color: hexToRgb(overlay.color),
+      });
+    } catch (fallbackError) {
+      console.error('Fallback drawing also failed:', fallbackError);
+    }
   }
 }
 
@@ -150,11 +212,10 @@ function drawShapeOverlay(
 ) {
   const shapeWidth = overlay.width * pageWidth;
   const shapeHeight = overlay.height * pageHeight;
-  
-  // Convert coordinates and center the shape (matching canvas behavior)
+
   const x = overlay.x * pageWidth - (shapeWidth / 2);
   const y = pageHeight - (overlay.y * pageHeight) - (shapeHeight / 2);
-  
+
   page.drawRectangle({
     x: x,
     y: y,

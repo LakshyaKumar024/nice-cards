@@ -41,9 +41,9 @@ export async function POST(request: NextRequest) {
         const pdfFileName = formData.get('pdf') as string;
         const placeholderImageFileName = formData.get('placeholderImage') as string;
 
-        if (!svgFileName || !pdfFileName || !placeholderImageFileName) {
+        if (!pdfFileName || !placeholderImageFileName) {
             return NextResponse.json(
-                { error: 'svg, pdf and placeholderImage file names is required.' },
+                { error: 'pdf and placeholderImage file names are required.' },
                 { status: 500 }
             );
         }
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
             tags,
             price: price || "0",
             paid,
-            svgFileName,
+            svgFileName: svgFileName || "",
             pdfFileName,
             placeholderImageFileName // Make sure this is included
         };

@@ -13,7 +13,7 @@ export const DesignSchema = z.object({
         z.number().min(0, "Price cannot be negative")
     ),
     paid: z.boolean().default(false),
-    svgFileName: z.string().min(4),
+    svgFileName: z.string().optional().default(""),
     placeholderImageFileName: z.string().min(4),
     pdfFileName: z.string().min(4)
 });

@@ -14,3 +14,15 @@
   font-style: normal;
   font-display: swap;
 }
+
+/* Unicode Hindi Font - Works with both typing and copy-paste */
+@font-face {
+  font-family: "Noto Sans Devanagari";
+  src: url("/fonts/NotoSansDevanagari.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Note: AMS Aasmi and Kruti Dev 640 are legacy fonts that only work with Hindi keyboard typing.
+   For copy-paste from Google Translate, use Noto Sans Devanagari. */

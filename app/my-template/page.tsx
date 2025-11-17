@@ -103,7 +103,7 @@ export default function TemplatesPage() {
             {filteredTemplates.map((template) => (
               <Link
                 key={template.uuid}
-                href={`/design/${template.uuid}/edit`}
+                href={`/edit/${template.uuid}`}
                 className="group"
               >
                 <Card className="h-full overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-accent cursor-pointer">
@@ -128,7 +128,8 @@ export default function TemplatesPage() {
 
                   {/* Content */}
                   <CardHeader className="pb-3">
-                    <CardTitle className="line-clamp-2 text-lg group-hover:text-accent transition-colors">
+                    <CardTitle className="line-clamp-2 text-lg text-foreground transition-none">
+
                       {template.name}
                     </CardTitle>
                     <CardDescription className="line-clamp-2">

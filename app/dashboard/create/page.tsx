@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/form";
 import { toast } from "sonner";
 import Image from "next/image";
-import { FileText, ImageIcon, FileJson } from "lucide-react";
+import { FileText, ImageIcon } from "lucide-react";
 
 const CATEGORIES = [
   "WEDDING",
@@ -57,12 +57,6 @@ const templateSchema = z.object({
       (file) => file.size <= 5 * 1024 * 1024,
       "Image must be less than 5MB"
     ),
-  svg: z
-    .instanceof(File)
-    .refine(
-      (file) => file.type === "image/svg+xml" || file.name.endsWith(".svg"),
-      "SVG file required"
-    ),
   pdf: z
     .instanceof(File)
     .refine(
@@ -77,8 +71,6 @@ export default function AddTemplatePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [imagePreview, setImagePreview] = useState<string>("");
   const [pdfFileName, setPdfFileName] = useState<string>("");
-  const [svgFiles, setSvgFiles] = useState<(File | null)[]>([null]);
-  const [svgFileNames, setSvgFileNames] = useState<string[]>([""]);
 
   // 🖼️ Image
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -103,36 +95,7 @@ export default function AddTemplatePage() {
     }
   };
 
-  // 🧩 SVG
-  const handleSvgChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    index: number
-  ) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setSvgFileNames((prev) => {
-        const updated = [...prev];
-        updated[index] = file.name;
-        return updated;
-      });
-      setSvgFiles((prev) => {
-        const updated = [...prev];
-        updated[index] = file;
-        return updated;
-      });
-      form.setValue("svg", file, { shouldValidate: true }); // ✅ Sync with form
-    }
-  };
 
-  const addSvgInput = () => {
-    setSvgFiles((prev) => [...prev, null]);
-    setSvgFileNames((prev) => [...prev, ""]);
-  };
-
-  const removeSvgInput = (index: number) => {
-    setSvgFiles((prev) => prev.filter((_, i) => i !== index));
-    setSvgFileNames((prev) => prev.filter((_, i) => i !== index));
-  };
 
   const form = useForm<TemplateFormValues>({
     resolver: zodResolver(templateSchema) as Resolver<TemplateFormValues>,
@@ -146,7 +109,6 @@ export default function AddTemplatePage() {
       // these won't affect files but help avoid type mismatch
       image: undefined as unknown as File,
       pdf: undefined as unknown as File,
-      svg: undefined as unknown as File,
     },
   });
 
@@ -184,79 +146,24 @@ export default function AddTemplatePage() {
       pdfForm.append("file", data.pdf);
       pdfForm.append("type", "pdf");
 
+      console.log("Uploading PDF:", data.pdf.name, "Size:", data.pdf.size, "Type:", data.pdf.type);
+
       const pdfRes = await fetch("/api/dashboard/design/create", {
         method: "PUT",
         body: pdfForm,
       });
-      if (!pdfRes.ok) throw new Error("PDF upload failed");
+      
+      if (!pdfRes.ok) {
+        const errorText = await pdfRes.text();
+        console.error("PDF upload failed:", errorText);
+        throw new Error(`PDF upload failed: ${pdfRes.status} - ${errorText}`);
+      }
 
       const pdfJson = await pdfRes.json();
       const pdfFilename = pdfJson?.data?.fileName;
       if (!pdfFilename) throw new Error("No PDF filename returned from server");
 
-      // ---------- STEP 3: Upload SVGs (Parallel Uploads) ----------
-      const svgUploadPromises = svgFiles
-        .filter(Boolean)
-        .map(async (svgFile) => {
-          try {
-            const svgForm = new FormData();
-            svgForm.append("file", svgFile!);
-            svgForm.append("type", "svg");
-
-            const svgRes = await fetch("/api/dashboard/design/create", {
-              method: "PUT",
-              body: svgForm,
-            });
-
-            if (!svgRes.ok) {
-              let errorText = "Unknown error";
-              try {
-                errorText = await svgRes.text();
-              } catch (e) {
-                console.error("Could not read error response:", e);
-              }
-              throw new Error(`Upload failed: ${svgRes.status} - ${errorText}`);
-            }
-
-            const svgJson = await svgRes.json();
-            const svgFilename = svgJson?.data?.fileName;
-
-            if (!svgFilename) {
-              throw new Error("No filename returned from server");
-            }
-
-            return { success: true, filename: svgFilename, file: svgFile };
-          } catch (error) {
-            console.error(`Failed to upload ${svgFile!.name}:`, error);
-            return {
-              success: false,
-              error: error instanceof Error ? error.message : "Unknown error",
-              file: svgFile,
-            };
-          }
-        });
-
-      const svgResults = await Promise.all(svgUploadPromises);
-
-      // Check for any failures
-      const failedUploads = svgResults.filter((result) => !result.success);
-      if (failedUploads.length > 0) {
-        const errorMessages = failedUploads
-          .map((f) => `Failed to upload ${f.file!.name}: ${f.error}`)
-          .join(", ");
-        throw new Error(`SVG uploads failed: ${errorMessages}`);
-      }
-
-      const uploadedSvgFilenames = svgResults
-        .filter(
-          (result): result is { success: true; filename: string; file: File } =>
-            result.success
-        )
-        .map((result) => result.filename);
-
-      console.log("Uploaded SVG Filenames:", uploadedSvgFilenames);
-
-      // ---------- STEP 4: Submit Metadata ----------
+      // ---------- STEP 3: Submit Metadata ----------
       const finalForm = new FormData();
       finalForm.append("name", data.name);
       finalForm.append("description", data.description || "");
@@ -266,7 +173,7 @@ export default function AddTemplatePage() {
       finalForm.append("paid", data.paid.toString() || "false");
       finalForm.append("placeholderImage", imageFilename);
       finalForm.append("pdf", pdfFilename);
-      finalForm.append("svg", JSON.stringify(uploadedSvgFilenames));
+      finalForm.append("svg", "");
 
       const metaRes = await fetch("/api/dashboard/design/create", {
         method: "POST",
@@ -283,8 +190,6 @@ export default function AddTemplatePage() {
       form.reset();
       setImagePreview("");
       setPdfFileName("");
-      setSvgFiles([null]);
-      setSvgFileNames([""]);
 
       toast.dismiss(dismiss);
     } catch (error) {
@@ -510,51 +415,6 @@ export default function AddTemplatePage() {
                 )}
               />
 
-              {/* SVG */}
-              <FormField
-                control={form.control}
-                name="svg"
-                render={() => (
-                  <FormItem>
-                    <FormLabel className="flex items-center gap-2">
-                      <FileJson className="w-4 h-4" />
-                      SVG Files<span className="text-destructive">*</span>
-                    </FormLabel>
-                    {svgFiles.map((_, index) => (
-                      <div key={index} className="flex items-center gap-3 mb-2">
-                        <Input
-                          type="file"
-                          accept=".svg"
-                          onChange={(e) => handleSvgChange(e, index)}
-                          className="bg-secondary/50 cursor-pointer"
-                        />
-                        {svgFileNames[index] && (
-                          <span className="text-sm text-muted-foreground truncate">
-                            {svgFileNames[index]}
-                          </span>
-                        )}
-                        {svgFiles.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => removeSvgInput(index)}
-                            className="text-destructive text-sm"
-                          >
-                            Remove
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={addSvgInput}
-                      className="text-primary text-sm hover:underline"
-                    >
-                      + Add another SVG
-                    </button>
-                  </FormItem>
-                )}
-              />
-
               {/* PDF */}
               <FormField
                 control={form.control}
@@ -600,8 +460,6 @@ export default function AddTemplatePage() {
                   form.reset();
                   setImagePreview("");
                   setPdfFileName("");
-                  setSvgFiles([null]);
-                  setSvgFileNames([""]);
                 }}
                 className="px-8 font-medium"
                 size="lg"

@@ -1,6 +1,8 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import Link from "next/link"
+
 
 export default function PrivacyPolicyPage() {
   return (
@@ -139,9 +141,15 @@ export default function PrivacyPolicyPage() {
             <section className="space-y-3">
               <h2 className="text-xl font-semibold text-foreground">Contact Us</h2>
               <p className="text-muted-foreground leading-relaxed">
-                If you have any questions about this Privacy Policy, please contact us by email at privacy@example.com,
-                by phone at (555) 123-4567, or by mail at 123 Privacy Street, Suite 100, City, State 12345.
-              </p>
+                If you have any questions about this Privacy Policy, please contact us by :-</p>
+                <div className="mt-3 text-sm text-muted-foreground">
+                <p>
+                  Email: 
+                  <Link href="https://mail.google.com/mail/?view=cm&fs=1&to=nicecardramgarh@gmail.com" className="hover:underline"> nicecardramgarh@gmail.com</Link>
+                </p>
+                <p>Phone: +917764839112</p>
+                <p>Address: Ramgarh, Jharkhand, India</p>
+              </div>
             </section>
 
             {/* Last Updated */}

@@ -1,6 +1,7 @@
 "use client"
 
 import { Card } from "@/components/ui/card"
+import Link from "next/link"
 
 export default function TermsAndConditionsPage() {
   return (
@@ -103,10 +104,13 @@ export default function TermsAndConditionsPage() {
               <p className="text-sm leading-relaxed text-muted-foreground">
                 If you have any questions about these Terms and Conditions, please contact us at:
               </p>
-              <div className="mt-3 text-sm text-muted-foreground">
-                <p>Email: legal@example.com</p>
-                <p>Phone: +1 (555) 123-4567</p>
-                <p>Address: 123 Business Street, Suite 100, City, State 12345</p>
+            <div className="mt-3 text-sm text-muted-foreground">
+                <p>
+                  Email: 
+                  <Link href="https://mail.google.com/mail/?view=cm&fs=1&to=nicecardramgarh@gmail.com" className="hover:underline"> nicecardramgarh@gmail.com</Link>
+                </p>
+                <p>Phone: +917764839112</p>
+                <p>Address: Ramgarh, Jharkhand, India</p>
               </div>
             </section>
           </div>

@@ -27,10 +27,11 @@
     } */
 
 .ams-aasmi {
-  font-family: "AMS Assami" !important;
+  font-family: "AMS Aasmi", sans-serif!important;
 }
+
 .kruti-dev-640 {
-  font-family: "Kruti Dev 640" !important;
+  font-family: "Kruti Dev 640", sans-serif!important;
 }
 
 @custom-variant dark (&:is(.dark *));

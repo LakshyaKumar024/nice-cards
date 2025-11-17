@@ -82,33 +82,40 @@ function SortableOverlayItem({
       </Button>
       
       <div 
-        className="flex-1 cursor-pointer min-w-0"
+        className="flex-1 cursor-pointer overflow-hidden"
         onClick={() => onSelectOverlay(overlay.id)}
       >
         {overlay.type === 'shape' ? (
           <>
             <div className="flex items-center gap-2">
-              <Square className="w-4 h-4" style={{ color: overlay.color }} />
+              <Square className="w-4 h-4 flex-shrink-0" style={{ color: overlay.color }} />
               <p className="text-sm font-medium truncate">
                 Square Shape
               </p>
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground truncate">
               {Math.round(overlay.x * 100)}%, {Math.round(overlay.y * 100)}% • {Math.round(overlay.width * 100)}% × {Math.round(overlay.height * 100)}%
             </p>
           </>
         ) : (
           <>
-            <p className="text-sm font-medium truncate" style={{ 
-              fontFamily: overlay.fontFamily,
-              fontSize: Math.max(12, overlay.fontSize * 0.6),
-              fontWeight: overlay.bold ? 'bold' : 'normal',
-              fontStyle: overlay.italic ? 'italic' : 'normal',
-              color: overlay.color,
-            }}>
+            <p 
+              className="text-sm font-medium" 
+              style={{ 
+                fontFamily: overlay.fontFamily,
+                fontSize: '14px',
+                fontWeight: overlay.bold ? 'bold' : 'normal',
+                fontStyle: overlay.italic ? 'italic' : 'normal',
+                color: overlay.color,
+                wordBreak: 'break-word',
+                overflowWrap: 'break-word',
+                whiteSpace: 'normal',
+                lineHeight: '1.4',
+              }}
+            >
               {overlay.text || 'Empty text'}
             </p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground truncate">
               {Math.round(overlay.x * 100)}%, {Math.round(overlay.y * 100)}%
             </p>
           </>
