@@ -15,10 +15,7 @@ const isAdminRoute = createRouteMatcher([
   "/dashboard(.*)?",
 ]);
 
-// Exclude API routes from admin matcher to prevent body consumption
-const isAdminApiRoute = createRouteMatcher([
-  "/api/dashboard(.*)?",
-]);
+
 const isDeveloperRoute = createRouteMatcher([
   "/developer(.*)?",
 ]);
@@ -62,8 +59,12 @@ export default clerkMiddleware(async (auth, req) => {
 });
 
 export const config = {
+  // Run middleware for pages and for API/trpc routes, but exclude the
+  // upload endpoint which previously caused multipart body parsing issues.
+  // This lets Clerk's middleware run (so `auth()` works) while avoiding
+  // running middleware on the specific upload route that needs raw body access.
   matcher: [
-    "/((?!_next|.*\\..*).*)", 
-    "/(api|trpc)((?!/dashboard/design/create).*)"
+    "/((?!_next|.*\\..*).*)",
+    "/(api|trpc)((?!/dashboard/design/create).*)",
   ],
 };

@@ -24,6 +24,8 @@ export function TemplateCard({
   imageUrl,
   isPurchased,
 }: TemplateCardProps) {
+  // Remove any extra quotes from the image URL
+  const cleanImageUrl = imageUrl ? imageUrl.replace(/^["']|["']$/g, '') : '';
 
   return (
     <Link href={`/design/${uuid}`} className="group h-full">
@@ -36,9 +38,9 @@ export function TemplateCard({
         )}
 
         <div className="relative h-48 bg-muted overflow-hidden flex items-center justify-center shrink-0">
-          {imageUrl ? (
+          {cleanImageUrl ? (
             <Image
-              src={`/placeholder/image/${imageUrl}`}
+              src={cleanImageUrl}
               alt={name}
               width={300}
               height={200}

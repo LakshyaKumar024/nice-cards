@@ -115,11 +115,11 @@ export function TemplateDetail({
     router.push(`/edit/${template?.uuid}`);
   const handleBack = () => router.push("/");
 
-  const imageSrc =
-    `/placeholder/image/${template?.image?.trim()}` ||
-    `/placeholder/image/${template?.image?.trim()}` ||
-    null;
-  console.log(imageSrc);
+  // Remove any extra quotes from the image URL
+  const imageSrc = template?.image 
+    ? template.image.replace(/^["']|["']$/g, '') 
+    : null;
+  console.log("Image src:", imageSrc);
 
   if (loading)
     return (

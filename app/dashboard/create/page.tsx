@@ -95,8 +95,6 @@ export default function AddTemplatePage() {
     }
   };
 
-
-
   const form = useForm<TemplateFormValues>({
     resolver: zodResolver(templateSchema) as Resolver<TemplateFormValues>,
     defaultValues: {
@@ -112,58 +110,86 @@ export default function AddTemplatePage() {
     },
   });
 
+  // In your onSubmit function - update the upload sections
+
   const onSubmit = async (data: TemplateFormValues) => {
     setIsLoading(true);
 
-    const dismiss = toast.loading("Uploading files...", {
-      description: "Please wait while we upload your files.",
-    });
+    const toastId = toast.loading("Starting upload process...");
 
     try {
-      // Show upload progress
-      const dismiss = toast.loading("Uploading files...", {
-        description: "Please wait while your assets are being uploaded.",
-      });
-
       // ---------- STEP 1: Upload Image ----------
+      toast.loading("Uploading image...", { id: toastId });
+
       const imageForm = new FormData();
       imageForm.append("file", data.image);
-      imageForm.append("type", "placeholder");
 
-      const imageRes = await fetch("/api/dashboard/design/create", {
-        method: "PUT",
+      console.log("🖼️ Uploading Image:", {
+        fileName: data.image.name,
+        fileSize: data.image.size,
+        fileType: data.image.type
+      });
+
+      const imageRes = await fetch("/api/dashboard/design/create/image", {
+        method: "POST",
         body: imageForm,
       });
-      if (!imageRes.ok) throw new Error("Image upload failed");
+
+      if (!imageRes.ok) {
+        const errorText = await imageRes.text();
+        console.error("❌ Image upload failed:", errorText);
+        throw new Error(`Image upload failed: ${imageRes.status}`);
+      }
 
       const imageJson = await imageRes.json();
-      const imageFilename = imageJson?.data?.fileName;
-      if (!imageFilename)
+      let imageFilename = imageJson?.data?.fileName;
+
+      if (!imageFilename) {
         throw new Error("No image filename returned from server");
+      }
+
+      // Remove any extra quotes if they exist
+      if (typeof imageFilename === 'string') {
+        imageFilename = imageFilename.replace(/^["']|["']$/g, '');
+      }
+
+      console.log("✅ Image uploaded:", imageFilename);
 
       // ---------- STEP 2: Upload PDF ----------
+      toast.loading("Uploading PDF...", { id: toastId });
+
       const pdfForm = new FormData();
       pdfForm.append("file", data.pdf);
-      pdfForm.append("type", "pdf");
 
-      console.log("Uploading PDF:", data.pdf.name, "Size:", data.pdf.size, "Type:", data.pdf.type);
+      console.log("📄 Uploading PDF:", {
+        fileName: data.pdf.name,
+        fileSize: data.pdf.size,
+        fileType: data.pdf.type
+      });
 
-      const pdfRes = await fetch("/api/dashboard/design/create", {
-        method: "PUT",
+      const pdfRes = await fetch("/api/dashboard/design/create/pdf", {
+        method: "POST",
         body: pdfForm,
       });
-      
+
       if (!pdfRes.ok) {
         const errorText = await pdfRes.text();
-        console.error("PDF upload failed:", errorText);
-        throw new Error(`PDF upload failed: ${pdfRes.status} - ${errorText}`);
+        console.error("❌ PDF upload failed:", errorText);
+        throw new Error(`PDF upload failed: ${pdfRes.status}`);
       }
 
       const pdfJson = await pdfRes.json();
       const pdfFilename = pdfJson?.data?.fileName;
-      if (!pdfFilename) throw new Error("No PDF filename returned from server");
+
+      if (!pdfFilename) {
+        throw new Error("No PDF filename returned from server");
+      }
+
+      console.log("✅ PDF uploaded:", pdfFilename);
 
       // ---------- STEP 3: Submit Metadata ----------
+      toast.loading("Creating template...", { id: toastId });
+
       const finalForm = new FormData();
       finalForm.append("name", data.name);
       finalForm.append("description", data.description || "");
@@ -175,14 +201,24 @@ export default function AddTemplatePage() {
       finalForm.append("pdf", pdfFilename);
       finalForm.append("svg", "");
 
+      console.log("📦 Submitting template metadata...");
+
       const metaRes = await fetch("/api/dashboard/design/create", {
         method: "POST",
         body: finalForm,
       });
 
-      if (!metaRes.ok) throw new Error("Failed to create template");
+      if (!metaRes.ok) {
+        const errorText = await metaRes.text();
+        console.error("❌ Template creation failed:", errorText);
+        throw new Error(`Failed to create template: ${metaRes.status}`);
+      }
+
+      const metaJson = await metaRes.json();
+      console.log("✅ Template created successfully:", metaJson);
 
       toast.success("Template Published!", {
+        id: toastId,
         description: "All files uploaded and template added successfully.",
       });
 
@@ -191,16 +227,13 @@ export default function AddTemplatePage() {
       setImagePreview("");
       setPdfFileName("");
 
-      toast.dismiss(dismiss);
     } catch (error) {
-      console.error(error);
-      toast.dismiss(dismiss);
-      toast.error("Error", {
-        description:
-          error instanceof Error ? error.message : "Failed to add template",
+      console.error("💥 Template submission error:", error);
+      toast.error("Upload Failed", {
+        id: toastId,
+        description: error instanceof Error ? error.message : "Failed to add template",
       });
     } finally {
-      toast.dismiss(dismiss);
       setIsLoading(false);
     }
   };

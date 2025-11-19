@@ -115,7 +115,7 @@ export default function TemplatesPage() {
                       </div>
                     ) : (
                       <Image
-                        src={`/placeholder/image/${template.image}`}
+                        src={template.image}
                         alt={template.name}
                         width={400}
                         height={300}

@@ -1,0 +1,10 @@
+version: '3.8'
+services:
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: "lakshya@gmail.com"
+      PGADMIN_DEFAULT_PASSWORD: "pass@1234" 
+    ports:
+      - "8080:80" # Access pgAdmin via http://localhost:8080

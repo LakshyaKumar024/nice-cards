@@ -1,30 +1,9 @@
+// app/api/dashboard/design/create/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db-init';
 import { CATEGORYS } from '@/prisma/generated/prisma/enums';
-import { saveFile } from '@/lib/helpers';
 import { DesignSchema } from '@/lib/types';
-
-
-// Helper function to parse tags safely
-function parseTags(tagsString: string | null): string[] {
-    if (!tagsString) return [];
-
-    try {
-        // Handle both JSON array and comma-separated values
-        if (tagsString.startsWith('[') && tagsString.endsWith(']')) {
-            return JSON.parse(tagsString);
-        } else if (tagsString.startsWith('tags : [')) {
-            const jsonMatch = tagsString.match(/\[.*\]/);
-            return jsonMatch ? JSON.parse(jsonMatch[0]) : [];
-        } else {
-            // Comma-separated fallback
-            return tagsString.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
-        }
-    } catch (error) {
-        console.error('Error parsing tags:', error);
-        return [];
-    }
-}
+import { parseTags } from '@/lib/helpers';
 
 export async function POST(request: NextRequest) {
     try {
@@ -97,7 +76,6 @@ export async function POST(request: NextRequest) {
 
         const validatedData = validationResult.data;
 
-
         const addingDesign = await prisma.$transaction(async (tx) => {
             // Create DB entry first
             const addDesign = await tx.template.create({
@@ -150,31 +128,3 @@ export async function POST(request: NextRequest) {
         );
     }
 }
-
-export async function PUT(request: NextRequest) {
-  try {
-    // Auth check (since we excluded this route from middleware)
-    const { userId } = await import('@clerk/nextjs/server').then(m => m.auth());
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const formData = await request.formData();
-    const type = formData.get("type") as "pdf" | "placeholder" | "svg";
-    const file = formData.get("file") as File;
-    
-
-    if (!file || file.size === 0) {
-      return NextResponse.json({ error: "file is required" }, { status: 422 });
-    }
-
-    const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9-_\.]/g, "-");
-    const savedFileName = await saveFile(type, sanitizedFileName, file); // ✅ pass file directly
-
-    return NextResponse.json({ success: true, data: { fileName: savedFileName } }, { status: 201 });
-  } catch (err) {
-    console.error("Upload error:", err);
-    return NextResponse.json({ success: false, error: "Upload failed" }, { status: 500 });
-  }
-}
-

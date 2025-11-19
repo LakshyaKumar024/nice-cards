@@ -48,7 +48,7 @@ export default function Page({
   const templateData = {
     name: template.name,
     designer: "Nice Card",
-    image: `/placeholder/image/${template.image}`,
+    image: `${template.image}`,
     originalPrice: Number(template.price),
     discount: 0,
     finalPrice: Number(template.price),

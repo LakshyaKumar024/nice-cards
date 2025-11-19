@@ -1,6 +1,7 @@
+// lib/helpers.ts
 import { mkdir, writeFile } from "fs/promises";
 import path from 'path';
-
+import { uploadImageToCloudinary } from './cloudinary';
 
 // Helper function to parse tags safely
 function parseTags(tagsString: string | null): string[] {
@@ -35,7 +36,6 @@ function getImageExtension(mimeType: string): string {
     return extensions[mimeType] || "bin";
 }
 
-
 /** Sanitize filename: remove unsafe chars, shorten, and trim */
 function sanitizeFileName(name: string) {
     // Remove path separators and most non-alphanum chars (keep - _ .)
@@ -46,21 +46,25 @@ function sanitizeFileName(name: string) {
 
 /**
  * Save a file on disk and return the generated fileName.
- * Throws on error so caller can respond with a 500 and helpful log.
+ * For placeholder type, saves to Cloudinary and returns the URL.
  */
 const saveFile = async (
     type: "pdf" | "placeholder" | "svg",
     filename: string,
     file: File
 ): Promise<string> => {
+    // Handle placeholder images - save to Cloudinary and return URL
+    if (type === "placeholder") {
+        const imageUrl = await uploadImageToCloudinary(file);
+        return imageUrl; // Return the Cloudinary URL directly
+    }
+
+    // Handle PDF and SVG files - save locally as before
     let fileDir: string;
     let generatedFileName: string;
 
-    // create a unique suffix with timestamp + random
-    const ts = Date.now(); // milliseconds
-    const rand = Math.floor(Math.random() * 1e6); // random number to avoid collisions
-
-    // sanitize the client filename (without extension)
+    const ts = Date.now();
+    const rand = Math.floor(Math.random() * 1e6);
     const baseName = sanitizeFileName(filename.replace(/\.[^/.]+$/, ""));
 
     switch (type) {
@@ -74,44 +78,37 @@ const saveFile = async (
             generatedFileName = `design-${baseName}-${ts}-${rand}.svg`;
             break;
 
-        case "placeholder":
-            fileDir = path.join(process.cwd(), "public", "placeholder", "image");
-            const ext = getImageExtension(file.type) || "png";
-            generatedFileName = `design-${baseName}-${ts}-${rand}.${ext}`;
-            break;
-
         default:
             throw new Error(`Unsupported file type: ${type}`);
     }
 
     try {
-        // ensure directory exists
+        console.log("💾 Saving file locally:", {
+            type,
+            originalName: filename,
+            generatedName: generatedFileName,
+            targetDir: fileDir,
+        });
+
         await mkdir(fileDir, { recursive: true });
 
-        // convert to buffer and write
-        const fileBuffer = Buffer.from(await file.arrayBuffer());
+        const bytes = await file.arrayBuffer();
+        const buffer = Buffer.from(bytes);
         const fullPath = path.join(fileDir, generatedFileName);
 
-        await writeFile(fullPath, fileBuffer);
+        await writeFile(fullPath, buffer);
+        console.log("File saved successfully:", generatedFileName);
 
-        // return the file name (not full path)
         return generatedFileName;
     } catch (err) {
-        // Helpful logging for server-side debugging
-        console.error("saveFile error:", {
-            message: err instanceof Error ? err.message : String(err),
-            type,
-            filename: generatedFileName,
-            targetDir: fileDir,
-            originalName: filename,
-        });
-        // Rethrow so the caller (PUT handler) can return a proper 500 and include details if needed
-        throw new Error("Failed to save file on server");
+        console.error("saveFile error:", err);
+        throw new Error(`Failed to save file: ${err instanceof Error ? err.message : String(err)}`);
     }
 };
 
-
-
-
-
-export { getImageExtension, parseTags, saveFile, sanitizeFileName };
+export { 
+    getImageExtension, 
+    parseTags, 
+    saveFile, 
+    sanitizeFileName
+};
