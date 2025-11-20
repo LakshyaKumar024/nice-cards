@@ -42,7 +42,7 @@ export interface Template {
   tags: string[];
 }
 
-const PAGINATION_LIMIT = 12;
+const PAGINATION_LIMIT = 4;
 
 export default function Home() {
   const router = useRouter();

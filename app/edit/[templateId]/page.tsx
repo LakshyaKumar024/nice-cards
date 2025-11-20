@@ -6,9 +6,7 @@ import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import "@/app/fonts.css"; // Import custom fonts
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Info, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 interface EditPDFPageProps {
   params: Promise<{

@@ -88,7 +88,7 @@ function SortableOverlayItem({
         {overlay.type === 'shape' ? (
           <>
             <div className="flex items-center gap-2">
-              <Square className="w-4 h-4 flex-shrink-0" style={{ color: overlay.color }} />
+              <Square className="w-4 h-4 shrink-0" style={{ color: overlay.color }} />
               <p className="text-sm font-medium truncate">
                 Square Shape
               </p>

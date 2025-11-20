@@ -127,7 +127,7 @@ export const Navbar = () => {
                         </SignInButton>
                         <SignUpButton>
                           <Button
-                            className="w-full justify-center gap-2 py-3 h-11 bg-gradient-to-r from-[#6c47ff] to-[#5a3fe0] hover:from-[#5a3fe0] hover:to-[#4a32c4] text-white shadow-md hover:shadow-lg transition-all duration-200"
+                            className="w-full justify-center gap-2 py-3 h-11 bg-linear-to-r from-[#6c47ff] to-[#5a3fe0] hover:from-[#5a3fe0] hover:to-[#4a32c4] text-white shadow-md hover:shadow-lg transition-all duration-200"
                             onClick={() => setIsOpen(false)}
                           >
                             <ShoppingBag className="h-4 w-4" />
