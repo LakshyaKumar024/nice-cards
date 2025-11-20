@@ -1,27 +1,39 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-'use client';
+"use client";
 
-import { useState, useCallback, useEffect } from 'react';
-import * as pdfjsLib from 'pdfjs-dist';
-import { ChevronLeft, ChevronRight, Download, Type, Menu, Square } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
-import { PDFCanvas } from '@/components/pdf-canvas';
-import { FormattingToolbar } from '@/components/formatting-toolbar';
-import { LayersPanel } from '@/components/layers-panel';
-import { loadPDFDocument } from '@/lib/pdf-utils';
-import { exportPDFWithOverlays } from '@/lib/export-utils';
+import { useState, useCallback, useEffect } from "react";
+import * as pdfjsLib from "pdfjs-dist";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  Type,
+  Menu,
+  Square
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { PDFCanvas } from "@/components/pdf-canvas";
+import { FormattingToolbar } from "@/components/formatting-toolbar";
+import { LayersPanel } from "@/components/layers-panel";
+import { loadPDFDocument } from "@/lib/pdf-utils";
+import { exportPDFWithOverlays } from "@/lib/export-utils";
 
 // Configure pdfjs worker
-if (typeof window !== 'undefined') {
+if (typeof window !== "undefined") {
   pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 }
 
 export interface TextOverlay {
   id: string;
-  type: 'text';
+  type: "text";
   text: string;
   x: number;
   y: number;
@@ -34,12 +46,13 @@ export interface TextOverlay {
   visible: boolean;
   zIndex: number;
   fontFamilyClassName?: string;
+  rotation: number; // Add rotation property (degrees)
 }
 
 export interface ShapeOverlay {
   id: string;
-  type: 'shape';
-  shapeType: 'square';
+  type: "shape";
+  shapeType: "square";
   x: number;
   y: number;
   width: number;
@@ -48,29 +61,34 @@ export interface ShapeOverlay {
   page: number;
   visible: boolean;
   zIndex: number;
+  rotation: number; // Add rotation property (degrees)
 }
 
 export type Overlay = TextOverlay | ShapeOverlay;
 
 interface PDFEditorProps {
-  pdfId: string;
+  pdfFName: string;
+  templateId: string;
 }
 
 // Utility to convert a font family (like "Open Sans") to a class name ("open-sans")
 function fontFamilyToClassName(fontFamily: string) {
-  return fontFamily.replace(/\s+/g, '-').toLowerCase();
+  return fontFamily.replace(/\s+/g, "-").toLowerCase();
 }
 
-export default function PDFEditor({ pdfId }: PDFEditorProps) {
+export default function PDFEditor({ pdfFName, templateId }: PDFEditorProps) {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
-  const [pdfDocument, setPdfDocument] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
+  const [pdfDocument, setPdfDocument] =
+    useState<pdfjsLib.PDFDocumentProxy | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [numPages, setNumPages] = useState(0);
   const [overlays, setOverlays] = useState<Overlay[]>([]);
-  const [selectedOverlayId, setSelectedOverlayId] = useState<string | null>(null);
+  const [selectedOverlayId, setSelectedOverlayId] = useState<string | null>(
+    null
+  );
   const [isExporting, setIsExporting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [toolMode, setToolMode] = useState<'text' | 'shape'>('text');
+  const [toolMode, setToolMode] = useState<"text" | "shape">("text");
 
   const selectedOverlay = overlays.find((o) => o.id === selectedOverlayId);
 
@@ -78,34 +96,35 @@ export default function PDFEditor({ pdfId }: PDFEditorProps) {
     // Preload custom fonts for export
     const preloadFonts = async () => {
       try {
-        console.log('Preloading custom fonts for export...');
+        console.log("Preloading custom fonts for export...");
         await Promise.all([
-          fetch('/fonts/AMS Aasmi.ttf'),
-          fetch('/fonts/KR640.TTF')
+          fetch("/fonts/AMS Aasmi.ttf"),
+          fetch("/fonts/KR640.TTF"),
         ]);
-        console.log('✅ Custom fonts preloaded successfully');
+        console.log("✅ Custom fonts preloaded successfully");
       } catch (error) {
-        console.warn('Failed to preload custom fonts:', error);
+        console.warn("Failed to preload custom fonts:", error);
       }
     };
-  
+
     preloadFonts();
   }, []);
-  
 
   // Load PDF from API route
   useEffect(() => {
     const loadPDF = async () => {
-      if (!pdfId) return;
-      
+      if (!pdfFName) return;
+
       setIsLoading(true);
       try {
-        const response = await fetch(`/api/getPdf/${pdfId}`);
-        if (!response.ok) throw new Error('Failed to fetch PDF');
-        
+        const response = await fetch(`/api/getPdf/${pdfFName}`);
+        if (!response.ok) throw new Error("Failed to fetch PDF");
+
         const blob = await response.blob();
-        const file = new File([blob], `${pdfId}.pdf`, { type: 'application/pdf' });
-        
+        const file = new File([blob], `${pdfFName}.pdf`, {
+          type: "application/pdf",
+        });
+
         const pdf = await loadPDFDocument(file);
         setPdfFile(file);
         setPdfDocument(pdf);
@@ -114,83 +133,104 @@ export default function PDFEditor({ pdfId }: PDFEditorProps) {
         setOverlays([]);
         setSelectedOverlayId(null);
       } catch (error) {
-        console.error('Error loading PDF:', error);
+        console.error("Error loading PDF:", error);
       } finally {
         setIsLoading(false);
       }
     };
 
     loadPDF();
-  }, [pdfId]);
-
+  }, [pdfFName, templateId]);
 
   const debugExportPositions = () => {
     if (!pdfDocument) return;
-    
-    const currentPageOverlays = overlays.filter(o => o.page === currentPage);
-    
-    console.log('=== EXPORT POSITION DEBUG ===');
-    console.log('Current Page:', currentPage);
-    console.log('Overlays on this page:');
-    
-    currentPageOverlays.forEach(overlay => {
-      if (overlay.type === 'text') {
+
+    const currentPageOverlays = overlays.filter((o) => o.page === currentPage);
+
+    console.log("=== EXPORT POSITION DEBUG ===");
+    console.log("Current Page:", currentPage);
+    console.log("Overlays on this page:");
+
+    currentPageOverlays.forEach((overlay) => {
+      if (overlay.type === "text") {
         console.log(`Text: "${overlay.text}"`);
-        console.log(`  Normalized: (${overlay.x.toFixed(3)}, ${overlay.y.toFixed(3)})`);
+        console.log(
+          `  Normalized: (${overlay.x.toFixed(3)}, ${overlay.y.toFixed(3)})`
+        );
         console.log(`  Font Size: ${overlay.fontSize}px`);
         console.log(`  Font Family: ${overlay.fontFamily}`);
+        console.log(`  Rotation: ${overlay.rotation}°`);
       } else {
-        console.log(`Shape at (${overlay.x.toFixed(3)}, ${overlay.y.toFixed(3)})`);
-        console.log(`  Size: ${(overlay.width * 100).toFixed(1)}% x ${(overlay.height * 100).toFixed(1)}%`);
+        console.log(
+          `Shape at (${overlay.x.toFixed(3)}, ${overlay.y.toFixed(3)})`
+        );
+        console.log(
+          `  Size: ${(overlay.width * 100).toFixed(1)}% x ${(
+            overlay.height * 100
+          ).toFixed(1)}%`
+        );
+        console.log(`  Rotation: ${overlay.rotation}°`);
       }
     });
   };
-  
 
-  const handleAddOverlay = useCallback((overlay: Omit<TextOverlay, 'id'> | Omit<ShapeOverlay, 'id'>) => {
-    // Add fontFamilyClassName for text overlays on creation
-    let newOverlay: Overlay;
-    if ((overlay as any).type === 'text') {
-      const textOverlay = overlay as Omit<TextOverlay, 'id'>;
-      const fontFamily = textOverlay.fontFamily || '';
-      
-      // Map font families to their CSS class names
-      const fontClassMap: { [key: string]: string } = {
-        'AMS Aasmi': 'ams-aasmi',
-        'Kruti Dev 640': 'kruti-dev-640'
+  const handleAddOverlay = useCallback(
+    (overlay: Omit<TextOverlay, "id"> | Omit<ShapeOverlay, "id">) => {
+      // Add fontFamilyClassName for text overlays on creation
+      let newOverlay: Overlay;
+      if ((overlay as any).type === "text") {
+        const textOverlay = overlay as Omit<TextOverlay, "id">;
+        const fontFamily = textOverlay.fontFamily || "";
+
+        // Map font families to their CSS class names
+        const fontClassMap: { [key: string]: string } = {
+          "AMS Aasmi": "ams-aasmi",
+          "Kruti Dev 640": "kruti-dev-640",
+        };
+
+        newOverlay = {
+          ...textOverlay,
+          id: `overlay-${Date.now()}-${Math.random()
+            .toString(36)
+            .substr(2, 9)}`,
+          fontFamilyClassName:
+            fontClassMap[fontFamily] || fontFamilyToClassName(fontFamily),
+          rotation: 0, // Initialize rotation to 0
+        } as Overlay;
+      } else {
+        newOverlay = {
+          ...overlay,
+          id: `overlay-${Date.now()}-${Math.random()
+            .toString(36)
+            .substr(2, 9)}`,
+          rotation: 0, // Initialize rotation to 0
+        } as Overlay;
+      }
+      setOverlays((prev) => [...prev, newOverlay]);
+      setSelectedOverlayId(newOverlay.id);
+    },
+    []
+  );
+
+  const handleAddShape = useCallback(
+    (x: number, y: number) => {
+      const newShape: Omit<ShapeOverlay, "id"> = {
+        type: "shape",
+        shapeType: "square",
+        x,
+        y,
+        width: 0.1, // 10% of page width
+        height: 0.1, // 10% of page height
+        color: "#3b82f6", // blue
+        page: currentPage,
+        visible: true,
+        zIndex: overlays.length,
+        rotation: 0, // Initialize rotation to 0
       };
-      
-      newOverlay = {
-        ...textOverlay,
-        id: `overlay-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        fontFamilyClassName: fontClassMap[fontFamily] || fontFamilyToClassName(fontFamily),
-      } as Overlay;
-    } else {
-      newOverlay = {
-        ...overlay,
-        id: `overlay-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      } as Overlay;
-    }
-    setOverlays((prev) => [...prev, newOverlay]);
-    setSelectedOverlayId(newOverlay.id);
-  }, []);
-  
-
-  const handleAddShape = useCallback((x: number, y: number) => {
-    const newShape: Omit<ShapeOverlay, 'id'> = {
-      type: 'shape',
-      shapeType: 'square',
-      x,
-      y,
-      width: 0.1, // 10% of page width
-      height: 0.1, // 10% of page height
-      color: '#3b82f6', // blue
-      page: currentPage,
-      visible: true,
-      zIndex: overlays.length,
-    };
-    handleAddOverlay(newShape);
-  }, [currentPage, overlays.length, handleAddOverlay]);
+      handleAddOverlay(newShape);
+    },
+    [currentPage, overlays.length, handleAddOverlay]
+  );
 
   // Extended: When updating fontFamily, also set fontFamilyClassName
   const handleUpdateOverlay = useCallback(
@@ -198,25 +238,26 @@ export default function PDFEditor({ pdfId }: PDFEditorProps) {
       setOverlays((prev) =>
         prev.map((overlay) => {
           if (overlay.id !== id) return overlay as Overlay;
-          
+
           // If text overlay and updating fontFamily, also assign className
           if (
-            overlay.type === 'text' &&
-            Object.prototype.hasOwnProperty.call(updates, 'fontFamily') &&
-            typeof (updates as Partial<TextOverlay>).fontFamily === 'string'
+            overlay.type === "text" &&
+            Object.prototype.hasOwnProperty.call(updates, "fontFamily") &&
+            typeof (updates as Partial<TextOverlay>).fontFamily === "string"
           ) {
             const fontFamily = (updates as Partial<TextOverlay>).fontFamily!;
-            
+
             // Map font families to their CSS class names
             const fontClassMap: { [key: string]: string } = {
-              'AMS Aasmi': 'ams-aasmi',
-              'Kruti Dev 640': 'kruti-dev-640'
+              "AMS Aasmi": "ams-aasmi",
+              "Kruti Dev 640": "kruti-dev-640",
             };
-            
+
             return {
               ...overlay,
               ...updates,
-              fontFamilyClassName: fontClassMap[fontFamily] || fontFamilyToClassName(fontFamily),
+              fontFamilyClassName:
+                fontClassMap[fontFamily] || fontFamilyToClassName(fontFamily),
             } as Overlay;
           }
           return { ...overlay, ...updates } as Overlay;
@@ -225,14 +266,16 @@ export default function PDFEditor({ pdfId }: PDFEditorProps) {
     },
     []
   );
-  
 
-  const handleDeleteOverlay = useCallback((id: string) => {
-    setOverlays((prev) => prev.filter((overlay) => overlay.id !== id));
-    if (selectedOverlayId === id) {
-      setSelectedOverlayId(null);
-    }
-  }, [selectedOverlayId]);
+  const handleDeleteOverlay = useCallback(
+    (id: string) => {
+      setOverlays((prev) => prev.filter((overlay) => overlay.id !== id));
+      if (selectedOverlayId === id) {
+        setSelectedOverlayId(null);
+      }
+    },
+    [selectedOverlayId]
+  );
 
   const handleToggleVisibility = useCallback((id: string) => {
     setOverlays((prev) =>
@@ -242,39 +285,49 @@ export default function PDFEditor({ pdfId }: PDFEditorProps) {
     );
   }, []);
 
-  const handleReorderLayers = useCallback((sourceId: string, targetId: string) => {
-    setOverlays((prev) => {
-      // Get current page overlays sorted by zIndex descending (as displayed in panel)
-      const currentPageOverlays = prev
-        .filter(o => o.page === currentPage)
-        .sort((a, b) => b.zIndex - a.zIndex);
-      
-      const sourceDisplayIdx = currentPageOverlays.findIndex((o) => o.id === sourceId);
-      const targetDisplayIdx = currentPageOverlays.findIndex((o) => o.id === targetId);
-      
-      if (sourceDisplayIdx === -1 || targetDisplayIdx === -1) return prev;
+  const handleReorderLayers = useCallback(
+    (sourceId: string, targetId: string) => {
+      setOverlays((prev) => {
+        // Get current page overlays sorted by zIndex descending (as displayed in panel)
+        const currentPageOverlays = prev
+          .filter((o) => o.page === currentPage)
+          .sort((a, b) => b.zIndex - a.zIndex);
 
-      // Reorder in the displayed order (top to bottom)
-      const reordered = [...currentPageOverlays];
-      const [removed] = reordered.splice(sourceDisplayIdx, 1);
-      reordered.splice(targetDisplayIdx, 0, removed);
+        const sourceDisplayIdx = currentPageOverlays.findIndex(
+          (o) => o.id === sourceId
+        );
+        const targetDisplayIdx = currentPageOverlays.findIndex(
+          (o) => o.id === targetId
+        );
 
-      // Create a map of new zIndex values (higher zIndex for items at top of display)
-      const zIndexMap = new Map<string, number>();
-      reordered.forEach((overlay, displayIdx) => {
-        // Top of display (index 0) gets highest zIndex
-        zIndexMap.set(overlay.id, currentPageOverlays.length - 1 - displayIdx);
+        if (sourceDisplayIdx === -1 || targetDisplayIdx === -1) return prev;
+
+        // Reorder in the displayed order (top to bottom)
+        const reordered = [...currentPageOverlays];
+        const [removed] = reordered.splice(sourceDisplayIdx, 1);
+        reordered.splice(targetDisplayIdx, 0, removed);
+
+        // Create a map of new zIndex values (higher zIndex for items at top of display)
+        const zIndexMap = new Map<string, number>();
+        reordered.forEach((overlay, displayIdx) => {
+          // Top of display (index 0) gets highest zIndex
+          zIndexMap.set(
+            overlay.id,
+            currentPageOverlays.length - 1 - displayIdx
+          );
+        });
+
+        // Update all overlays with new zIndex values
+        return prev.map((overlay) => {
+          if (overlay.page === currentPage && zIndexMap.has(overlay.id)) {
+            return { ...overlay, zIndex: zIndexMap.get(overlay.id)! };
+          }
+          return overlay;
+        });
       });
-
-      // Update all overlays with new zIndex values
-      return prev.map((overlay) => {
-        if (overlay.page === currentPage && zIndexMap.has(overlay.id)) {
-          return { ...overlay, zIndex: zIndexMap.get(overlay.id)! };
-        }
-        return overlay;
-      });
-    });
-  }, [currentPage]);
+    },
+    [currentPage]
+  );
 
   const handleExport = useCallback(async () => {
     debugExportPositions();
@@ -284,20 +337,20 @@ export default function PDFEditor({ pdfId }: PDFEditorProps) {
     try {
       const blob = await exportPDFWithOverlays(pdfFile, overlays);
       const url = URL.createObjectURL(blob);
-      
-      const link = document.createElement('a');
+
+      const link = document.createElement("a");
       link.href = url;
-      link.download = `edited-${pdfId}.pdf`;
+      link.download = `edited-${templateId}.pdf`;
       link.click();
-      
+
       URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Error exporting PDF:', error);
+      console.error("Error exporting PDF:", error);
     } finally {
       setIsExporting(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pdfFile, pdfId, overlays]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pdfFile, pdfFName, overlays]);
 
   const handlePrevPage = useCallback(() => {
     setCurrentPage((prev) => Math.max(1, prev - 1));
@@ -339,21 +392,39 @@ export default function PDFEditor({ pdfId }: PDFEditorProps) {
           Text Formatting
         </h2>
       </div>
-      
+
       <ScrollArea className="flex-1">
         {selectedOverlay ? (
-          selectedOverlay.type === 'text' ? (
+          selectedOverlay.type === "text" ? (
             <FormattingToolbar
               fontSize={selectedOverlay.fontSize}
               fontFamily={selectedOverlay.fontFamily}
               bold={selectedOverlay.bold}
               italic={selectedOverlay.italic}
               color={selectedOverlay.color}
-              onFontSizeChange={(size) => handleUpdateOverlay(selectedOverlay.id, { fontSize: size })}
-              onFontFamilyChange={(family) => handleUpdateOverlay(selectedOverlay.id, { fontFamily: family })}
-              onBoldToggle={() => handleUpdateOverlay(selectedOverlay.id, { bold: !selectedOverlay.bold })}
-              onItalicToggle={() => handleUpdateOverlay(selectedOverlay.id, { italic: !selectedOverlay.italic })}
-              onColorChange={(color) => handleUpdateOverlay(selectedOverlay.id, { color })}
+              rotation={selectedOverlay.rotation}
+              onFontSizeChange={(size) =>
+                handleUpdateOverlay(selectedOverlay.id, { fontSize: size })
+              }
+              onFontFamilyChange={(family) =>
+                handleUpdateOverlay(selectedOverlay.id, { fontFamily: family })
+              }
+              onBoldToggle={() =>
+                handleUpdateOverlay(selectedOverlay.id, {
+                  bold: !selectedOverlay.bold,
+                })
+              }
+              onItalicToggle={() =>
+                handleUpdateOverlay(selectedOverlay.id, {
+                  italic: !selectedOverlay.italic,
+                })
+              }
+              onColorChange={(color) =>
+                handleUpdateOverlay(selectedOverlay.id, { color })
+              }
+              onRotationChange={(rotation) =>
+                handleUpdateOverlay(selectedOverlay.id, { rotation })
+              }
             />
           ) : (
             <FormattingToolbar
@@ -362,11 +433,21 @@ export default function PDFEditor({ pdfId }: PDFEditorProps) {
               bold={false}
               italic={false}
               color={selectedOverlay.color}
-              onColorChange={(color) => handleUpdateOverlay(selectedOverlay.id, { color })}
+              rotation={selectedOverlay.rotation}
+              onColorChange={(color) =>
+                handleUpdateOverlay(selectedOverlay.id, { color })
+              }
+              onRotationChange={(rotation) =>
+                handleUpdateOverlay(selectedOverlay.id, { rotation })
+              }
               shapeWidth={selectedOverlay.width}
               shapeHeight={selectedOverlay.height}
-              onShapeWidthChange={(width) => handleUpdateOverlay(selectedOverlay.id, { width })}
-              onShapeHeightChange={(height) => handleUpdateOverlay(selectedOverlay.id, { height })}
+              onShapeWidthChange={(width) =>
+                handleUpdateOverlay(selectedOverlay.id, { width })
+              }
+              onShapeHeightChange={(height) =>
+                handleUpdateOverlay(selectedOverlay.id, { height })
+              }
             />
           )
         ) : (
@@ -405,24 +486,18 @@ export default function PDFEditor({ pdfId }: PDFEditorProps) {
             {/* Mobile Menu Button with Sheet */}
             <Sheet>
               <SheetTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="lg:hidden"
-                >
+                <Button variant="outline" size="icon" className="lg:hidden">
                   <Menu className="w-4 h-4" />
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-80 p-0">
                 <SheetTitle className="sr-only">PDF Editor Sidebar</SheetTitle>
-                <div className="flex flex-col h-full">
-                  {sidebarContent}
-                </div>
+                <div className="flex flex-col h-full">{sidebarContent}</div>
               </SheetContent>
             </Sheet>
-            
+
             <span className="text-sm font-medium text-muted-foreground font-mono truncate">
-              {pdfId}.pdf
+              {templateId}.pdf
             </span>
           </div>
 
@@ -453,18 +528,18 @@ export default function PDFEditor({ pdfId }: PDFEditorProps) {
 
             <div className="flex items-center gap-2">
               <Button
-                variant={toolMode === 'text' ? 'default' : 'outline'}
+                variant={toolMode === "text" ? "default" : "outline"}
                 size="sm"
-                onClick={() => setToolMode('text')}
+                onClick={() => setToolMode("text")}
                 title="Text Tool"
               >
                 <Type className="w-4 h-4 mr-2" />
                 Text
               </Button>
               <Button
-                variant={toolMode === 'shape' ? 'default' : 'outline'}
+                variant={toolMode === "shape" ? "default" : "outline"}
                 size="sm"
-                onClick={() => setToolMode('shape')}
+                onClick={() => setToolMode("shape")}
                 title="Square Shape Tool"
               >
                 <Square className="w-4 h-4 mr-2" />
@@ -474,17 +549,13 @@ export default function PDFEditor({ pdfId }: PDFEditorProps) {
 
             <Separator orientation="vertical" className="h-8" />
 
-            <Button
-              onClick={handleExport}
-              disabled={isExporting}
-              size="sm"
-            >
+            <Button onClick={handleExport} disabled={isExporting} size="sm">
               <Download className="w-4 h-4 mr-2" />
-              {isExporting ? 'Exporting...' : 'Export'}
+              {isExporting ? "Exporting..." : "Export"}
             </Button>
           </div>
         </div>
-
+        
         {/* PDF Canvas Area - Scrollable */}
         <div className="flex-1 overflow-auto bg-muted/30">
           <div className="min-h-full p-8 flex justify-center items-start">

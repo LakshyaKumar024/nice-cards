@@ -1,14 +1,15 @@
-"use client"
-import { TemplateCard } from "@/components/template-card"
-import Image from "next/image"
-import type React from "react"
-import { useEffect, useState } from "react"
-import { Search } from "lucide-react"
-import { Input } from "@/components/ui/input"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-// Import proper shadcn components (make sure these are installed)
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+"use client";
+
+import { TemplateCard } from "@/components/template-card";
+import { TemplateSkeleton } from "@/components/template-skeleton";
+import Image from "next/image";
+import type React from "react";
+import { useEffect, useState } from "react";
+import { Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const categories = [
   "All",
@@ -20,81 +21,89 @@ const categories = [
   "FESTIVAL",
   "INVITATION",
   "CORPORATE",
-]
+];
 
 export interface Template {
-  uuid: string
-  name: string
-  description: string
-  price: number
-  catogery: string
-  image: string
+  uuid: string;
+  name: string;
+  description: string;
+  price: number;
+  catogery: string;
+  image: string;
   editable_fields: Array<{
-    label: string
-    type: string
-    required: boolean
-  }>
-  rating: number
-  downloads: number
-  created_at: string
-  isPurchased: boolean
-  tags: string[]
+    label: string;
+    type: string;
+    required: boolean;
+  }>;
+  rating: number;
+  downloads: number;
+  created_at: string;
+  isPurchased: boolean;
+  tags: string[];
 }
-// PAGINATION_LIMIT
-const PAGINATION_LIMIT = 9
+
+const PAGINATION_LIMIT = 12;
 
 export default function Home() {
-  const router = useRouter()
-  const [selectedCategory, setSelectedCategory] = useState<string>("All")
-  const [templates, setTemplates] = useState<Template[]>([])
-  const [searchQuery, setSearchQuery] = useState<string>("")
-  const [isLoading, setIsLoading] = useState(false)
-  const [hasMore, setHasMore] = useState(true)
+  const router = useRouter();
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [hasMore, setHasMore] = useState(true);
 
   useEffect(() => {
+    setIsInitialLoading(true);
     fetch(`/api/design?page=1&limit=${PAGINATION_LIMIT}`)
       .then((res) => res.json())
       .then((data) => {
-        setTemplates(data.data)
-        setHasMore(data.data.length === PAGINATION_LIMIT)
-        console.log(data.data)
+        setTemplates(data.data);
+        setHasMore(data.data.length === PAGINATION_LIMIT);
+        console.log(data.data);
       })
-  }, [])
+      .catch((error) => {
+        console.error("Error fetching templates:", error);
+      })
+      .finally(() => {
+        setIsInitialLoading(false);
+      });
+  }, []);
 
-  // Handle search - navigate to search page
   const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     if (searchQuery.trim()) {
-      router.push(`/search?query=${encodeURIComponent(searchQuery)}`)
+      router.push(`/search?query=${encodeURIComponent(searchQuery)}`);
     }
-  }
+  };
 
-  // Filter templates based on selected category
   const filteredTemplates =
-    selectedCategory === "All" ? templates : templates.filter((template) => template.catogery === selectedCategory)
+    selectedCategory === "All"
+      ? templates
+      : templates.filter((template) => template.catogery === selectedCategory);
 
   const loadNextChunk = async () => {
-    setIsLoading(true)
+    setIsLoading(true);
     try {
-      const page = Math.ceil(templates.length / PAGINATION_LIMIT) + 1
-      const nextChunk = await fetch(`/api/design?page=${page}&limit=${PAGINATION_LIMIT}`)
+      const page = Math.ceil(templates.length / PAGINATION_LIMIT) + 1;
+      const nextChunk = await fetch(
+        `/api/design?page=${page}&limit=${PAGINATION_LIMIT}`
+      );
 
-      const data = await nextChunk.json()
-      setTemplates((prev) => [...prev, ...data.data])
-      setHasMore(data.data.length === PAGINATION_LIMIT)
+      const data = await nextChunk.json();
+      setTemplates((prev) => [...prev, ...data.data]);
+      setHasMore(data.data.length === PAGINATION_LIMIT);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
-  const handlePurchase = () => {}
+  const handlePurchase = () => {};
 
   return (
     <div className="min-h-screen bg-gradient-subtle">
       <main className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
-        {/* Hero Section */}
         <div className="flex flex-col items-center justify-center text-center mb-8 sm:mb-12 lg:mb-16">
-          {/* Responsive logo */}
           <div className="mb-4 sm:mb-6 lg:mb-8">
             <Image
               src="/logo.jpg"
@@ -106,18 +115,16 @@ export default function Home() {
             />
           </div>
 
-          {/* Responsive heading */}
           <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold mb-3 sm:mb-4 lg:mb-6 bg-linear-to-r from-[#6c47ff] to-[#8a6cff] bg-clip-text text-transparent px-4">
             Beautiful Invitation Templates
           </h1>
 
-          {/* Responsive paragraph */}
           <p className="text-base sm:text-lg lg:text-xl text-muted-foreground max-w-xs sm:max-w-md lg:max-w-2xl mx-auto px-4 sm:px-0">
-            Choose from our collection of stunning invitation card templates for every occasion
+            Choose from our collection of stunning invitation card templates for
+            every occasion
           </p>
         </div>
 
-        {/* Search Bar */}
         <div className="max-w-2xl mx-auto mb-6 sm:mb-8 lg:mb-10">
           <form onSubmit={handleSearch} className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
@@ -131,8 +138,11 @@ export default function Home() {
           </form>
         </div>
 
-        {/* Categories Tabs */}
-        <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="mb-6 sm:mb-8 lg:mb-12 w-full">
+        <Tabs
+          value={selectedCategory}
+          onValueChange={setSelectedCategory}
+          className="mb-6 sm:mb-8 lg:mb-12 w-full"
+        >
           <TabsList className="flex flex-wrap justify-center gap-2 sm:gap-4 h-auto p-3 sm:p-4 bg-muted/50 rounded-xl shadow-sm">
             {categories.map((category) => (
               <TabsTrigger
@@ -146,43 +156,53 @@ export default function Home() {
           </TabsList>
         </Tabs>
 
-        {/* Templates Grid */}
-        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
-          {filteredTemplates.map((template) => (
-            <TemplateCard
-              key={template.uuid}
-              uuid={template.uuid}
-              name={template.name}
-              description={template.description || ""}
-              price={template.price}
-              category={template.catogery}
-              imageUrl={template.image}
-              isPurchased={template.isPurchased}
-              onPurchase={handlePurchase}
-            />
-          ))}
-        </div>
-
-        {/* Empty State */}
-        {filteredTemplates.length === 0 && (
-          <div className="text-center py-12 sm:py-16 lg:py-20">
-            <p className="text-lg sm:text-xl lg:text-2xl text-muted-foreground">No templates found in this category</p>
+        {isInitialLoading ? (
+          <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
+            {Array.from({ length: PAGINATION_LIMIT }).map((_, index) => (
+              <TemplateSkeleton key={index} />
+            ))}
           </div>
-        )}
+        ) : (
+          <>
+            <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
+              {filteredTemplates.map((template) => (
+                <TemplateCard
+                  key={template.uuid}
+                  uuid={template.uuid}
+                  name={template.name}
+                  description={template.description || ""}
+                  price={template.price}
+                  category={template.catogery}
+                  imageUrl={template.image}
+                  isPurchased={template.isPurchased}
+                  onPurchase={handlePurchase}
+                />
+              ))}
+            </div>
 
-        {hasMore && filteredTemplates.length > 0 && (
-          <div className="flex justify-center mt-8 sm:mt-12 lg:mt-16">
-            <Button
-              onClick={loadNextChunk}
-              disabled={isLoading}
-              className="px-6 sm:px-8 py-2 sm:py-3 text-base sm:text-lg font-medium"
-              variant="default"
-            >
-              {isLoading ? "Loading..." : "Load More"}
-            </Button>
-          </div>
+            {filteredTemplates.length === 0 && (
+              <div className="text-center py-12 sm:py-16 lg:py-20">
+                <p className="text-lg sm:text-xl lg:text-2xl text-muted-foreground">
+                  No templates found in this category
+                </p>
+              </div>
+            )}
+
+            {hasMore && filteredTemplates.length > 0 && (
+              <div className="flex justify-center mt-8 sm:mt-12 lg:mt-16">
+                <Button
+                  onClick={loadNextChunk}
+                  disabled={isLoading}
+                  className="px-6 sm:px-8 py-2 sm:py-3 text-base sm:text-lg font-medium"
+                  variant="default"
+                >
+                  {isLoading ? "Loading..." : "Load More"}
+                </Button>
+              </div>
+            )}
+          </>
         )}
       </main>
     </div>
-  )
+  );
 }

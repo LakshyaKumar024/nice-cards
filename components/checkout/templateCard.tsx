@@ -17,7 +17,7 @@ const TemplateCard = ({ template }: TemplateCardProps) => {
     <Card className="overflow-hidden border-border">
       <div className="flex gap-4 p-4">
         {/* Template Thumbnail */}
-        <div className="flex-shrink-0">
+        <div className="shrink-0">
           <Image
           width={100}
           height={100}

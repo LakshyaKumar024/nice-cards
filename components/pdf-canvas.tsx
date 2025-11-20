@@ -152,6 +152,7 @@ export function PDFCanvas({
         page: pageNumber,
         visible: true,
         zIndex: overlays.length,
+        rotation: 0, // Initialize with 0 rotation
       };
       
       onAddOverlay(newOverlay);
@@ -178,6 +179,7 @@ export function PDFCanvas({
         const shapeW = overlay.width * pageDimensions.width;
         const shapeH = overlay.height * pageDimensions.height;
         
+        // Simple bounding box check (for now, without rotation)
         const isInside = x >= shapeX - shapeW/2 && x <= shapeX + shapeW/2 &&
                         y >= shapeY - shapeH/2 && y <= shapeY + shapeH/2;
         
@@ -381,6 +383,7 @@ export function PDFCanvas({
           console.log(`Shape: ${overlay.id}`);
           console.log(`  Position: (${overlay.x}, ${overlay.y})`);
           console.log(`  Size: ${overlay.width} x ${overlay.height}`);
+          console.log(`  Rotation: ${overlay.rotation}°`);
           console.log(`  Color: ${overlay.color}`);
           console.log(`  Visible: ${overlay.visible}`);
         }
@@ -429,6 +432,7 @@ export function PDFCanvas({
             console.log('Rendering shape:', {
               id: overlay.id,
               shapeX, shapeY, shapeW, shapeH,
+              rotation: overlay.rotation,
               normalized: { x: overlay.x, y: overlay.y, w: overlay.width, h: overlay.height },
               pageDims: pageDimensions
             });
@@ -438,11 +442,12 @@ export function PDFCanvas({
                 key={overlay.id}
                 className={`absolute ${overlay.visible ? '' : 'opacity-30'}`}
                 style={{
-                  left: `${shapeX - shapeW/2}px`,
-                  top: `${shapeY - shapeH/2}px`,
+                  left: `${shapeX}px`,
+                  top: `${shapeY}px`,
                   width: `${shapeW}px`,
                   height: `${shapeH}px`,
                   zIndex: overlay.zIndex + 10,
+                  transform: `translate(-50%, -50%) rotate(${overlay.rotation}deg)`, // Add rotation
                 }}
                 onClick={(e) => {
                   // Don't select if we were resizing or dragging
@@ -464,6 +469,7 @@ export function PDFCanvas({
                     opacity: isDragging ? 0.7 : 1,
                     transition: isDragging ? 'none' : 'all 0.2s',
                     borderRadius: '2px',
+                    transformOrigin: 'center center', // Ensure rotation around center
                   }}
                   onMouseDown={(e) => {
                     // Don't start drag if clicking on a resize handle
@@ -564,7 +570,7 @@ export function PDFCanvas({
               </div>
             );
           } else {
-            // Text overlay rendering remains the same
+            // Text overlay rendering with rotation
             const textX = overlay.x * pageDimensions.width;
             const textY = overlay.y * pageDimensions.height;
             const isSelected = selectedOverlayId === overlay.id;
@@ -589,12 +595,13 @@ export function PDFCanvas({
                   fontStyle: overlay.italic ? 'italic' : 'normal',
                   color: overlay.color,
                   zIndex: overlay.zIndex + 10,
-                  transform: 'translate(-50%, -50%)',
+                  transform: `translate(-50%, -50%) rotate(${overlay.rotation}deg)`, // Add rotation
                   pointerEvents: 'auto',
                   maxWidth: `${pageDimensions.width * 0.8}px`,
                   wordBreak: 'break-word',
                   backgroundColor: 'transparent',
                   transition: isDragging ? 'none' : 'all 0.2s',
+                  transformOrigin: 'center center', // Ensure rotation around center
                 }}
                 onMouseDown={(e) => handleDragStart(e, overlay.id)}
                 onClick={(e) => {
@@ -628,7 +635,7 @@ export function PDFCanvas({
                         width: 'auto',
                         minWidth: '120px',
                         lineHeight: '1.2',
-                        transform: 'none',
+                        transform: 'none', // Reset transform for input
                       }}
                     />
                   </div>

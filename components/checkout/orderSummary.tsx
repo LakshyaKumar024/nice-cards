@@ -80,7 +80,7 @@ const OrderSummary = ({ isPurchasing, templateData, handelPayment}: OrderSummary
                 disabled={isPurchasing}
                 className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-base h-12"
             >
-                {isPurchasing ? "placing order...":"PLACE ORDER"}
+                {isPurchasing ? "Placing Order...":"PLACE ORDER"}
             </Button>
 
             <p className="text-xs text-center text-muted-foreground">

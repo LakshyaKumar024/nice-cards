@@ -109,12 +109,29 @@ export default function Page({
           console.log(data);
           if (data.isOk) {
             // do whatever page transition you want here as payment was successful
-            toast.success("Payment successful");
+            toast.success("Payment completed", {
+              description:
+                "Your transaction was verified and processed successfully.",
+            });
             router.push(`/edit/${templateId}`);
           } else {
-            alert("Payment failed");
+            toast.error("Verification unsuccessful", {
+              duration: 8000,
+              description:
+                "We were unable to confirm your transaction. If you were charged, please reach out to support.",
+            });
           }
           setIsPurchasing(false);
+        },
+        modal: {
+          ondismiss: () => {
+            setIsPurchasing(false);
+            toast.error("Payment not completed", {
+              duration: 8000,
+              description:
+                "You exited the payment flow before finishing the transaction.",
+            });
+          },
         },
       };
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

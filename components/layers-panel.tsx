@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Eye, EyeOff, Trash2, GripVertical } from 'lucide-react';
+import { Eye, EyeOff, Trash2, GripVertical, RotateCw } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -93,9 +93,20 @@ function SortableOverlayItem({
                 Square Shape
               </p>
             </div>
-            <p className="text-xs text-muted-foreground truncate">
-              {Math.round(overlay.x * 100)}%, {Math.round(overlay.y * 100)}% • {Math.round(overlay.width * 100)}% × {Math.round(overlay.height * 100)}%
-            </p>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground truncate">
+              <span>{Math.round(overlay.x * 100)}%, {Math.round(overlay.y * 100)}%</span>
+              <span>•</span>
+              <span>{Math.round(overlay.width * 100)}% × {Math.round(overlay.height * 100)}%</span>
+              {overlay.rotation !== 0 && (
+                <>
+                  <span>•</span>
+                  <div className="flex items-center gap-1">
+                    <RotateCw className="w-3 h-3" />
+                    <span>{overlay.rotation}°</span>
+                  </div>
+                </>
+              )}
+            </div>
           </>
         ) : (
           <>
@@ -115,9 +126,18 @@ function SortableOverlayItem({
             >
               {overlay.text || 'Empty text'}
             </p>
-            <p className="text-xs text-muted-foreground truncate">
-              {Math.round(overlay.x * 100)}%, {Math.round(overlay.y * 100)}%
-            </p>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground truncate">
+              <span>{Math.round(overlay.x * 100)}%, {Math.round(overlay.y * 100)}%</span>
+              {overlay.rotation !== 0 && (
+                <>
+                  <span>•</span>
+                  <div className="flex items-center gap-1">
+                    <RotateCw className="w-3 h-3" />
+                    <span>{overlay.rotation}°</span>
+                  </div>
+                </>
+              )}
+            </div>
           </>
         )}
       </div>

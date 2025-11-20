@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { normalizeHexColor } from '@/lib/color-utils';
-import { Bold, Italic } from 'lucide-react';
+import { Bold, Italic, RotateCcw, RotateCw } from 'lucide-react';
 
 interface FormattingToolbarProps {
   fontSize: number;
@@ -14,11 +14,13 @@ interface FormattingToolbarProps {
   bold: boolean;
   italic: boolean;
   color: string;
+  rotation: number; // Add rotation prop
   onFontSizeChange?: (size: number) => void;
   onFontFamilyChange?: (family: string) => void;
   onBoldToggle?: () => void;
   onItalicToggle?: () => void;
   onColorChange: (color: string) => void;
+  onRotationChange?: (rotation: number) => void; // Add rotation change handler
   shapeWidth?: number;
   shapeHeight?: number;
   onShapeWidthChange?: (width: number) => void;
@@ -29,7 +31,6 @@ interface FormattingToolbarProps {
 // These fonts are defined in app/fonts.css
 const customFonts = [
   // --- Unicode Recommended Fonts ---
-  "Noto Sans Devanagari Regular",
   "Noto Sans Devanagari",
 
   // --- Legacy Hindi/Devanagari Fonts (Typing Only) ---
@@ -64,9 +65,7 @@ const customFonts = [
   "Monotype Corsiva Regular Italic",
 ];
 
-
 const fontFamilies = [
-  'Arial',
   'Helvetica',
   'Times New Roman',
   'Courier New',
@@ -82,17 +81,38 @@ export function FormattingToolbar({
   bold,
   italic,
   color,
+  rotation = 0,
   onFontSizeChange,
   onFontFamilyChange,
   onBoldToggle,
   onItalicToggle,
   onColorChange,
+  onRotationChange,
   shapeWidth,
   shapeHeight,
   onShapeWidthChange,
   onShapeHeightChange,
 }: FormattingToolbarProps) {
   const isShapeMode = shapeWidth !== undefined && shapeHeight !== undefined;
+
+  const handleRotateLeft = () => {
+    const newRotation = (rotation - 15 + 360) % 360;
+    onRotationChange?.(newRotation);
+  };
+
+  const handleRotateRight = () => {
+    const newRotation = (rotation + 15) % 360;
+    onRotationChange?.(newRotation);
+  };
+
+  const handleRotationInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseInt(e.target.value) || 0;
+    onRotationChange?.(value % 360);
+  };
+
+  const handleRotationSlider = (value: number[]) => {
+    onRotationChange?.(value[0]);
+  };
 
   return (
     <div className="p-4 space-y-4">
@@ -135,6 +155,50 @@ export function FormattingToolbar({
                 className="w-12 h-8 p-1"
               />
               <span className="text-sm text-muted-foreground">{color}</span>
+            </div>
+          </div>
+
+          {/* Rotation Controls */}
+          <div className="space-y-2">
+            <Label htmlFor="rotation">Rotation: {rotation}°</Label>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleRotateLeft}
+                title="Rotate Left 15°"
+              >
+                <RotateCcw className="w-4 h-4" />
+              </Button>
+              
+              <Slider
+                value={[rotation]}
+                onValueChange={handleRotationSlider}
+                min={0}
+                max={360}
+                step={1}
+                className="flex-1"
+              />
+              
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleRotateRight}
+                title="Rotate Right 15°"
+              >
+                <RotateCw className="w-4 h-4" />
+              </Button>
+            </div>
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                value={rotation}
+                onChange={handleRotationInput}
+                min={0}
+                max={360}
+                className="w-20"
+              />
+              <span className="text-sm text-muted-foreground">degrees</span>
             </div>
           </div>
         </>
@@ -202,6 +266,50 @@ export function FormattingToolbar({
                 className="w-12 h-8 p-1"
               />
               <span className="text-sm text-muted-foreground">{color}</span>
+            </div>
+          </div>
+
+          {/* Rotation Controls */}
+          <div className="space-y-2">
+            <Label htmlFor="rotation">Rotation: {rotation}°</Label>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleRotateLeft}
+                title="Rotate Left 15°"
+              >
+                <RotateCcw className="w-4 h-4" />
+              </Button>
+              
+              <Slider
+                value={[rotation]}
+                onValueChange={handleRotationSlider}
+                min={0}
+                max={360}
+                step={1}
+                className="flex-1"
+              />
+              
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleRotateRight}
+                title="Rotate Right 15°"
+              >
+                <RotateCw className="w-4 h-4" />
+              </Button>
+            </div>
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                value={rotation}
+                onChange={handleRotationInput}
+                min={0}
+                max={360}
+                className="w-20"
+              />
+              <span className="text-sm text-muted-foreground">degrees</span>
             </div>
           </div>
         </>

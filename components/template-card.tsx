@@ -1,7 +1,7 @@
-import { ArrowRight, Gift  } from "lucide-react";
+import { ArrowRight, Gift } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import Router from "next/navigation"
+import Router from "next/navigation";
 import { Badge } from "./ui/badge";
 
 interface TemplateCardProps {
@@ -11,7 +11,7 @@ interface TemplateCardProps {
   price: number;
   category: string;
   imageUrl: string;
-  isPurchased: boolean,
+  isPurchased: boolean;
   onPurchase: (templateId: string) => void;
 }
 
@@ -25,16 +25,16 @@ export function TemplateCard({
   isPurchased,
 }: TemplateCardProps) {
   // Remove any extra quotes from the image URL
-  const cleanImageUrl = imageUrl ? imageUrl.replace(/^["']|["']$/g, '') : '';
+  const cleanImageUrl = imageUrl ? imageUrl.replace(/^["']|["']$/g, "") : "";
 
   return (
     <Link href={`/design/${uuid}`} className="group h-full">
       <div className="relative h-full flex flex-col bg-card border border-border rounded-xl shadow-sm hover:shadow-lg hover:border-primary/50 transition-all duration-300 overflow-hidden">
         {price === 0 && (
           <div className="absolute top-3 right-3 z-10 flex items-center gap-1 bg-linear-to-r from-green-500 to-emerald-600 px-3 py-1.5 rounded-full">
-  <Gift className="h-4 w-4 text-white" />
-  <span className="text-xs font-semibold text-white">Free</span>
-</div>
+            <Gift className="h-4 w-4 text-white" />
+            <span className="text-xs font-semibold text-white">Free</span>
+          </div>
         )}
 
         <div className="relative h-48 bg-muted overflow-hidden flex items-center justify-center shrink-0">
@@ -56,13 +56,20 @@ export function TemplateCard({
 
         <div className="flex flex-col grow p-4">
           <div className="flex items-start justify-between gap-2 mb-2">
-            <h3 className="text-sm font-semibold text-foreground line-clamp-2">{name}</h3>
-            <Badge variant="secondary" className="text-xs font-medium whitespace-nowrap shrink-0">
+            <h3 className="text-sm font-semibold text-foreground line-clamp-2">
+              {name}
+            </h3>
+            <Badge
+              variant="secondary"
+              className="text-xs font-medium whitespace-nowrap shrink-0"
+            >
               {category}
             </Badge>
           </div>
 
-          <p className="text-xs text-muted-foreground line-clamp-2 mb-4 grow">{description}</p>
+          <p className="text-xs text-muted-foreground line-clamp-2 mb-4 grow">
+            {description}
+          </p>
 
           <div className="flex items-center justify-between gap-2 pt-3 border-t border-border">
             <div className="text-sm font-semibold">
@@ -76,10 +83,11 @@ export function TemplateCard({
             <button
               onClick={() => Router.redirect(`/design/${uuid}`)}
               disabled={isPurchased}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${isPurchased
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                isPurchased
                   ? "bg-muted text-muted-foreground cursor-not-allowed"
                   : "bg-primary text-primary-foreground hover:bg-primary/90 group-hover:translate-x-0.5"
-                }`}
+              }`}
             >
               {isPurchased ? "Purchased" : "View"}
               {!isPurchased && <ArrowRight className="h-3 w-3" />}
