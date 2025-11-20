@@ -1,8 +1,7 @@
 import prisma from "@/lib/db-init";
 import { clerkClient } from "@clerk/nextjs/server";
-import { NextRequest } from "next/server";
 
-export async function GET(request: NextRequest) {
+export async function GET() {
 
     try {
 

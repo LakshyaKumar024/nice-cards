@@ -38,7 +38,9 @@ for (const file of files) {
 
     fontFamily = realName.trim();
     console.log(`✔ Using REAL font name: ${fontFamily}`);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (err) {
+
     // Fallback: filename without extension
     fontFamily = path.basename(file, ext).replace(/[-_]+/g, " ").trim();
     console.warn(`⚠ opentype failed, using filename: ${fontFamily}`);

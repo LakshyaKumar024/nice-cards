@@ -28,10 +28,42 @@ interface FormattingToolbarProps {
 // Custom fonts from public/fonts folder
 // These fonts are defined in app/fonts.css
 const customFonts = [
-  'Noto Sans Devanagari', // Unicode Hindi font (recommended for copy-paste)
-  'AMS Aasmi', // Legacy Hindi font (typing only)
-  'Kruti Dev 640', // Legacy Devanagari font (typing only)
+  // --- Unicode Recommended Fonts ---
+  "Noto Sans Devanagari Regular",
+  "Noto Sans Devanagari",
+
+  // --- Legacy Hindi/Devanagari Fonts (Typing Only) ---
+  "AMS Aasmi",
+  "Kruti Dev 640",
+  "Kruti Dev 010",
+  "Kruti Dev 012",
+  "Kruti Dev 021",
+  "Kruti Dev 011",
+  "Kruti Dev 240",
+  "Kruti Dev 500",
+  "Kruti Dev 501",
+  "Kruti Dev 502",
+  "Kruti Dev 680",
+  "Kruti Dev 710",
+  "Kruti Dev 712",
+  "Kruti Dev 714",
+  "Kruti Dev 732",
+
+  // --- Other Hindi Fonts ---
+  "A-SuperHindi-3 Bold",
+  "A-SuperHindi-8 Normal",
+  "BHARTIYA HINDI_112",
+  "BHARTIYA HINDI_142",
+  "ISFOC-TTBorder-1 Normal",
+
+  // --- English/Latin Fonts ---
+  "Arenski",
+  "Arial",
+  "ITC Bookman Demi Italic",
+  "Embassy BT",
+  "Monotype Corsiva Regular Italic",
 ];
+
 
 const fontFamilies = [
   'Arial',

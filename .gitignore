@@ -51,5 +51,7 @@ next-env.d.ts
 /tmp/*
 !public/tmp/.gitkeep
 
-/public/fonts
-/public/fontsDeclaration
+# fonts.back
+/public/fonts.back
+# PDF files
+/private/designs/design/pdf

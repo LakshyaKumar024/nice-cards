@@ -1,4 +1,6 @@
-// app/api/dashboard/design/create/image/route.ts
+
+export const runtime = "nodejs";
+
 import { NextRequest, NextResponse } from 'next/server';
 import { uploadImageToCloudinary } from '@/lib/cloudinary';
 
@@ -8,6 +10,8 @@ export async function POST(request: NextRequest) {
 
     // Read the form data ONCE
     const formData = await request.formData();
+    console.log("📦 Form data received:", formData);
+    
     const file = formData.get("file") as File;
 
     if (!file) {

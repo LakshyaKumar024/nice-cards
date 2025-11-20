@@ -1,6 +1,33 @@
-// app/search/page.tsx
 import { Suspense } from "react";
 import SearchPageContent from "./SearchPageContent";
+import type { Metadata } from "next";
+
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<{ query?: string }>;
+}): Promise<Metadata> {
+  // Await the searchParams object first
+  const params = await searchParams;
+  const query = params.query || "Search";
+
+  return {
+    title: query, // root layout adds " – Nice Card"
+    description: query
+      ? `Find ${query} templates for your design needs. Browse professional templates and designs.`
+      : "Search for templates across all categories. Find the perfect design for your project.",
+    openGraph: {
+      title: query ? `${query} - Templates` : "Search Templates",
+      description: query
+        ? `Discover ${query} templates`
+        : "Search for professional templates",
+    },
+    robots: {
+      index: true, // Allow indexing
+      follow: true, // Allow following links
+    },
+  };
+}
 
 export default function SearchPage() {
   return (
@@ -25,7 +52,9 @@ function SearchPageSkeleton() {
         </div>
         <div className="text-center py-20">
           <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
-          <p className="mt-4 text-lg text-muted-foreground">Loading search...</p>
+          <p className="mt-4 text-lg text-muted-foreground">
+            Loading search...
+          </p>
         </div>
       </div>
     </div>

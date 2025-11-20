@@ -15,7 +15,6 @@ const isAdminRoute = createRouteMatcher([
   "/dashboard(.*)?",
 ]);
 
-
 const isDeveloperRoute = createRouteMatcher([
   "/developer(.*)?",
 ]);
@@ -23,10 +22,23 @@ const isDeveloperRoute = createRouteMatcher([
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-expect-error
 export default clerkMiddleware(async (auth, req) => {
-  const { userId } = await auth();
-
-  if (isProtectedRoute(req)) await auth.protect()
+  const url = new URL(req.url);
   
+  if (
+    url.pathname.includes('/upload') ||
+    url.pathname.includes('/design/create') ||
+    req.method === 'POST' && (
+      url.pathname.includes('/image') ||
+      url.pathname.includes('/pdf') ||
+      url.pathname.includes('/file')
+    )
+  ) {
+    return NextResponse.next();
+  }
+  
+  const { userId } = await auth();
+  if (isProtectedRoute(req)) await auth.protect()
+
   // check admin routes
   if (isAdminRoute(req)) {
     if (!userId) {
@@ -42,7 +54,7 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.redirect(new URL("/", req.url));
   }
 
-  // check developer routs
+  // check developer routes
   if (isDeveloperRoute(req)) {
     if (!userId) {
       return await auth.protect()
@@ -57,14 +69,3 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.redirect(new URL("/", req.url));
   }
 });
-
-export const config = {
-  // Run middleware for pages and for API/trpc routes, but exclude the
-  // upload endpoint which previously caused multipart body parsing issues.
-  // This lets Clerk's middleware run (so `auth()` works) while avoiding
-  // running middleware on the specific upload route that needs raw body access.
-  matcher: [
-    "/((?!_next|.*\\..*).*)",
-    "/(api|trpc)((?!/dashboard/design/create).*)",
-  ],
-};

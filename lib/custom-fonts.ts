@@ -1,63 +1,205 @@
 // lib/custom-fonts.ts
 export interface CustomFont {
-    name: string;
-    url: string;
-    fontFamily: string;
-    format: 'truetype';
+  name: string;
+  url: string;
+  fontFamily: string;
+  format: 'truetype';
+}
+
+export const customFonts: CustomFont[] = [
+  {
+    name: "AMS Aasmi (Legacy - typing only)",
+    url: "/fonts/AMS Aasmi.ttf",
+    fontFamily: "AMS Aasmi",
+    format: "truetype",
+  },
+  {
+    name: "Kruti Dev 640 (Legacy - typing only)",
+    url: "/fonts/KR640.TTF",
+    fontFamily: "Kruti Dev 640",
+    format: "truetype",
+  },
+  {
+    name: "Noto Sans Devanagari (Unicode - recommended)",
+    url: "/fonts/NotoSansDevanagari.ttf",
+    fontFamily: "Noto Sans Devanagari",
+    format: "truetype",
+  },
+
+  // --- Added All Remaining Fonts ---
+
+  {
+    name: "Arenski",
+    url: "/fonts/ARENSKI.TTF",
+    fontFamily: "Arenski",
+    format: "truetype",
+  },
+  {
+    name: "Arial",
+    url: "/fonts/arial.ttf",
+    fontFamily: "Arial",
+    format: "truetype",
+  },
+  {
+    name: "A-SuperHindi-3 Bold",
+    url: "/fonts/ASUPER_1.TTF",
+    fontFamily: "A-SuperHindi-3 Bold",
+    format: "truetype",
+  },
+  {
+    name: "A-SuperHindi-8 Normal",
+    url: "/fonts/asuper_8.ttf",
+    fontFamily: "A-SuperHindi-8 Normal",
+    format: "truetype",
+  },
+  {
+    name: "BHARTIYA HINDI 112",
+    url: "/fonts/bf112hin.ttf",
+    fontFamily: "BHARTIYA HINDI_112",
+    format: "truetype",
+  },
+  {
+    name: "BHARTIYA HINDI 142",
+    url: "/fonts/bf142hin.ttf",
+    fontFamily: "BHARTIYA HINDI_142",
+    format: "truetype",
+  },
+  {
+    name: "ITC Bookman Demi Italic",
+    url: "/fonts/bokr76w.ttf",
+    fontFamily: "ITC Bookman Demi Italic",
+    format: "truetype",
+  },
+  {
+    name: "ISFOC TTBorder 1 Normal",
+    url: "/fonts/BR010NTT.TTF",
+    fontFamily: "ISFOC-TTBorder-1 Normal",
+    format: "truetype",
+  },
+  {
+    name: "Embassy BT",
+    url: "/fonts/EMBASSYN.TTF",
+    fontFamily: "Embassy BT",
+    format: "truetype",
+  },
+  {
+    name: "Kruti Dev 010",
+    url: "/fonts/K010.TTF",
+    fontFamily: "Kruti Dev 010",
+    format: "truetype",
+  },
+  {
+    name: "Kruti Dev 012",
+    url: "/fonts/K012.TTF",
+    fontFamily: "Kruti Dev 012",
+    format: "truetype",
+  },
+  {
+    name: "Kruti Dev 021",
+    url: "/fonts/K021.TTF",
+    fontFamily: "Kruti Dev 021",
+    format: "truetype",
+  },
+  {
+    name: "Kruti Dev 011",
+    url: "/fonts/K11.TTF",
+    fontFamily: "Kruti Dev 011",
+    format: "truetype",
+  },
+  {
+    name: "Kruti Dev 240",
+    url: "/fonts/K240.TTF",
+    fontFamily: "Kruti Dev 240",
+    format: "truetype",
+  },
+  {
+    name: "Kruti Dev 500",
+    url: "/fonts/K500.TTF",
+    fontFamily: "Kruti Dev 500",
+    format: "truetype",
+  },
+  {
+    name: "Kruti Dev 501",
+    url: "/fonts/K501.TTF",
+    fontFamily: "Kruti Dev 501",
+    format: "truetype",
+  },
+  {
+    name: "Kruti Dev 502",
+    url: "/fonts/K502.TTF",
+    fontFamily: "Kruti Dev 502",
+    format: "truetype",
+  },
+  {
+    name: "Kruti Dev 680",
+    url: "/fonts/KR680.TTF",
+    fontFamily: "Kruti Dev 680",
+    format: "truetype",
+  },
+  {
+    name: "Kruti Dev 710",
+    url: "/fonts/KR710.TTF",
+    fontFamily: "Kruti Dev 710",
+    format: "truetype",
+  },
+  {
+    name: "Kruti Dev 712",
+    url: "/fonts/KR712.TTF",
+    fontFamily: "Kruti Dev 712",
+    format: "truetype",
+  },
+  {
+    name: "Kruti Dev 714",
+    url: "/fonts/KR714.TTF",
+    fontFamily: "Kruti Dev 714",
+    format: "truetype",
+  },
+  {
+    name: "Kruti Dev 732",
+    url: "/fonts/KR732.TTF",
+    fontFamily: "Kruti Dev 732",
+    format: "truetype",
+  },
+  {
+    name: "Monotype Corsiva Regular Italic",
+    url: "/fonts/Monotype-Corsiva-Regular-Italic.ttf",
+    fontFamily: "Monotype Corsiva Regular Italic",
+    format: "truetype",
   }
-  
-  export const customFonts: CustomFont[] = [
-    {
-      name: 'AMS Aasmi (Legacy - typing only)',
-      url: '/fonts/AMS Aasmi.ttf',
-      fontFamily: 'AMS Aasmi',
-      format: 'truetype'
-    },
-    {
-      name: 'Kruti Dev 640 (Legacy - typing only)', 
-      url: '/fonts/KR640.TTF',
-      fontFamily: 'Kruti Dev 640',
-      format: 'truetype'
-    },
-    {
-      name: 'Noto Sans Devanagari (Unicode - recommended)',
-      url: '/fonts/NotoSansDevanagari.ttf',
-      fontFamily: 'Noto Sans Devanagari',
-      format: 'truetype'
-    }
-  ];
-  
-  export async function loadCustomFont(fontFamily: string): Promise<ArrayBuffer | null> {
-    try {
-      const font = customFonts.find(f => f.fontFamily === fontFamily);
-      if (!font) {
-        console.warn(`Custom font not found: ${fontFamily}`);
-        return null;
-      }
-  
-      console.log(`Loading TTF font: ${font.name} from ${font.url}`);
-      const response = await fetch(font.url);
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch font: ${font.name}. Status: ${response.status}`);
-      }
-      
-      const arrayBuffer = await response.arrayBuffer();
-      console.log(`Successfully loaded TTF font: ${font.name}, size: ${arrayBuffer.byteLength} bytes`);
-      
-      return arrayBuffer;
-    } catch (error) {
-      console.error(`Error loading custom font ${fontFamily}:`, error);
+];
+
+
+export async function loadCustomFont(fontFamily: string): Promise<ArrayBuffer | null> {
+  try {
+    const font = customFonts.find(f => f.fontFamily === fontFamily);
+    if (!font) {
+      console.warn(`Custom font not found: ${fontFamily}`);
       return null;
     }
+
+    console.log(`Loading TTF font: ${font.name} from ${font.url}`);
+    const response = await fetch(font.url);
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch font: ${font.name}. Status: ${response.status}`);
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    console.log(`Successfully loaded TTF font: ${font.name}, size: ${arrayBuffer.byteLength} bytes`);
+
+    return arrayBuffer;
+  } catch (error) {
+    console.error(`Error loading custom font ${fontFamily}:`, error);
+    return null;
   }
-  
-  // Check if font is a custom font
-  export function isCustomFont(fontFamily: string): boolean {
-    return customFonts.some(font => font.fontFamily === fontFamily);
-  }
-  
-  // Get all custom font families
-  export function getCustomFontFamilies(): string[] {
-    return customFonts.map(font => font.fontFamily);
-  }
+}
+
+// Check if font is a custom font
+export function isCustomFont(fontFamily: string): boolean {
+  return customFonts.some(font => font.fontFamily === fontFamily);
+}
+
+// Get all custom font families
+export function getCustomFontFamilies(): string[] {
+  return customFonts.map(font => font.fontFamily);
+}

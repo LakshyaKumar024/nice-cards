@@ -2,16 +2,22 @@ import prisma from "@/lib/db-init";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function GET(request: NextRequest) {
   try {
+    // apply pagination by getting page and limit from query params
+    const page = parseInt(request.nextUrl.searchParams.get('page') || '1');
+    const limit = parseInt(request.nextUrl.searchParams.get('limit') || '10');
+
+
     // Get the current user from Clerk
     const { userId } = await auth();
 
     const templates = await prisma.template.findMany({
       where: {
-        status: true,
+        status: true
       },
+      take: limit,
+      skip: (page - 1) * limit,
       orderBy: { createdAt: 'desc' },
       select: {
         uuid: true,
@@ -27,7 +33,7 @@ export async function GET(request: NextRequest) {
         image: true,
         createdAt: true,
       }
-    });
+    })
 
     // If user is not logged in, return templates with isPurchased: false
     if (!userId) {

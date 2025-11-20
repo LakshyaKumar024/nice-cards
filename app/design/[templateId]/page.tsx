@@ -100,24 +100,33 @@ export function TemplateDetail({
   };
 
   const handleDownload = () => {
-    if (!template) return;
+    if (!template || !template.pdf) return;
+
+    // Extract the filename from the path
+    const fileName = template.pdf.split("/").pop()!;
+
+    // API route URL
+    const apiUrl = `/api/getPdf/${fileName}`;
+
+    // Create a hidden link and trigger download
     const link = document.createElement("a");
-    link.href = template.pdf || template.svg;
-    link.download = `${template.name.replace(/\s+/g, "_")}.${template.pdf ? "pdf" : "svg"
-      }`;
+    link.href = apiUrl;
+    link.download = `${template.name.replace(/\s+/g, "_")}.pdf`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+
     toast.success(`Downloading "${template.name}"...`);
   };
+
 
   const handleEditTemplate = () =>
     router.push(`/edit/${template?.uuid}`);
   const handleBack = () => router.push("/");
 
   // Remove any extra quotes from the image URL
-  const imageSrc = template?.image 
-    ? template.image.replace(/^["']|["']$/g, '') 
+  const imageSrc = template?.image
+    ? template.image.replace(/^["']|["']$/g, '')
     : null;
   console.log("Image src:", imageSrc);
 
@@ -397,7 +406,7 @@ export function TemplateDetail({
                   ) : (
                     <>
                       <ShoppingCart className="mr-2 h-5 w-5" />
-                      Purchase Template - ₹ 
+                      Purchase Template - ₹
                       {typeof template.price === "number"
                         ? template.price.toFixed(2)
                         : "0.00"}

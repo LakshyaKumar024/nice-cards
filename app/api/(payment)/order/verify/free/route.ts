@@ -51,11 +51,13 @@ export async function POST(request: NextRequest) {
 
 
     await prisma.$transaction(async (tx) => {
+        const razorpayOrderId = `free-${Date.now()}-${uuidv4()}`;
+
       const order = await tx.order.create({
         data: {
           userId: userId,
           templateId: templateId,
-          razorpayOrderId: `free-${userId+uuidv4()}`,
+          razorpayOrderId: razorpayOrderId,
           amount: 0,
           status: "completed",
         },

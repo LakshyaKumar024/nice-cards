@@ -3,7 +3,7 @@
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import * as fontkit from 'fontkit';
 import type { Overlay, TextOverlay, ShapeOverlay } from '@/components/pdf-editor';
-import { customFonts, loadCustomFont, isCustomFont } from './custom-fonts';
+import {  loadCustomFont, isCustomFont } from './custom-fonts';
 
 function hexToRgb(hex: string) {
   const r = parseInt(hex.slice(1, 3), 16) / 255;

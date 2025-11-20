@@ -296,6 +296,7 @@ export default function PDFEditor({ pdfId }: PDFEditorProps) {
     } finally {
       setIsExporting(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pdfFile, pdfId, overlays]);
 
   const handlePrevPage = useCallback(() => {

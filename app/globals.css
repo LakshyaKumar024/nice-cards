@@ -27,11 +27,107 @@
     } */
 
 .ams-aasmi {
-  font-family: "AMS Aasmi", sans-serif!important;
+  font-family: "AMS Aasmi", sans-serif !important;
+}
+
+.arenski {
+  font-family: "Arenski", sans-serif !important;
+}
+
+.arial {
+  font-family: "Arial", sans-serif !important;
+}
+
+.a-superhindi-3-bold {
+  font-family: "A-SuperHindi-3 Bold", sans-serif !important;
+}
+
+.a-superhindi-8-normal {
+  font-family: "A-SuperHindi-8 Normal", sans-serif !important;
+}
+
+.bhartiya-hindi-112 {
+  font-family: "BHARTIYA HINDI_112", sans-serif !important;
+}
+
+.bhartiya-hindi-142 {
+  font-family: "BHARTIYA HINDI_142", sans-serif !important;
+}
+
+.itc-bookman-demi-italic {
+  font-family: "ITC Bookman Demi Italic", sans-serif !important;
+}
+
+.isfoc-ttborder-1-normal {
+  font-family: "ISFOC-TTBorder-1 Normal", sans-serif !important;
+}
+
+.embassy-bt {
+  font-family: "Embassy BT", sans-serif !important;
+}
+
+.kruti-dev-010 {
+  font-family: "Kruti Dev 010", sans-serif !important;
+}
+
+.kruti-dev-012 {
+  font-family: "Kruti Dev 012", sans-serif !important;
+}
+
+.kruti-dev-021 {
+  font-family: "Kruti Dev 021", sans-serif !important;
+}
+
+.kruti-dev-011 {
+  font-family: "Kruti Dev 011", sans-serif !important;
+}
+
+.kruti-dev-240 {
+  font-family: "Kruti Dev 240", sans-serif !important;
+}
+
+.kruti-dev-500 {
+  font-family: "Kruti Dev 500", sans-serif !important;
+}
+
+.kruti-dev-501 {
+  font-family: "Kruti Dev 501", sans-serif !important;
+}
+
+.kruti-dev-502 {
+  font-family: "Kruti Dev 502", sans-serif !important;
 }
 
 .kruti-dev-640 {
-  font-family: "Kruti Dev 640", sans-serif!important;
+  font-family: "Kruti Dev 640", sans-serif !important;
+}
+
+.kruti-dev-680 {
+  font-family: "Kruti Dev 680", sans-serif !important;
+}
+
+.kruti-dev-710 {
+  font-family: "Kruti Dev 710", sans-serif !important;
+}
+
+.kruti-dev-712 {
+  font-family: "Kruti Dev 712", sans-serif !important;
+}
+
+.kruti-dev-714 {
+  font-family: "Kruti Dev 714", sans-serif !important;
+}
+
+.kruti-dev-732 {
+  font-family: "Kruti Dev 732", sans-serif !important;
+}
+
+.monotype-corsiva-regular-italic {
+  font-family: "Monotype Corsiva Regular Italic", sans-serif !important;
+}
+
+.noto-sans-devanagari-regular {
+  font-family: "Noto Sans Devanagari Regular", sans-serif !important;
 }
 
 @custom-variant dark (&:is(.dark *));
@@ -149,6 +245,7 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }

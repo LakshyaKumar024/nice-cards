@@ -16,9 +16,9 @@ export async function GET(
     }
 
     try {
-      const fileData = await prisma.template.findUnique({
+      const fileData = await prisma.template.findFirst({
         where: {
-          uuid: file,
+          pdf: file,
         },
         select: {
           pdf: true,
@@ -26,6 +26,8 @@ export async function GET(
       });
       fileName = fileData.pdf as string;
     } catch (error) {
+      console.log("fileData Error: ", error);
+
       fileName = file;
     }
 
