@@ -1,7 +1,7 @@
 import { ArrowRight, Gift } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import Router from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Badge } from "./ui/badge";
 
 interface TemplateCardProps {
@@ -26,7 +26,7 @@ export function TemplateCard({
 }: TemplateCardProps) {
   // Remove any extra quotes from the image URL
   const cleanImageUrl = imageUrl ? imageUrl.replace(/^["']|["']$/g, "") : "";
-
+  const Router = useRouter();
   return (
     <Link href={`/design/${uuid}`} className="group h-full">
       <div className="relative h-full flex flex-col bg-card border border-border rounded-xl shadow-sm hover:shadow-lg hover:border-primary/50 transition-all duration-300 overflow-hidden">
@@ -81,7 +81,7 @@ export function TemplateCard({
             </div>
 
             <button
-              onClick={() => Router.redirect(`/design/${uuid}`)}
+              onClick={() => Router.push(`/design/${uuid}`)}
               disabled={isPurchased}
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
                 isPurchased

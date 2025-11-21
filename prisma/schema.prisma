@@ -54,7 +54,7 @@ model SavedTemplate {
 
   template Template @relation(fields: [templateId], references: [uuid], onDelete: Cascade)
 
-  @@map(name: "saved templates")
+  @@map(name: "saved_templates")
 }
 
 model Order {

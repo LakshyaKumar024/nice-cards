@@ -1,4 +1,4 @@
-// middleware.ts
+// proxy.ts
 import {
   clerkMiddleware,
   createRouteMatcher,
@@ -23,7 +23,7 @@ const isDeveloperRoute = createRouteMatcher([
 // @ts-expect-error
 export default clerkMiddleware(async (auth, req) => {
   const url = new URL(req.url);
-  
+
   if (
     url.pathname.includes('/upload') ||
     url.pathname.includes('/design/create') ||
@@ -35,7 +35,7 @@ export default clerkMiddleware(async (auth, req) => {
   ) {
     return NextResponse.next();
   }
-  
+
   const { userId } = await auth();
   if (isProtectedRoute(req)) await auth.protect()
 
@@ -69,3 +69,8 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.redirect(new URL("/", req.url));
   }
 });
+
+
+export const config = {
+  matcher: ["/((?!.+\\.[\\w]+$|_next).*)", "/", "/(api|trpc)(.*)"],
+};

@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   // Minimal Turbopack config to avoid build error when custom webpack is present
+  
   turbopack: {},
   webpack: (config, { isServer }) => {
     // Only apply these fixes on the server side
