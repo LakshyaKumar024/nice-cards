@@ -71,6 +71,7 @@ RUN bun install --production --frozen-lockfile
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/.clerk ./.clerk
+COPY --from=builder /app/express-uploader ./express-uploader
 
 # IMPORTANT: Copy Prisma folder if generated client is inside /prisma
 COPY --from=builder /app/prisma ./prisma
@@ -87,6 +88,6 @@ RUN chmod +x /entrypoint.sh
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:3000/api/health || exit 1
+    CMD curl -f http://localhost:3000/ || exit 1
 
 ENTRYPOINT ["/entrypoint.sh"]

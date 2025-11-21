@@ -1,36 +1,28 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Minimal Turbopack config to avoid build error when custom webpack is present
-  
-  turbopack: {},
-  webpack: (config, { isServer }) => {
-    // Only apply these fixes on the server side
-    if (isServer) {
-      config.resolve.alias = {
-        ...config.resolve.alias,
-        // Use the non-legacy build of pdfjs
-        'pdfjs-dist': 'pdfjs-dist/build/pdf',
-      };
+  webpack: (config) => {
+    // 1. Prevent Webpack from bundling native canvas.node files
+    config.externals.push({
+      canvas: "commonjs canvas",
+    });
 
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        canvas: false,
-        fs: false,
-      };
-    }
+    // 2. Force pdfjs-dist to use your root canvas installation
+    config.resolve.alias["canvas"] = require.resolve("canvas");
+
+    // 3. Ignore all .node binaries (like canvas.node)
+    config.module.rules.push({
+      test: /\.node$/,
+      loader: "null-loader",
+    });
+
     return config;
   },
 
   images: {
     remotePatterns: [
-      {
-        protocol: "https",
-        hostname: 'img.clerk.com',
-      }, {
-        protocol: "https",
-        hostname: "res.cloudinary.com"
-      }
+      { protocol: "https", hostname: "img.clerk.com" },
+      { protocol: "https", hostname: "res.cloudinary.com" },
     ],
   },
 };
