@@ -174,6 +174,10 @@ app.post(
    🚀 START SERVER
    ===================================================== */
 const PORT:number = Number(process.env.EXPRESS_PORT) || 5005;
-app.listen(PORT, "0.0.0.0" , () => {
-  console.log(`🚀 Bun Express Upload Server running on port ${PORT}`);
+
+app.listen({
+  port: PORT,
+  hostname: "0.0.0.0",
+}, () => {
+  console.log(`🚀 Bun Express Upload Server running on IPv4 port ${PORT}`);
 });

@@ -9,14 +9,14 @@ export async function POST(request: Request) {
   const { productId } = await request.json();
   console.log(process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!, process.env.RAZORPAY_SECRET!);
 
-  if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+  if (!process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || !process.env.RAZORPAY_SECRET) {
     throw new Error("Razorpay ENV vars missing at runtime");
   }
 
 
   const razorpay = new Razorpay({
-    key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
-    key_secret: process.env.RAZORPAY_SECRET!,
+    key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+    key_secret: process.env.RAZORPAY_SECRET,
   });
 
   if (!userId) {
