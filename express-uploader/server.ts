@@ -26,7 +26,16 @@ const app = express();
 app.use(cors({
   origin: [
     "https://nicecards.shop",
-    "https://www.nicecards.shop"
+    "https://www.nicecards.shop",
+
+    // Local development
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://localhost:5000",
+    "http://localhost:5005",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:5005"
   ],
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
   credentials: true,

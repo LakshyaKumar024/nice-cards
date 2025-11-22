@@ -192,6 +192,22 @@
 }
 
 @font-face {
+  font-family: "Martel Bold";
+  src: url("/fonts/Martel-Bold.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Martel";
+  src: url("/fonts/Martel-Regular.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
   font-family: "Monotype Corsiva Regular Italic";
   src: url("/fonts/Monotype-Corsiva-Regular-Italic.ttf") format("truetype");
   font-weight: normal;
@@ -202,6 +218,38 @@
 @font-face {
   font-family: "Noto Sans Devanagari Regular";
   src: url("/fonts/NotoSansDevanagari.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Rozha One Regular";
+  src: url("/fonts/RozhaOne-Regular.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Teko Bold";
+  src: url("/fonts/Teko-Bold.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Teko Medium";
+  src: url("/fonts/Teko-Medium.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Teko Regular";
+  src: url("/fonts/Teko-Regular.ttf") format("truetype");
   font-weight: normal;
   font-style: normal;
   font-display: swap;

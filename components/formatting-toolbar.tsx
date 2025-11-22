@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { normalizeHexColor } from '@/lib/color-utils';
 import { Bold, Italic, RotateCcw, RotateCw } from 'lucide-react';
@@ -27,53 +27,55 @@ interface FormattingToolbarProps {
   onShapeHeightChange?: (height: number) => void;
 }
 
-// Custom fonts from public/fonts folder
-// These fonts are defined in app/fonts.css
-const customFonts = [
-  // --- Unicode Recommended Fonts ---
-  "Noto Sans Devanagari",
-
-  // --- Legacy Hindi/Devanagari Fonts (Typing Only) ---
-  "AMS Aasmi",
-  "Kruti Dev 640",
-  "Kruti Dev 010",
-  "Kruti Dev 012",
-  "Kruti Dev 021",
-  "Kruti Dev 011",
-  "Kruti Dev 240",
-  "Kruti Dev 500",
-  "Kruti Dev 501",
-  "Kruti Dev 502",
-  "Kruti Dev 680",
-  "Kruti Dev 710",
-  "Kruti Dev 712",
-  "Kruti Dev 714",
-  "Kruti Dev 732",
-
-  // --- Other Hindi Fonts ---
-  "A-SuperHindi-3 Bold",
-  "A-SuperHindi-8 Normal",
-  "BHARTIYA HINDI_112",
-  "BHARTIYA HINDI_142",
-  "ISFOC-TTBorder-1 Normal",
-
-  // --- English/Latin Fonts ---
-  "Arenski",
-  "Arial",
-  "ITC Bookman Demi Italic",
-  "Embassy BT",
-  "Monotype Corsiva Regular Italic",
-];
-
-const fontFamilies = [
-  'Helvetica',
-  'Times New Roman',
-  'Courier New',
-  'Verdana',
-  'Georgia',
-  'Palatino',
-  ...customFonts, // Add custom fonts to the list
-];
+// Organized font groups
+const fontGroups = {
+  standard: [
+    'Helvetica',
+    'Times New Roman',
+    'Courier New',
+    'Verdana',
+    'Georgia',
+    'Palatino',
+  ],
+  unicodeHindi: [
+    "Noto Sans Devanagari Regular",
+    "Martel",
+    "Martel Bold",
+    "Rozha One Regular",
+    "Teko Regular",
+    "Teko Medium",
+    "Teko Bold",
+    "Monotype Corsiva Regular Italic",
+  ],
+  legacyHindi: [
+    "AMS Aasmi",
+    "Kruti Dev 640",
+    "Kruti Dev 010",
+    "Kruti Dev 011",
+    "Kruti Dev 012",
+    "Kruti Dev 021",
+    "Kruti Dev 240",
+    "Kruti Dev 500",
+    "Kruti Dev 501",
+    "Kruti Dev 502",
+    "Kruti Dev 680",
+    "Kruti Dev 710",
+    "Kruti Dev 712",
+    "Kruti Dev 714",
+    "Kruti Dev 732",
+    "A-SuperHindi-3 Bold",
+    "A-SuperHindi-8 Normal",
+    "BHARTIYA HINDI_112",
+    "BHARTIYA HINDI_142",
+    "ISFOC-TTBorder-1 Normal",
+  ],
+  decorative: [
+    "Arenski",
+    "Arial",
+    "Embassy BT",
+    "ITC Bookman Demi Italic",
+  ],
+};
 
 export function FormattingToolbar({
   fontSize,
@@ -212,11 +214,41 @@ export function FormattingToolbar({
                 <SelectValue placeholder="Select font" />
               </SelectTrigger>
               <SelectContent>
-                {fontFamilies.map((font) => (
-                  <SelectItem key={font} value={font}>
-                    {font}
-                  </SelectItem>
-                ))}
+                <SelectGroup>
+                  <SelectLabel>Standard Fonts</SelectLabel>
+                  {fontGroups.standard.map((font) => (
+                    <SelectItem key={font} value={font}>
+                      {font}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+
+                <SelectGroup>
+                  <SelectLabel>Unicode Hindi (Recommended)</SelectLabel>
+                  {fontGroups.unicodeHindi.map((font) => (
+                    <SelectItem key={font} value={font}>
+                      {font}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+
+                <SelectGroup>
+                  <SelectLabel>Legacy Hindi (Typing Only)</SelectLabel>
+                  {fontGroups.legacyHindi.map((font) => (
+                    <SelectItem key={font} value={font}>
+                      {font}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+
+                <SelectGroup>
+                  <SelectLabel>Decorative Fonts</SelectLabel>
+                  {fontGroups.decorative.map((font) => (
+                    <SelectItem key={font} value={font}>
+                      {font}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
               </SelectContent>
             </Select>
           </div>

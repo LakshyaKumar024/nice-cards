@@ -22,12 +22,9 @@ export const customFonts: CustomFont[] = [
   {
     name: "Noto Sans Devanagari (Unicode - recommended)",
     url: "/fonts/NotoSansDevanagari.ttf",
-    fontFamily: "Noto Sans Devanagari",
+    fontFamily: "Noto Sans Devanagari Regular",
     format: "truetype",
   },
-
-  // --- Added All Remaining Fonts ---
-
   {
     name: "Arenski",
     url: "/fonts/ARENSKI.TTF",
@@ -161,9 +158,45 @@ export const customFonts: CustomFont[] = [
     format: "truetype",
   },
   {
+    name: "Martel Bold",
+    url: "/fonts/Martel-Bold.ttf",
+    fontFamily: "Martel Bold",
+    format: "truetype",
+  },
+  {
+    name: "Martel",
+    url: "/fonts/Martel-Regular.ttf",
+    fontFamily: "Martel",
+    format: "truetype",
+  },
+  {
     name: "Monotype Corsiva Regular Italic",
     url: "/fonts/Monotype-Corsiva-Regular-Italic.ttf",
     fontFamily: "Monotype Corsiva Regular Italic",
+    format: "truetype",
+  },
+  {
+    name: "Rozha One Regular",
+    url: "/fonts/RozhaOne-Regular.ttf",
+    fontFamily: "Rozha One Regular",
+    format: "truetype",
+  },
+  {
+    name: "Teko Bold",
+    url: "/fonts/Teko-Bold.ttf",
+    fontFamily: "Teko Bold",
+    format: "truetype",
+  },
+  {
+    name: "Teko Medium",
+    url: "/fonts/Teko-Medium.ttf",
+    fontFamily: "Teko Medium",
+    format: "truetype",
+  },
+  {
+    name: "Teko Regular",
+    url: "/fonts/Teko-Regular.ttf",
+    fontFamily: "Teko Regular",
     format: "truetype",
   }
 ];

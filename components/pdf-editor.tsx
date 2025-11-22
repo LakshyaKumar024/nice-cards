@@ -98,8 +98,40 @@ export default function PDFEditor({ pdfFName, templateId }: PDFEditorProps) {
       try {
         console.log("Preloading custom fonts for export...");
         await Promise.all([
+          // Hindi/Devanagari Fonts
           fetch("/fonts/AMS Aasmi.ttf"),
           fetch("/fonts/KR640.TTF"),
+          fetch("/fonts/K010.TTF"),
+          fetch("/fonts/K11.TTF"),
+          fetch("/fonts/K012.TTF"),
+          fetch("/fonts/K021.TTF"),
+          fetch("/fonts/K240.TTF"),
+          fetch("/fonts/K500.TTF"),
+          fetch("/fonts/K501.TTF"),
+          fetch("/fonts/K502.TTF"),
+          fetch("/fonts/KR680.TTF"),
+          fetch("/fonts/KR710.TTF"),
+          fetch("/fonts/KR712.TTF"),
+          fetch("/fonts/KR714.TTF"),
+          fetch("/fonts/KR732.TTF"),
+          fetch("/fonts/ASUPER_1.TTF"),
+          fetch("/fonts/asuper_8.ttf"),
+          fetch("/fonts/bf112hin.ttf"),
+          fetch("/fonts/bf142hin.ttf"),
+          fetch("/fonts/BR010NTT.TTF"),
+          fetch("/fonts/NotoSansDevanagari.ttf"),
+          // English/Latin Fonts
+          fetch("/fonts/ARENSKI.TTF"),
+          fetch("/fonts/arial.ttf"),
+          fetch("/fonts/bokr76w.ttf"),
+          fetch("/fonts/EMBASSYN.TTF"),
+          fetch("/fonts/Martel-Bold.ttf"),
+          fetch("/fonts/Martel-Regular.ttf"),
+          fetch("/fonts/Monotype-Corsiva-Regular-Italic.ttf"),
+          fetch("/fonts/RozhaOne-Regular.ttf"),
+          fetch("/fonts/Teko-Bold.ttf"),
+          fetch("/fonts/Teko-Medium.ttf"),
+          fetch("/fonts/Teko-Regular.ttf"),
         ]);
         console.log("✅ Custom fonts preloaded successfully");
       } catch (error) {
