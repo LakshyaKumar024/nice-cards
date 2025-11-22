@@ -36,7 +36,6 @@ export default function Page({
     };
     getTemplate();
   }, [user, templateId, router]);
-  console.log(template);
 
   if (!template.uuid)
     return (
@@ -89,7 +88,6 @@ export default function Page({
         },
       });
       const data = await res.json();
-      console.log("DTTATAT ---- ", data);
 
       const paymentData = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
@@ -106,7 +104,6 @@ export default function Page({
             }),
           });
           const data = await res.json();
-          console.log(data);
           if (data.isOk) {
             // do whatever page transition you want here as payment was successful
             toast.success("Payment completed", {

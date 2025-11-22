@@ -60,7 +60,6 @@ export default function Home() {
       .then((data) => {
         setTemplates(data.data);
         setHasMore(data.data.length === PAGINATION_LIMIT);
-        console.log(data.data);
       })
       .catch((error) => {
         console.error("Error fetching templates:", error);

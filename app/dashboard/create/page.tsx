@@ -83,7 +83,6 @@ export default function AddTemplatePage() {
       reader.readAsDataURL(file);
 
       form.setValue("image", file, { shouldValidate: true }); // ✅ Sync with form
-      console.log("form", form.getValues("image"));
 
     }
   };
@@ -115,43 +114,25 @@ export default function AddTemplatePage() {
   // In your onSubmit function - update the upload sections
 
   const onSubmit = async (data: TemplateFormValues) => {
-    console.log("file", "imageForm");
     setIsLoading(true);
 
     const toastId = toast.loading("Starting upload process...");
 
     try {
       // ---------- STEP 1: Upload Image ----------
-      console.log("file", "imageForm 1");
       toast.loading("Uploading image...", { id: toastId });
 
       const imageForm = new FormData();
-      console.log("IMAGE ", data.image);
 
       imageForm.append("file", data.image);
-      console.log("file", imageForm);
 
 
-      console.log("🖼️ Uploading Image:", {
-        fileName: data.image.name,
-        fileSize: data.image.size,
-        fileType: data.image.type
-      });
-
-      console.log("file 2", imageForm);
-
-      // Debug FormData content
-      console.log("📦 FormData entries:");
-      for (const [key, value] of imageForm.entries()) {
-        console.log(`${key}:`, value);
-      }
 
       const imageRes = await fetch(`${process.env.NEXT_PUBLIC_EXPRESS_SERVER_URL}/upload/image`, {
         method: "POST",
         body: imageForm,
       });
 
-      console.log("Image Res: ", imageRes);
 
       if (!imageRes.ok) {
         const errorText = await imageRes.text();
@@ -178,12 +159,6 @@ export default function AddTemplatePage() {
 
       const pdfForm = new FormData();
       pdfForm.append("file", data.pdf);
-
-      console.log("📄 Uploading PDF:", {
-        fileName: data.pdf.name,
-        fileSize: data.pdf.size,
-        fileType: data.pdf.type
-      });
 
       const pdfRes = await fetch(`${process.env.NEXT_PUBLIC_EXPRESS_SERVER_URL}/upload/pdf`, {
         method: "POST",

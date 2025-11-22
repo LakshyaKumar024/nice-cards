@@ -7,7 +7,6 @@ import prisma from "@/lib/db-init";
 export async function POST(request: Request) {
   const { userId } = await auth();
   const { productId } = await request.json();
-  console.log(process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!, process.env.RAZORPAY_SECRET!);
 
   if (!process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || !process.env.RAZORPAY_SECRET) {
     throw new Error("Razorpay ENV vars missing at runtime");
@@ -20,7 +19,6 @@ export async function POST(request: Request) {
   });
 
   if (!userId) {
-    console.log("No user found");
     return NextResponse.json({ error: "No user found", message: "signup to make an order." }, { status: 401 });
   }
 
@@ -39,7 +37,6 @@ export async function POST(request: Request) {
         "product_id": getTemplate.uuid
       }
     });
-    console.log("LKHKBJKJNJ - 2");
 
     const newOrder = await prisma.order.create({
       data: {
@@ -50,7 +47,6 @@ export async function POST(request: Request) {
         status: "pending",
       }
     })
-    console.log("LKHKBJKJNJ - 3");
 
     return NextResponse.json({
       status: 200,

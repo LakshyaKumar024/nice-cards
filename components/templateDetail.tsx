@@ -63,8 +63,6 @@ export function TemplateDetail({ templateId }: { templateId: string }) {
         const data = result.data;
         if (!data?.uuid) throw new Error("Invalid template data");
         setTemplate(data);
-        console.log("user === ", user);
-        console.log(data.hasPurchased);
         setIsPurchased(data.hasPurchased);
 
         // Parse tags safely
@@ -120,7 +118,6 @@ export function TemplateDetail({ templateId }: { templateId: string }) {
   const imageSrc = template?.image
     ? template.image.replace(/^["']|["']$/g, "")
     : null;
-  console.log("Image src:", imageSrc);
 
   if (loading)
     return (

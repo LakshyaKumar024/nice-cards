@@ -174,37 +174,7 @@ export default function PDFEditor({ pdfFName, templateId }: PDFEditorProps) {
     loadPDF();
   }, [pdfFName, templateId]);
 
-  const debugExportPositions = () => {
-    if (!pdfDocument) return;
-
-    const currentPageOverlays = overlays.filter((o) => o.page === currentPage);
-
-    console.log("=== EXPORT POSITION DEBUG ===");
-    console.log("Current Page:", currentPage);
-    console.log("Overlays on this page:");
-
-    currentPageOverlays.forEach((overlay) => {
-      if (overlay.type === "text") {
-        console.log(`Text: "${overlay.text}"`);
-        console.log(
-          `  Normalized: (${overlay.x.toFixed(3)}, ${overlay.y.toFixed(3)})`
-        );
-        console.log(`  Font Size: ${overlay.fontSize}px`);
-        console.log(`  Font Family: ${overlay.fontFamily}`);
-        console.log(`  Rotation: ${overlay.rotation}°`);
-      } else {
-        console.log(
-          `Shape at (${overlay.x.toFixed(3)}, ${overlay.y.toFixed(3)})`
-        );
-        console.log(
-          `  Size: ${(overlay.width * 100).toFixed(1)}% x ${(
-            overlay.height * 100
-          ).toFixed(1)}%`
-        );
-        console.log(`  Rotation: ${overlay.rotation}°`);
-      }
-    });
-  };
+  
 
   const handleAddOverlay = useCallback(
     (overlay: Omit<TextOverlay, "id"> | Omit<ShapeOverlay, "id">) => {

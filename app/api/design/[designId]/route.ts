@@ -17,8 +17,6 @@ export async function POST(
     const { userId } = body;
     const { designId } = await context.params;
 
-    // Use the designId
-    console.log('user ID:', userId);
 
     try {
         const template = await prisma.template.findUnique({

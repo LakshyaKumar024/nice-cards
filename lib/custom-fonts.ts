@@ -210,7 +210,6 @@ export async function loadCustomFont(fontFamily: string): Promise<ArrayBuffer | 
       return null;
     }
 
-    console.log(`Loading TTF font: ${font.name} from ${font.url}`);
     const response = await fetch(font.url);
 
     if (!response.ok) {
@@ -218,7 +217,6 @@ export async function loadCustomFont(fontFamily: string): Promise<ArrayBuffer | 
     }
 
     const arrayBuffer = await response.arrayBuffer();
-    console.log(`Successfully loaded TTF font: ${font.name}, size: ${arrayBuffer.byteLength} bytes`);
 
     return arrayBuffer;
   } catch (error) {

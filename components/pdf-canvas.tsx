@@ -42,6 +42,18 @@ export function PDFCanvas({
   const [draggingOverlayId, setDraggingOverlayId] = useState<string | null>(null);
   const [isResizing, setIsResizing] = useState(false);
   const renderTaskRef = useRef<pdfjsLib.RenderTask | null>(null);
+  const [fontsLoaded, setFontsLoaded] = useState(false);
+
+  // Wait for fonts to load
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'fonts' in document) {
+      document.fonts.ready.then(() => {
+        setFontsLoaded(true);
+      });
+    } else {
+      setFontsLoaded(true);
+    }
+  }, []);
 
   // Handle keyboard for editing only
   useEffect(() => {
@@ -133,10 +145,8 @@ export function PDFCanvas({
     const normalizedX = x / pageDimensions.width;
     const normalizedY = y / pageDimensions.height;
 
-    console.log('Double click at:', { x, y, normalizedX, normalizedY, toolMode });
 
     if (toolMode === 'shape') {
-      console.log('Adding shape at:', { normalizedX, normalizedY });
       onAddShape(normalizedX, normalizedY);
     } else {
       const newOverlay: Omit<TextOverlay, 'id'> = {
@@ -183,9 +193,7 @@ export function PDFCanvas({
         const isInside = x >= shapeX - shapeW/2 && x <= shapeX + shapeW/2 &&
                         y >= shapeY - shapeH/2 && y <= shapeY + shapeH/2;
         
-        if (isInside) {
-          console.log('Clicked on shape:', overlay.id, { shapeX, shapeY, shapeW, shapeH, x, y });
-        }
+        
         return isInside;
       } else {
         const textX = overlay.x * pageDimensions.width;
@@ -196,11 +204,9 @@ export function PDFCanvas({
     });
 
     if (clickedOverlay) {
-      console.log('Selected overlay:', clickedOverlay.id, clickedOverlay.type);
       onSelectOverlay(clickedOverlay.id);
       setEditingOverlayId(null);
     } else {
-      console.log('No overlay clicked, clearing selection');
       onSelectOverlay(null);
       setEditingOverlayId(null);
     }
@@ -373,23 +379,6 @@ export function PDFCanvas({
     .filter(overlay => overlay.page === pageNumber)
     .sort((a, b) => a.zIndex - b.zIndex);
 
-  // Debug overlays
-  useEffect(() => {
-    if (pageDimensions.width > 0 && currentPageOverlays.length > 0) {
-      console.log('=== CURRENT PAGE OVERLAYS ===');
-      console.log('Page dimensions:', pageDimensions);
-      currentPageOverlays.forEach(overlay => {
-        if (overlay.type === 'shape') {
-          console.log(`Shape: ${overlay.id}`);
-          console.log(`  Position: (${overlay.x}, ${overlay.y})`);
-          console.log(`  Size: ${overlay.width} x ${overlay.height}`);
-          console.log(`  Rotation: ${overlay.rotation}°`);
-          console.log(`  Color: ${overlay.color}`);
-          console.log(`  Visible: ${overlay.visible}`);
-        }
-      });
-    }
-  }, [pageDimensions, currentPageOverlays]);
 
   if (error) {
     return (
@@ -428,14 +417,6 @@ export function PDFCanvas({
             const shapeH = overlay.height * pageDimensions.height;
             const isSelected = selectedOverlayId === overlay.id;
             const isDragging = draggingOverlayId === overlay.id;
-
-            console.log('Rendering shape:', {
-              id: overlay.id,
-              shapeX, shapeY, shapeW, shapeH,
-              rotation: overlay.rotation,
-              normalized: { x: overlay.x, y: overlay.y, w: overlay.width, h: overlay.height },
-              pageDims: pageDimensions
-            });
             
             return (
               <div

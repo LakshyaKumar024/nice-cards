@@ -16,14 +16,6 @@ export async function PATCH(
 
         const body = await req.json();
         const { name, catogery, description, paid, status, price } = body;
-        console.log("body", body);
-
-
-        // await prisma.template.delete({
-        //     where: {
-        //         uuid: designId
-        //     },
-        // });
 
         await prisma.template.update({
             where: {

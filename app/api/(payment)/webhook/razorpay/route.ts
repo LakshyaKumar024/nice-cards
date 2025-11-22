@@ -5,7 +5,6 @@ import nodemailer from "nodemailer";
 
 
 export async function POST(request: Request) {
-    console.log("HOOOO ____ oki");
     
     try {
         const body = await request.text();

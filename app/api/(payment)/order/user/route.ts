@@ -9,7 +9,6 @@ export async function GET(request: Request) {
         const { userId } = await auth();
 
         if (!userId) {
-            console.log("No user found");
             return NextResponse.json({ error: "No user found", message: "signup to make an order." }, { status: 401 });
         }
 

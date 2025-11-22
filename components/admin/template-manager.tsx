@@ -51,7 +51,6 @@ export function TemplateManager() {
       const response = await fetch("/api/dashboard/stats/templates");
       const data = await response.json();
       setTemplates(data);
-      console.log(data);
     };
     fetchTemplates();
   }, []);
@@ -63,7 +62,6 @@ export function TemplateManager() {
 
   const handleSave = async (updatedTemplate: Template) => {
     setIsUpdating(true);
-    console.log("handleSave", updatedTemplate);
     const updateToast = toast.loading("Updating template...");
     try {
       const updatedTemplates = await fetch(

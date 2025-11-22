@@ -83,12 +83,7 @@ const saveFile = async (
     }
 
     try {
-        console.log("💾 Saving file locally:", {
-            type,
-            originalName: filename,
-            generatedName: generatedFileName,
-            targetDir: fileDir,
-        });
+        
 
         await mkdir(fileDir, { recursive: true });
 
