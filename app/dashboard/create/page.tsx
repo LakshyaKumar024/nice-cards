@@ -146,7 +146,7 @@ export default function AddTemplatePage() {
         console.log(`${key}:`, value);
       }
 
-      const imageRes = await fetch(`http://localhost:5005/upload/image`, {
+      const imageRes = await fetch(`${process.env.NEXT_PUBLIC_EXPRESS_SERVER_URL}/upload/image`, {
         method: "POST",
         body: imageForm,
       });
@@ -185,7 +185,7 @@ export default function AddTemplatePage() {
         fileType: data.pdf.type
       });
 
-      const pdfRes = await fetch(`http://localhost:5005/upload/pdf`, {
+      const pdfRes = await fetch(`${process.env.NEXT_PUBLIC_EXPRESS_SERVER_URL}/upload/pdf`, {
         method: "POST",
         body: pdfForm,
       });
