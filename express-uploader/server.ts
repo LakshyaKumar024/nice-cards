@@ -22,7 +22,18 @@ cloudinary.config({
 // 📌 App Setup
 // ------------------------
 const app = express();
-app.use(cors());
+
+app.use(cors({
+  origin: [
+    "https://nicecards.shop",
+    "https://www.nicecards.shop"
+  ],
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+  credentials: true,
+}));
+
+
+
 app.use(express.json());
 
 // ------------------------
