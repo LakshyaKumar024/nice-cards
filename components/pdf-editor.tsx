@@ -332,7 +332,6 @@ export default function PDFEditor({ pdfFName, templateId }: PDFEditorProps) {
   );
 
   const handleExport = useCallback(async () => {
-    debugExportPositions();
     if (!pdfFile) return;
 
     setIsExporting(true);

@@ -42,6 +42,7 @@ export function PDFCanvas({
   const [draggingOverlayId, setDraggingOverlayId] = useState<string | null>(null);
   const [isResizing, setIsResizing] = useState(false);
   const renderTaskRef = useRef<pdfjsLib.RenderTask | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [fontsLoaded, setFontsLoaded] = useState(false);
 
   // Wait for fonts to load
