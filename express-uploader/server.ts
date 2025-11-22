@@ -173,7 +173,7 @@ app.post(
 /* =====================================================
    🚀 START SERVER
    ===================================================== */
-const PORT = process.env.EXPRESS_PORT || 5005;
-app.listen(PORT, () => {
+const PORT:number = Number(process.env.EXPRESS_PORT) || 5005;
+app.listen(PORT, "0.0.0.0" , () => {
   console.log(`🚀 Bun Express Upload Server running on port ${PORT}`);
 });
