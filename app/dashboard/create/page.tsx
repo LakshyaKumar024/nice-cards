@@ -374,7 +374,7 @@ export default function AddTemplatePage() {
                         />
                       </FormControl>
                       <FormDescription className="text-xs">
-                        In cents (e.g., 999 = $9.99)
+                        In Ruppe (e.g., &#8377;0 = Free)
                       </FormDescription>
                       <FormMessage />
                     </FormItem>

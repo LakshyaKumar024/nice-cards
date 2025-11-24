@@ -30,7 +30,7 @@ export default function Page({
       const data = await template.json();
       if (data.data.hasPurchased) {
         toast.info("This template is already purchased.");
-        return router.push(`/design/${templateId}/edit`);
+        return router.push(`/edit/${templateId}`);
       }
       setTemplate(data.data);
     };

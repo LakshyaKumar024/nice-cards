@@ -90,7 +90,7 @@ export default function EditPDFPage({ params }: EditPDFPageProps) {
               <p className="text-teal-900 dark:text-zinc-200 text-sm flex-1">
                 <strong>Note: </strong>
                 For Hindi text copied from <strong>Google Translate</strong>, we
-                recommend using <strong>Noto Sans Devanagari</strong>{" "}
+                recommend using <strong>Unicode Hindi</strong>{" "}
                 for best results.
               </p>
 

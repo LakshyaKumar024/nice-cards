@@ -8,7 +8,8 @@ import { NextResponse } from "next/server";
 
 const isProtectedRoute = createRouteMatcher([
   "/design/(.*)/checkout",
-  "/design/(.*)/edit",
+  "/edit/(.*)",
+  "/my-templates"
 ]);
 
 const isAdminRoute = createRouteMatcher([

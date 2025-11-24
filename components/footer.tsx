@@ -17,27 +17,34 @@ export default function ShadcnFooter({
 
         {/* MOBILE: stacked */}
         <div className="flex flex-col items-center gap-2 md:hidden text-black dark:text-gray-300">
+
           <div className="flex gap-4">
             <Link href="/terms" className="hover:underline">Terms</Link>
             <Link href="/privacy" className="hover:underline">Privacy</Link>
           </div>
 
           <div className="text-center">
-            © {new Date().getFullYear()} Made by{" "}
+            Made by{" "}
             <Link
               href="https://www.linkedin.com/in/deepvoid-lab/"
               className="hover:underline"
+              target="_blank"
+              rel="noopener noreferrer"
             >
               DeepVoid Labs
             </Link>
           </div>
 
-          <div className="flex gap-4">
-            <a href="#" className="hover:underline">GitHub</a>
-            <a href="#" className="hover:underline">LinkedIn</a>
-            <a className="hover:underline">Twitter</a>
+          {/* ✅ Added for mobile */}
+          <div className="text-center">
+            {new Date().getFullYear()} &copy; All rights reserved - Nice Cards.
+          </div>
+
+        <div className="flex gap-4 justify-end text-black dark:text-gray-300">
+            <a href="https://mail.google.com/mail/?view=cm&fs=1&to=nicecardramgarh@gmail.com" className="hover:underline">Email</a>
           </div>
         </div>
+
 
         {/* DESKTOP: 3-column */}
         <div className="hidden md:grid grid-cols-3 items-center">
@@ -50,7 +57,7 @@ export default function ShadcnFooter({
 
           {/* CENTER */}
           <div className="text-center text-black dark:text-gray-300 text-sm">
-            {new Date().getFullYear()} Made by{" "}
+             Made by{" "}
             <Link
               href="https://www.linkedin.com/in/deepvoid-lab/"
               className="hover:underline"
@@ -59,7 +66,7 @@ export default function ShadcnFooter({
             >
               DeepVoid Labs
             </Link>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;© All rights reserved — Nice Cards.
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &copy; {new Date().getFullYear()} All rights reserved - Nice Cards.
           </div>
 
 
