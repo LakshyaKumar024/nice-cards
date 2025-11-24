@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useRouter } from "next/router";
 
 interface Template {
   uuid: string;
@@ -27,7 +28,8 @@ export default function TemplatesPage() {
   const [templates, setTemplates] = useState<Template[] | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredTemplates, setFilteredTemplates] = useState<Template[]>([]);
-
+  const router = useRouter();
+  
   useEffect(() => {
     fetch("/api/design/mytemplates", {
       method: "GET",
@@ -129,7 +131,6 @@ export default function TemplatesPage() {
                   {/* Content */}
                   <CardHeader className="pb-3">
                     <CardTitle className="line-clamp-2 text-lg text-foreground transition-none">
-
                       {template.name}
                     </CardTitle>
                     <CardDescription className="line-clamp-2">
@@ -141,7 +142,7 @@ export default function TemplatesPage() {
                     <Button
                       className="w-full bg-primary hover:bg-primary/90"
                       onClick={(e) => {
-                        e.preventDefault();
+                        router.push(`/edit/${template.uuid}`);
                       }}
                     >
                       Edit Template
