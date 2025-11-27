@@ -128,6 +128,12 @@ export const customFonts: CustomFont[] = [
     format: "truetype",
   },
   {
+    name: "Arial",
+    url: "/fonts/arial.ttf",
+    fontFamily: "Arial",
+    format: "truetype",
+  },
+  {
     name: "Kruti Dev 640 (Legacy - typing only)",
     url: "/fonts/KR640.TTF",
     fontFamily: "Kruti Dev 640",

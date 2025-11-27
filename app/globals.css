@@ -52,10 +52,6 @@
   font-family: "ISFOC-TTBorder-1 Normal", sans-serif !important;
 }
 
-.df-calligraphic-ornaments-let {
-  font-family: "DF Calligraphic Ornaments LET", sans-serif !important;
-}
-
 .embassy-bt {
   font-family: "Embassy BT", sans-serif !important;
 }
@@ -291,4 +287,8 @@ svg tspan,
 .svg-fonts-loaded svg text,
 .svg-fonts-loaded svg tspan {
   font-family: inherit;
+}
+.d
+f-calligraphic-ornaments-let {
+  font-family: "DF Calligraphic Ornaments LET", sans-serif !important;
 }

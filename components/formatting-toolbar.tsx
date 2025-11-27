@@ -90,7 +90,13 @@ const fontGroups = {
     "BHARTIYA HINDI_142",
     "ISFOC-TTBorder-1 Normal",
   ],
-  decorative: ["Arenski", "Arial", "DF Calligraphic Ornaments LET", "Embassy BT", "ITC Bookman Demi Italic"],
+  decorative: [
+    "Arenski",
+    "Arial",
+    "DF Calligraphic Ornaments LET",
+    "Embassy BT",
+    "ITC Bookman Demi Italic",
+  ],
 };
 
 export function FormattingToolbar({
