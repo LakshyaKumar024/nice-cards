@@ -8,6 +8,9 @@
   -ms-user-select: none !important;
 }
 
+.bhartiya-hindi-100 {
+  font-family: "BHARTIYA HINDI_100", sans-serif !important;
+}
 
 .ams-aasmi {
   font-family: "AMS Aasmi", sans-serif !important;
@@ -29,6 +32,10 @@
   font-family: "A-SuperHindi-8 Normal", sans-serif !important;
 }
 
+.bhartiya-hindi-089 {
+  font-family: "BHARTIYA HINDI_089", sans-serif !important;
+}
+
 .bhartiya-hindi-112 {
   font-family: "BHARTIYA HINDI_112", sans-serif !important;
 }
@@ -43,6 +50,10 @@
 
 .isfoc-ttborder-1-normal {
   font-family: "ISFOC-TTBorder-1 Normal", sans-serif !important;
+}
+
+.df-calligraphic-ornaments-let {
+  font-family: "DF Calligraphic Ornaments LET", sans-serif !important;
 }
 
 .embassy-bt {

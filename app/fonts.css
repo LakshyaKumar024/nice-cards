@@ -1,5 +1,13 @@
 
 @font-face {
+  font-family: "BHARTIYA HINDI_100";
+  src: url("/fonts/A0047636.TTF") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
   font-family: "AMS Aasmi";
   src: url("/fonts/AMS Aasmi.ttf") format("truetype");
   font-weight: normal;
@@ -40,6 +48,14 @@
 }
 
 @font-face {
+  font-family: "BHARTIYA HINDI_089";
+  src: url("/fonts/bf089hin.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
   font-family: "BHARTIYA HINDI_112";
   src: url("/fonts/bf112hin.ttf") format("truetype");
   font-weight: normal;
@@ -66,6 +82,14 @@
 @font-face {
   font-family: "ISFOC-TTBorder-1 Normal";
   src: url("/fonts/BR010NTT.TTF") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "DF Calligraphic Ornaments LET";
+  src: url("/fonts/CALIGORN.TTF") format("truetype");
   font-weight: normal;
   font-style: normal;
   font-display: swap;

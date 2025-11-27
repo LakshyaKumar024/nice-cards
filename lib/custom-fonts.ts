@@ -8,21 +8,15 @@ export interface CustomFont {
 
 export const customFonts: CustomFont[] = [
   {
+    name: "BHARTIYA HINDI 100",
+    url: "/fonts/A0047636.TTF",
+    fontFamily: "BHARTIYA HINDI_100",
+    format: "truetype",
+  },
+  {
     name: "AMS Aasmi (Legacy - typing only)",
     url: "/fonts/AMS Aasmi.ttf",
     fontFamily: "AMS Aasmi",
-    format: "truetype",
-  },
-  {
-    name: "Kruti Dev 640 (Legacy - typing only)",
-    url: "/fonts/KR640.TTF",
-    fontFamily: "Kruti Dev 640",
-    format: "truetype",
-  },
-  {
-    name: "Noto Sans Devanagari (Unicode - recommended)",
-    url: "/fonts/NotoSansDevanagari.ttf",
-    fontFamily: "Noto Sans Devanagari Regular",
     format: "truetype",
   },
   {
@@ -31,7 +25,6 @@ export const customFonts: CustomFont[] = [
     fontFamily: "Arenski",
     format: "truetype",
   },
-
   {
     name: "A-SuperHindi-3 Bold",
     url: "/fonts/ASUPER_1.TTF",
@@ -42,6 +35,12 @@ export const customFonts: CustomFont[] = [
     name: "A-SuperHindi-8 Normal",
     url: "/fonts/asuper_8.ttf",
     fontFamily: "A-SuperHindi-8 Normal",
+    format: "truetype",
+  },
+  {
+    name: "BHARTIYA HINDI 089",
+    url: "/fonts/bf089hin.ttf",
+    fontFamily: "BHARTIYA HINDI_089",
     format: "truetype",
   },
   {
@@ -66,6 +65,12 @@ export const customFonts: CustomFont[] = [
     name: "ISFOC TTBorder 1 Normal",
     url: "/fonts/BR010NTT.TTF",
     fontFamily: "ISFOC-TTBorder-1 Normal",
+    format: "truetype",
+  },
+  {
+    name: "DF Calligraphic Ornaments LET",
+    url: "/fonts/CALIGORN.TTF",
+    fontFamily: "DF Calligraphic Ornaments LET",
     format: "truetype",
   },
   {
@@ -123,6 +128,12 @@ export const customFonts: CustomFont[] = [
     format: "truetype",
   },
   {
+    name: "Kruti Dev 640 (Legacy - typing only)",
+    url: "/fonts/KR640.TTF",
+    fontFamily: "Kruti Dev 640",
+    format: "truetype",
+  },
+  {
     name: "Kruti Dev 680",
     url: "/fonts/KR680.TTF",
     fontFamily: "Kruti Dev 680",
@@ -168,6 +179,12 @@ export const customFonts: CustomFont[] = [
     name: "Monotype Corsiva Regular Italic",
     url: "/fonts/Monotype-Corsiva-Regular-Italic.ttf",
     fontFamily: "Monotype Corsiva Regular Italic",
+    format: "truetype",
+  },
+  {
+    name: "Noto Sans Devanagari (Unicode - recommended)",
+    url: "/fonts/NotoSansDevanagari.ttf",
+    fontFamily: "Noto Sans Devanagari Regular",
     format: "truetype",
   },
   {

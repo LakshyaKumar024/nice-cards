@@ -84,11 +84,13 @@ const fontGroups = {
     "Kruti Dev 732",
     "A-SuperHindi-3 Bold",
     "A-SuperHindi-8 Normal",
+    "BHARTIYA HINDI_089",
+    "BHARTIYA HINDI_100",
     "BHARTIYA HINDI_112",
     "BHARTIYA HINDI_142",
     "ISFOC-TTBorder-1 Normal",
   ],
-  decorative: ["Arenski", "Arial", "Embassy BT", "ITC Bookman Demi Italic"],
+  decorative: ["Arenski", "Arial", "DF Calligraphic Ornaments LET", "Embassy BT", "ITC Bookman Demi Italic"],
 };
 
 export function FormattingToolbar({
