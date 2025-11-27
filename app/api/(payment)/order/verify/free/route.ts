@@ -89,6 +89,7 @@ export async function POST(request: NextRequest) {
       try {
 
         const user = await client.users.getUser(order.order.userId)
+console.log(user.primaryEmailAddress?.emailAddress);
 
         const transporter = nodemailer.createTransport({
           host: process.env.SMTP_HOST ?? "smtp-relay.brevo.com",
@@ -102,7 +103,7 @@ export async function POST(request: NextRequest) {
 
         const sendEmail = await transporter.sendMail({
           from: `"Nice Card" <no-reply@nicecards.shop>`,
-          to: `${user.primaryEmailAddress.emailAddress}`,
+          to: `${user.primaryEmailAddress?.emailAddress}`,
           subject: "🎉 Your Order is Complete!",
           attachments: [
             {

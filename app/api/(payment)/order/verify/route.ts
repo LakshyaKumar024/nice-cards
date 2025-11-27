@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
                 // TODO: MAKE THIS WORK change my email. 
                 await transporter.sendMail({
                     from: `"Nice Card" <no-reply@nicecards.shop>`,
-                    to: `${user.primaryEmailAddress.emailAddress}`,
+                    to: `${user.primaryEmailAddress?.emailAddress}`,
                     subject: "🎉 Your Order is Complete!",
                     attachments: [
                         {
