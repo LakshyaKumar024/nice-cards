@@ -155,7 +155,6 @@ export async function exportPDFWithOverlays(
 }
 
 
-
 async function drawTextOverlay(
   page: any,
   overlay: TextOverlay,
@@ -164,144 +163,88 @@ async function drawTextOverlay(
   fontCache: Map<string, any>
 ) {
   try {
-    // Normalize Unicode text
-    const normalizedText = overlay.text.normalize('NFC');
+    const normalizedText = overlay.text.normalize("NFC");
 
-    console.log(`📝 Drawing text: "${overlay.text}"`);
-    console.log(`   Font: ${overlay.fontFamily}, Bold: ${overlay.bold}, Italic: ${overlay.italic}`);
-    console.log(`   Rotation: ${overlay.rotation}°`);
-
-    // Get the appropriate font
+    // ============= FONT ======================
     let fontKey = overlay.fontFamily;
-    if (overlay.bold && overlay.italic) {
-      fontKey = overlay.fontFamily + '-bolditalic';
-    } else if (overlay.bold) {
-      fontKey = overlay.fontFamily + '-bold';
-    } else if (overlay.italic) {
-      fontKey = overlay.fontFamily + '-italic';
-    }
+    if (overlay.bold && overlay.italic) fontKey += "-bolditalic";
+    else if (overlay.bold) fontKey += "-bold";
+    else if (overlay.italic) fontKey += "-italic";
 
     let font = fontCache.get(fontKey) || fontCache.get(overlay.fontFamily);
+    if (!font) font = fontCache.values().next().value; // last fallback
 
-    // Final fallback
-    if (!font) {
-      console.warn(`Font not found for: ${fontKey}, using Helvetica fallback`);
-      font = fontCache.get('Arial') || fontCache.get('Helvetica') || fontCache.values().next().value;
+    // ============= SIZES ======================
+    const CANVAS_SCALE = 1.5;
+    const fontSize = overlay.fontSize / CANVAS_SCALE;
+
+    // ============= CANVAS → PDF COORD FIX ======================
+    // canvas: anchor is CENTER of the text box
+    const centerX = overlay.x * pageWidth;
+    const centerY = pageHeight - overlay.y * pageHeight;
+
+    // ========= MEASURE MULTILINE BOX =========
+    const lines = normalizedText.split("\n");
+    const lineHeight = fontSize * 1.2;
+
+    const lineWidths = lines.map((line) =>
+      font.widthOfTextAtSize(line, fontSize)
+    );
+
+    const boxWidth = Math.max(...lineWidths);
+    const boxHeight = lines.length * lineHeight;
+
+    // canvas uses: translate(-50%, -50%)
+    const boxX = centerX - boxWidth / 2;
+    const boxY = centerY - boxHeight / 2;
+
+    // ========== ALIGNMENT INSIDE THE BOX ==========
+    function getAlignedX(lineWidth: number) {
+      if (overlay.textAlign === "center")
+        return boxX + (boxWidth - lineWidth) / 2;
+      if (overlay.textAlign === "right")
+        return boxX + (boxWidth - lineWidth);
+      return boxX; // left
     }
 
-    console.log(`   Using font:`, font?.constructor?.name);
-
-    // CANVAS SCALE ADJUSTMENT
-    const CANVAS_SCALE = 1.5;
-    const adjustedFontSize = overlay.fontSize / CANVAS_SCALE;
-
-    // FIXED: Correct coordinate conversion
-    // Canvas uses top-left origin, PDF uses bottom-left origin
-    // We need to account for the text height in PDF coordinates
-    const textWidth = font.widthOfTextAtSize(normalizedText, adjustedFontSize);
-    const textHeight = adjustedFontSize;
-
-    // Convert coordinates from canvas (top-left) to PDF (bottom-left)
-    const x = overlay.x * pageWidth;
-    const y = pageHeight - (overlay.y * pageHeight);
-
-    // FIXED: Account for the text positioning difference
-    // In canvas, text is positioned at the top-left of the text box
-    // In PDF, text is positioned at the baseline (bottom-left)
-    const finalX = x;
-    const finalY = y - textHeight; // Adjust for baseline positioning
-
-    console.log(`   Original Size: ${overlay.fontSize}px, Adjusted: ${adjustedFontSize.toFixed(1)}px`);
-    console.log(`   Position: (${finalX.toFixed(2)}, ${finalY.toFixed(2)})`);
-
-    // Handle rotation using manual transformation matrix
+    // ========= APPLY ROTATION ==========
     if (overlay.rotation !== 0) {
-      console.log(`   Applying rotation: ${overlay.rotation}°`);
-
-      const radians = -(overlay.rotation * Math.PI) / 180;
-
-      // Rotation center should account for the text height adjustment
-      const centerX = finalX + (textWidth / 2);
-      const centerY = finalY + (textHeight / 2);
-
-      // Save state
+      const rad = -(overlay.rotation * Math.PI) / 180;
       page.pushOperators(pushGraphicsState());
-
-      // Move origin to rotation center
       page.pushOperators(translate(centerX, centerY));
-
-      // Rotate
-      page.pushOperators(rotateRadians(radians));
-
-      // Move back
+      page.pushOperators(rotateRadians(rad));
       page.pushOperators(translate(-centerX, -centerY));
+    }
 
-      const drawOptions: any = {
-        x: finalX,
-        y: finalY,
-        size: adjustedFontSize,
+    // ========== DRAW TEXT LINES ==========
+    lines.forEach((line, i) => {
+      const width = lineWidths[i];
+
+      const x = getAlignedX(width);
+      const y = boxY + (boxHeight - lineHeight * (i + 1));
+
+      page.drawText(line, {
+        x,
+        y,
+        size: fontSize,
         font,
         color: hexToRgb(overlay.color),
-      };
-
-      if (overlay.bold && isCustomFont(overlay.fontFamily)) {
-        page.drawText(normalizedText, drawOptions);
-        page.drawText(normalizedText, { ...drawOptions, x: finalX + 0.7 });
-      } else {
-        page.drawText(normalizedText, drawOptions);
-      }
-
-      // Restore graphics state
-      page.pushOperators(popGraphicsState());
-
-    } else {
-      // No rotation - simple text drawing
-      const options: any = {
-        x: finalX,
-        y: finalY,
-        size: adjustedFontSize,
-        font: font,
-        color: hexToRgb(overlay.color),
-      };
-
-      if (overlay.bold && isCustomFont(overlay.fontFamily)) {
-        page.drawText(normalizedText, options);
-        page.drawText(normalizedText, {
-          ...options,
-          x: finalX + 0.7,
-        });
-      } else {
-        page.drawText(normalizedText, options);
-      }
-    }
-
-    console.log(`   ✅ Text drawn successfully`);
-
-  } catch (error) {
-    console.error('❌ Error drawing text overlay:', error);
-
-    // Ultimate fallback - draw without formatting
-    try {
-      const normalizedText = overlay.text.normalize('NFC');
-      const CANVAS_SCALE = 1.5;
-      const adjustedFontSize = overlay.fontSize / CANVAS_SCALE;
-
-      // Fallback coordinate conversion
-      const x = overlay.x * pageWidth;
-      const y = pageHeight - (overlay.y * pageHeight) - adjustedFontSize;
-
-      page.drawText(normalizedText, {
-        x: x,
-        y: y,
-        size: adjustedFontSize,
-        color: hexToRgb(overlay.color),
       });
-      console.log(`   ✅ Fallback text drawn`);
-    } catch (fallbackError) {
-      console.error('💥 Fallback drawing failed:', fallbackError);
+    });
+
+    if (overlay.rotation !== 0) {
+      page.pushOperators(popGraphicsState());
     }
+
+    console.log("✓ Text drawn correctly");
+
+  } catch (err) {
+    console.error("❌ drawTextOverlay error:", err);
   }
 }
+
+
+
 
 
 
@@ -328,7 +271,7 @@ function drawShapeOverlay(page: any, overlay: ShapeOverlay, pageWidth: number, p
 
     if (overlay.rotation !== 0) {
       const radians = -(overlay.rotation * Math.PI / 180);
-      
+
       // rotation center = shape center (matches canvas with translate(-50%, -50%))
       const centerX = x;
       const centerY = y;

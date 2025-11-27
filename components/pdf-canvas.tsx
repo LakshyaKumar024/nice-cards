@@ -89,6 +89,21 @@ export function PDFCanvas({
         textarea.style.width = `${newWidth}px`;
       }
 
+      // NEW: Calculate the required height based on text content
+      // Calculate approximate line height
+      const lineHeight = overlay.fontSize * 1.2;
+
+      // Count the number of lines (approximate)
+      const textLines = textarea.value.split("\n");
+      const numLines = Math.max(1, textLines.length);
+
+      // Set height based on number of lines
+      const newHeight = Math.max(
+        overlay.fontSize + 4,
+        numLines * lineHeight + 4
+      );
+      textarea.style.height = `${newHeight}px`;
+
       // Focus and place cursor at the end
       textarea.focus();
       textarea.setSelectionRange(textarea.value.length, textarea.value.length);
@@ -732,7 +747,7 @@ export function PDFCanvas({
                     left: `${textX}px`,
                     top: `${textY}px`,
                     zIndex: overlay.zIndex + 10,
-                    transform: `rotate(${overlay.rotation}deg)`,
+                    transform: `translate(-50%, -50%) rotate(${overlay.rotation}deg)`,
                     pointerEvents: "auto",
                     maxWidth: `${pageDimensions.width * 0.8}px`,
                     backgroundColor: "transparent",
@@ -783,18 +798,20 @@ export function PDFCanvas({
                           lineHeight: "1.2",
                           padding: "2px",
                           minWidth: "50px",
+                          minHeight: `${overlay.fontSize + 4}px`, // Minimum height
                           width: "auto",
+                          height: "auto",
                           maxWidth: `${pageDimensions.width * 0.8}px`,
                           marginTop: `${overlay.fontSize / 2}px`,
                           display: "block",
                           direction: "ltr",
-                          // Prevent text wrapping
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
+                          // Allow vertical expansion
+                          whiteSpace: "pre-wrap", // Changed from "nowrap" to allow wrapping
+                          overflow: "hidden", // Keep hidden to prevent scrollbars
                         }}
                         autoFocus
-                        rows={1}
                         wrap="off"
+                        rows={1}
                       />
                     </div>
                   ) : (
