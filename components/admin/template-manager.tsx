@@ -355,7 +355,7 @@ export function TemplateManager() {
               {templateForDeletion &&
                 templateForDeletion._count.savedTemplates > 0 && (
                   <div className="mt-3 flex items-start gap-2 rounded-md bg-amber-500/10 p-3 border border-amber-500/20">
-                    <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                    <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
                     <p className="text-xs text-amber-600 dark:text-amber-400">
                       <strong>Warning:</strong> This template has been used{" "}
                       {templateForDeletion._count.savedTemplates} time

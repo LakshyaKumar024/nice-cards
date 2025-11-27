@@ -31,12 +31,7 @@ export const customFonts: CustomFont[] = [
     fontFamily: "Arenski",
     format: "truetype",
   },
-  {
-    name: "Arial",
-    url: "/fonts/arial.ttf",
-    fontFamily: "Arial",
-    format: "truetype",
-  },
+
   {
     name: "A-SuperHindi-3 Bold",
     url: "/fonts/ASUPER_1.TTF",
