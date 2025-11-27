@@ -9,7 +9,7 @@ import {
   Download,
   Type,
   Menu,
-  Square
+  Square,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -47,6 +47,7 @@ export interface TextOverlay {
   zIndex: number;
   fontFamilyClassName?: string;
   rotation: number; // Add rotation property (degrees)
+  textAlign: "left" | "center" | "right" | "justify"; // NEW
 }
 
 export interface ShapeOverlay {
@@ -174,8 +175,6 @@ export default function PDFEditor({ pdfFName, templateId }: PDFEditorProps) {
     loadPDF();
   }, [pdfFName, templateId]);
 
-  
-
   const handleAddOverlay = useCallback(
     (overlay: Omit<TextOverlay, "id"> | Omit<ShapeOverlay, "id">) => {
       // Add fontFamilyClassName for text overlays on creation
@@ -198,6 +197,7 @@ export default function PDFEditor({ pdfFName, templateId }: PDFEditorProps) {
           fontFamilyClassName:
             fontClassMap[fontFamily] || fontFamilyToClassName(fontFamily),
           rotation: 0, // Initialize rotation to 0
+          textAlign: "left", // Initialize textAlign to left
         } as Overlay;
       } else {
         newOverlay = {
@@ -404,6 +404,10 @@ export default function PDFEditor({ pdfFName, templateId }: PDFEditorProps) {
               italic={selectedOverlay.italic}
               color={selectedOverlay.color}
               rotation={selectedOverlay.rotation}
+              textAlign={selectedOverlay.textAlign}
+              onTextAlignChange={(align) =>
+                handleUpdateOverlay(selectedOverlay.id, { textAlign: align })
+              }
               onFontSizeChange={(size) =>
                 handleUpdateOverlay(selectedOverlay.id, { fontSize: size })
               }
@@ -556,7 +560,7 @@ export default function PDFEditor({ pdfFName, templateId }: PDFEditorProps) {
             </Button>
           </div>
         </div>
-        
+
         {/* PDF Canvas Area - Scrollable */}
         <div className="flex-1 overflow-auto bg-muted/30">
           <div className="min-h-full p-8 flex justify-center items-start">

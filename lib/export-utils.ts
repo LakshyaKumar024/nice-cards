@@ -140,7 +140,7 @@ export async function exportPDFWithOverlays(
       if (overlay.type === 'text' && overlay.text.trim()) {
         await drawTextOverlay(page, overlay, width, height, fontCache);
       } else if (overlay.type === 'shape' && overlay.shapeType === 'square') {
-        drawShapeOverlay(page, overlay, width, height);
+        await drawShapeOverlay(page, overlay, width, height);
       }
     }
 
@@ -153,6 +153,8 @@ export async function exportPDFWithOverlays(
     throw new Error('Failed to export PDF');
   }
 }
+
+
 
 async function drawTextOverlay(
   page: any,
@@ -193,20 +195,24 @@ async function drawTextOverlay(
     const CANVAS_SCALE = 1.5;
     const adjustedFontSize = overlay.fontSize / CANVAS_SCALE;
 
-    // Convert coordinates - PDF has origin at bottom-left
-    const x = overlay.x * pageWidth;
-    const y = pageHeight - (overlay.y * pageHeight);
-
-    // Calculate text dimensions
+    // FIXED: Correct coordinate conversion
+    // Canvas uses top-left origin, PDF uses bottom-left origin
+    // We need to account for the text height in PDF coordinates
     const textWidth = font.widthOfTextAtSize(normalizedText, adjustedFontSize);
     const textHeight = adjustedFontSize;
 
-    // Center the text
-    const centeredX = x - (textWidth / 2);
-    const centeredY = y - (textHeight / 2);
+    // Convert coordinates from canvas (top-left) to PDF (bottom-left)
+    const x = overlay.x * pageWidth;
+    const y = pageHeight - (overlay.y * pageHeight);
+
+    // FIXED: Account for the text positioning difference
+    // In canvas, text is positioned at the top-left of the text box
+    // In PDF, text is positioned at the baseline (bottom-left)
+    const finalX = x;
+    const finalY = y - textHeight; // Adjust for baseline positioning
 
     console.log(`   Original Size: ${overlay.fontSize}px, Adjusted: ${adjustedFontSize.toFixed(1)}px`);
-    console.log(`   Position: (${centeredX.toFixed(2)}, ${centeredY.toFixed(2)})`);
+    console.log(`   Position: (${finalX.toFixed(2)}, ${finalY.toFixed(2)})`);
 
     // Handle rotation using manual transformation matrix
     if (overlay.rotation !== 0) {
@@ -214,8 +220,9 @@ async function drawTextOverlay(
 
       const radians = -(overlay.rotation * Math.PI) / 180;
 
-      const centerX = centeredX + textWidth / 2;
-      const centerY = centeredY + textHeight / 2;
+      // Rotation center should account for the text height adjustment
+      const centerX = finalX + (textWidth / 2);
+      const centerY = finalY + (textHeight / 2);
 
       // Save state
       page.pushOperators(pushGraphicsState());
@@ -230,8 +237,8 @@ async function drawTextOverlay(
       page.pushOperators(translate(-centerX, -centerY));
 
       const drawOptions: any = {
-        x: centeredX,
-        y: centeredY,
+        x: finalX,
+        y: finalY,
         size: adjustedFontSize,
         font,
         color: hexToRgb(overlay.color),
@@ -239,7 +246,7 @@ async function drawTextOverlay(
 
       if (overlay.bold && isCustomFont(overlay.fontFamily)) {
         page.drawText(normalizedText, drawOptions);
-        page.drawText(normalizedText, { ...drawOptions, x: centeredX + 0.7 });
+        page.drawText(normalizedText, { ...drawOptions, x: finalX + 0.7 });
       } else {
         page.drawText(normalizedText, drawOptions);
       }
@@ -250,8 +257,8 @@ async function drawTextOverlay(
     } else {
       // No rotation - simple text drawing
       const options: any = {
-        x: centeredX,
-        y: centeredY,
+        x: finalX,
+        y: finalY,
         size: adjustedFontSize,
         font: font,
         color: hexToRgb(overlay.color),
@@ -261,7 +268,7 @@ async function drawTextOverlay(
         page.drawText(normalizedText, options);
         page.drawText(normalizedText, {
           ...options,
-          x: centeredX + 0.7,
+          x: finalX + 0.7,
         });
       } else {
         page.drawText(normalizedText, options);
@@ -278,8 +285,10 @@ async function drawTextOverlay(
       const normalizedText = overlay.text.normalize('NFC');
       const CANVAS_SCALE = 1.5;
       const adjustedFontSize = overlay.fontSize / CANVAS_SCALE;
+
+      // Fallback coordinate conversion
       const x = overlay.x * pageWidth;
-      const y = pageHeight - (overlay.y * pageHeight);
+      const y = pageHeight - (overlay.y * pageHeight) - adjustedFontSize;
 
       page.drawText(normalizedText, {
         x: x,
@@ -294,49 +303,42 @@ async function drawTextOverlay(
   }
 }
 
-function drawShapeOverlay(
-  page: any,
-  overlay: ShapeOverlay,
-  pageWidth: number,
-  pageHeight: number
-) {
+
+
+
+
+
+
+function drawShapeOverlay(page: any, overlay: ShapeOverlay, pageWidth: number, pageHeight: number) {
   try {
     const shapeWidth = overlay.width * pageWidth;
     const shapeHeight = overlay.height * pageHeight;
 
+    // FIX: Match the canvas positioning with translate(-50%, -50%)
+    // In canvas, shapes are centered at (x,y) with translate(-50%, -50%)
+    // So in PDF, we need to draw them centered at the same position
     const x = overlay.x * pageWidth;
     const y = pageHeight - (overlay.y * pageHeight);
 
     console.log(`🎨 Drawing shape:`, {
-      rotation: overlay.rotation,
-      center: { x, y },
-      size: { width: shapeWidth, height: shapeHeight }
+      originalOverlay: { x: overlay.x, y: overlay.y },
+      calculatedCoords: { x, y },
+      shapeSize: { width: shapeWidth, height: shapeHeight }
     });
 
-    // Handle rotation for shapes
-     if (overlay.rotation !== 0) {
-      console.log(`   Applying rotation: ${overlay.rotation}°`);
-
-      // Negative = clockwise (same fix as text)
-      const radians = -(overlay.rotation * Math.PI) / 180;
-
-      // Rotation center = square center
+    if (overlay.rotation !== 0) {
+      const radians = -(overlay.rotation * Math.PI / 180);
+      
+      // rotation center = shape center (matches canvas with translate(-50%, -50%))
       const centerX = x;
       const centerY = y;
 
-      // Save graphics state
       page.pushOperators(pushGraphicsState());
-
-      // Move origin to center of square
       page.pushOperators(translate(centerX, centerY));
-
-      // Apply rotation
       page.pushOperators(rotateRadians(radians));
-
-      // Move back
       page.pushOperators(translate(-centerX, -centerY));
 
-      // Draw the square (centered)
+      // Draw centered (matches canvas with translate(-50%, -50%))
       page.drawRectangle({
         x: centerX - shapeWidth / 2,
         y: centerY - shapeHeight / 2,
@@ -345,11 +347,9 @@ function drawShapeOverlay(
         color: hexToRgb(overlay.color),
       });
 
-      // Restore graphics
       page.pushOperators(popGraphicsState());
-      
     } else {
-      // No rotation
+      // No rotation - centered positioning (matches canvas with translate(-50%, -50%))
       page.drawRectangle({
         x: x - (shapeWidth / 2),
         y: y - (shapeHeight / 2),
@@ -359,27 +359,7 @@ function drawShapeOverlay(
       });
     }
 
-    console.log(`   ✅ Shape drawn successfully`);
-
-  } catch (error) {
-    console.error('❌ Error drawing shape overlay:', error);
-
-    // Fallback without rotation
-    try {
-      const shapeWidth = overlay.width * pageWidth;
-      const shapeHeight = overlay.height * pageHeight;
-      const x = overlay.x * pageWidth - (shapeWidth / 2);
-      const y = pageHeight - (overlay.y * pageHeight) - (shapeHeight / 2);
-
-      page.drawRectangle({
-        x: x,
-        y: y,
-        width: shapeWidth,
-        height: shapeHeight,
-        color: hexToRgb(overlay.color),
-      });
-    } catch (fallbackError) {
-      console.error('💥 Fallback shape drawing failed:', fallbackError);
-    }
+  } catch (err) {
+    console.error("Shape export error:", err);
   }
 }

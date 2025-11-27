@@ -19,8 +19,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-
+} from "@/components/ui/alert-dialog";
 
 interface Template {
   uuid: string;
@@ -91,8 +90,9 @@ export function TemplateManager() {
     }
   };
 
-  const filteredTemplates = templates.filter((template) =>
-    template.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredTemplates = (Array.isArray(templates) ? templates : []).filter(
+    (template) =>
+      template?.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const removeTemplate = async (id: string) => {
@@ -120,8 +120,11 @@ export function TemplateManager() {
 
   // Get the template object for the delete dialog
   const getTemplateToDelete = () => {
-    return templates.find((t) => t.uuid === templateToDelete);
-  };
+  return Array.isArray(templates) 
+    ? templates.find((t) => t.uuid === templateToDelete)
+    : undefined;
+};
+
 
   const templateForDeletion = getTemplateToDelete();
 
@@ -276,71 +279,93 @@ export function TemplateManager() {
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
                 <AlertTriangle className="h-6 w-6 text-destructive" />
               </div>
-              <AlertDialogTitle className="text-xl">Delete Template?</AlertDialogTitle>
+              <AlertDialogTitle className="text-xl">
+                Delete Template?
+              </AlertDialogTitle>
             </div>
             <AlertDialogDescription className="text-base space-y-3">
               <p>
-                This action cannot be undone. This will permanently delete the template from the server.
+                This action cannot be undone. This will permanently delete the
+                template from the server.
               </p>
-              
+
               {templateForDeletion && (
                 <div className="mt-4 rounded-lg border border-border bg-muted/30 p-4 space-y-2">
                   <div className="flex justify-between items-start">
-                    <span className="text-sm font-medium text-muted-foreground">Template Name:</span>
+                    <span className="text-sm font-medium text-muted-foreground">
+                      Template Name:
+                    </span>
                     <span className="text-sm font-semibold text-foreground text-right ml-2">
                       {templateForDeletion.name}
                     </span>
                   </div>
-                  
+
                   <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-muted-foreground">Category:</span>
+                    <span className="text-sm font-medium text-muted-foreground">
+                      Category:
+                    </span>
                     <span className="text-sm text-foreground">
                       {templateForDeletion.catogery}
                     </span>
                   </div>
-                  
+
                   <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-muted-foreground">Price:</span>
+                    <span className="text-sm font-medium text-muted-foreground">
+                      Price:
+                    </span>
                     <span className="text-sm font-semibold text-foreground">
                       ₹ {templateForDeletion.price}
                     </span>
                   </div>
-                  
+
                   <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-muted-foreground">Status:</span>
+                    <span className="text-sm font-medium text-muted-foreground">
+                      Status:
+                    </span>
                     <Badge
-                      variant={templateForDeletion.status ? "default" : "secondary"}
+                      variant={
+                        templateForDeletion.status ? "default" : "secondary"
+                      }
                       className="text-xs"
                     >
                       {templateForDeletion.status ? "Active" : "Inactive"}
                     </Badge>
                   </div>
-                  
+
                   <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-muted-foreground">Total Uses:</span>
+                    <span className="text-sm font-medium text-muted-foreground">
+                      Total Uses:
+                    </span>
                     <span className="text-sm font-semibold text-foreground">
                       {templateForDeletion._count.savedTemplates}
                     </span>
                   </div>
-                  
+
                   <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-muted-foreground">Created:</span>
+                    <span className="text-sm font-medium text-muted-foreground">
+                      Created:
+                    </span>
                     <span className="text-sm text-foreground">
                       {templateForDeletion.createdAt.split("T")[0]}
                     </span>
                   </div>
                 </div>
               )}
-              
-              {templateForDeletion && templateForDeletion._count.savedTemplates > 0 && (
-                <div className="mt-3 flex items-start gap-2 rounded-md bg-amber-500/10 p-3 border border-amber-500/20">
-                  <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
-                  <p className="text-xs text-amber-600 dark:text-amber-400">
-                    <strong>Warning:</strong> This template has been used {templateForDeletion._count.savedTemplates} time{templateForDeletion._count.savedTemplates !== 1 ? 's' : ''}. 
-                    Users who saved this template may be affected.
-                  </p>
-                </div>
-              )}
+
+              {templateForDeletion &&
+                templateForDeletion._count.savedTemplates > 0 && (
+                  <div className="mt-3 flex items-start gap-2 rounded-md bg-amber-500/10 p-3 border border-amber-500/20">
+                    <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                    <p className="text-xs text-amber-600 dark:text-amber-400">
+                      <strong>Warning:</strong> This template has been used{" "}
+                      {templateForDeletion._count.savedTemplates} time
+                      {templateForDeletion._count.savedTemplates !== 1
+                        ? "s"
+                        : ""}
+                      . Users who saved this template may be affected.
+                    </p>
+                  </div>
+                )}
             </AlertDialogDescription>
           </AlertDialogHeader>
 

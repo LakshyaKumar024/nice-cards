@@ -167,6 +167,7 @@ export async function POST(request: NextRequest) {
         },
             { status: 201 } // 201 Created - resource successfully created
         );
+        
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {

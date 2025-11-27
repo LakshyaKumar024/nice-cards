@@ -1,12 +1,29 @@
-'use client';
+"use client";
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Slider } from '@/components/ui/slider';
-import { normalizeHexColor } from '@/lib/color-utils';
-import { Bold, Italic, RotateCcw, RotateCw } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
+import { normalizeHexColor } from "@/lib/color-utils";
+import {
+  AlignCenter,
+  AlignJustify,
+  AlignLeft,
+  AlignRight,
+  Bold,
+  Italic,
+  RotateCcw,
+  RotateCw,
+} from "lucide-react";
 
 interface FormattingToolbarProps {
   fontSize: number;
@@ -25,17 +42,19 @@ interface FormattingToolbarProps {
   shapeHeight?: number;
   onShapeWidthChange?: (width: number) => void;
   onShapeHeightChange?: (height: number) => void;
+  textAlign?: "left" | "center" | "right" | "justify";
+  onTextAlignChange?: (align: "left" | "center" | "right" | "justify") => void;
 }
 
 // Organized font groups
 const fontGroups = {
   standard: [
-    'Helvetica',
-    'Times New Roman',
-    'Courier New',
-    'Verdana',
-    'Georgia',
-    'Palatino',
+    "Helvetica",
+    "Times New Roman",
+    "Courier New",
+    "Verdana",
+    "Georgia",
+    "Palatino",
   ],
   unicodeHindi: [
     "Noto Sans Devanagari Regular",
@@ -69,12 +88,7 @@ const fontGroups = {
     "BHARTIYA HINDI_142",
     "ISFOC-TTBorder-1 Normal",
   ],
-  decorative: [
-    "Arenski",
-    "Arial",
-    "Embassy BT",
-    "ITC Bookman Demi Italic",
-  ],
+  decorative: ["Arenski", "Arial", "Embassy BT", "ITC Bookman Demi Italic"],
 };
 
 export function FormattingToolbar({
@@ -94,6 +108,8 @@ export function FormattingToolbar({
   shapeHeight,
   onShapeWidthChange,
   onShapeHeightChange,
+  textAlign,
+  onTextAlignChange,
 }: FormattingToolbarProps) {
   const isShapeMode = shapeWidth !== undefined && shapeHeight !== undefined;
 
@@ -122,7 +138,9 @@ export function FormattingToolbar({
         <>
           {/* Shape Size - Width */}
           <div className="space-y-2">
-            <Label htmlFor="shape-width">Width: {Math.round(shapeWidth * 100)}%</Label>
+            <Label htmlFor="shape-width">
+              Width: {Math.round(shapeWidth * 100)}%
+            </Label>
             <Slider
               value={[Math.min(shapeWidth * 100, 200)]}
               onValueChange={([value]) => onShapeWidthChange?.(value / 100)}
@@ -135,7 +153,9 @@ export function FormattingToolbar({
 
           {/* Shape Size - Height */}
           <div className="space-y-2">
-            <Label htmlFor="shape-height">Height: {Math.round(shapeHeight * 100)}%</Label>
+            <Label htmlFor="shape-height">
+              Height: {Math.round(shapeHeight * 100)}%
+            </Label>
             <Slider
               value={[Math.min(shapeHeight * 100, 200)]}
               onValueChange={([value]) => onShapeHeightChange?.(value / 100)}
@@ -153,7 +173,9 @@ export function FormattingToolbar({
               <Input
                 type="color"
                 value={color}
-                onChange={(e) => onColorChange(normalizeHexColor(e.target.value))}
+                onChange={(e) =>
+                  onColorChange(normalizeHexColor(e.target.value))
+                }
                 className="w-12 h-8 p-1"
               />
               <span className="text-sm text-muted-foreground">{color}</span>
@@ -172,7 +194,7 @@ export function FormattingToolbar({
               >
                 <RotateCcw className="w-4 h-4" />
               </Button>
-              
+
               <Slider
                 value={[rotation]}
                 onValueChange={handleRotationSlider}
@@ -181,7 +203,7 @@ export function FormattingToolbar({
                 step={1}
                 className="flex-1"
               />
-              
+
               <Button
                 variant="outline"
                 size="icon"
@@ -266,6 +288,48 @@ export function FormattingToolbar({
             />
           </div>
 
+          {/* Text Alignment */}
+          <div className="space-y-2">
+            <Label>Alignment</Label>
+            <div className="flex gap-2">
+              <Button
+                variant={textAlign === "left" ? "default" : "outline"}
+                size="sm"
+                onClick={() => onTextAlignChange?.("left")}
+                title="Align Left"
+              >
+                <AlignLeft className="w-4 h-4" />
+              </Button>
+
+              <Button
+                variant={textAlign === "center" ? "default" : "outline"}
+                size="sm"
+                onClick={() => onTextAlignChange?.("center")}
+                title="Align Center"
+              >
+                <AlignCenter className="w-4 h-4" />
+              </Button>
+
+              <Button
+                variant={textAlign === "right" ? "default" : "outline"}
+                size="sm"
+                onClick={() => onTextAlignChange?.("right")}
+                title="Align Right"
+              >
+                <AlignRight className="w-4 h-4" />
+              </Button>
+
+              <Button
+                variant={textAlign === "justify" ? "default" : "outline"}
+                size="sm"
+                onClick={() => onTextAlignChange?.("justify")}
+                title="Justify"
+              >
+                <AlignJustify className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+
           {/* Text Style */}
           <div className="space-y-2">
             <Label>Text Style</Label>
@@ -294,7 +358,9 @@ export function FormattingToolbar({
               <Input
                 type="color"
                 value={color}
-                onChange={(e) => onColorChange(normalizeHexColor(e.target.value))}
+                onChange={(e) =>
+                  onColorChange(normalizeHexColor(e.target.value))
+                }
                 className="w-12 h-8 p-1"
               />
               <span className="text-sm text-muted-foreground">{color}</span>
@@ -313,7 +379,7 @@ export function FormattingToolbar({
               >
                 <RotateCcw className="w-4 h-4" />
               </Button>
-              
+
               <Slider
                 value={[rotation]}
                 onValueChange={handleRotationSlider}
@@ -322,7 +388,7 @@ export function FormattingToolbar({
                 step={1}
                 className="flex-1"
               />
-              
+
               <Button
                 variant="outline"
                 size="icon"

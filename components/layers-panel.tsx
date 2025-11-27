@@ -208,9 +208,9 @@ export function LayersPanel({
   }
 
   return (
-    <div className="p-4">
+    <div className="p-4 h-full flex flex-col">
       <h3 className="text-sm font-semibold mb-3">Layers</h3>
-      <ScrollArea className="h-64">
+      <ScrollArea className="flex-1  max-h-10">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
@@ -220,7 +220,7 @@ export function LayersPanel({
             items={currentPageOverlays.map(overlay => overlay.id)}
             strategy={verticalListSortingStrategy}
           >
-            <div className="space-y-2">
+            <div className="space-y-2 pr-2"> {/* Added pr-2 for scrollbar space */}
               {currentPageOverlays.map((overlay) => (
                 <SortableOverlayItem
                   key={overlay.id}

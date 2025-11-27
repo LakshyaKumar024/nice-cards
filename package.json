@@ -41,6 +41,7 @@
     "express": "^5.1.0",
     "fontkit": "^2.0.4",
     "fs-extra": "^11.3.2",
+    "ioredis": "^5.8.2",
     "lucide-react": "^0.553.0",
     "multer": "^2.0.2",
     "next": "16.0.1",
