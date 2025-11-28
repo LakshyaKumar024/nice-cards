@@ -19,7 +19,9 @@ export async function GET() {
             return createdAt > thirtyDaysAgo;
         }).length;
 
-        const totalTemplates = await prisma.template.count()
+        const totalTemplates = await prisma.template.count({where:{
+            status: true
+        }})
 
         const getTotalRevenue = await prisma.order.findMany({
             where: {
