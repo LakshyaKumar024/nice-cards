@@ -88,8 +88,8 @@
 }
 
 @font-face {
-  font-family: "DF Calligraphic Ornaments LET";
-  src: url("/fonts/CALIGORN.TTF") format("truetype");
+  font-family: "DFCalligraphicOrnament";
+  src: url("/fonts/DF Calligraphic Ornament Regular.otf") format("opentype");
   font-weight: normal;
   font-style: normal;
   font-display: swap;

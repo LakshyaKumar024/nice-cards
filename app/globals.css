@@ -289,6 +289,6 @@ svg tspan,
   font-family: inherit;
 }
 
-.df-calligraphic-ornaments-let {
-  font-family: "DF Calligraphic Ornaments LET", sans-serif !important;
+.df-calligraphic-ornament {
+  font-family: "DFCalligraphicOrnament", sans-serif !important;
 }

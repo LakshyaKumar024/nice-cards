@@ -89,11 +89,11 @@ const fontGroups = {
     "BHARTIYA HINDI_112",
     "BHARTIYA HINDI_142",
     "ISFOC-TTBorder-1 Normal",
-    "DF Calligraphic Ornaments LET",
   ],
   decorative: [
     "Arenski",
     "Arial",
+    "DFCalligraphicOrnament",
     "Embassy BT",
     "ITC Bookman Demi Italic",
   ],

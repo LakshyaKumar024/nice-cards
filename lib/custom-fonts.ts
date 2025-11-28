@@ -68,9 +68,9 @@ export const customFonts: CustomFont[] = [
     format: "truetype",
   },
   {
-    name: "DF Calligraphic Ornaments LET",
-    url: "/fonts/CALIGORN.TTF",
-    fontFamily: "DF Calligraphic Ornaments LET",
+    name: "DF Calligraphic Ornament",
+    url: "/fonts/DF Calligraphic Ornament Regular.otf",
+    fontFamily: "DFCalligraphicOrnament",
     format: "truetype",
   },
   {

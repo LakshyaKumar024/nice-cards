@@ -789,7 +789,7 @@ export function PDFCanvas({
                         }}
                         className="outline-none bg-transparent resize-none border-none overflow-hidden"
                         style={{
-                          fontFamily: overlay.fontFamily,
+                          fontFamily: `"${overlay.fontFamily}", sans-serif`,
                           fontSize: `${overlay.fontSize}px`,
                           fontWeight: overlay.bold ? "bold" : "normal",
                           fontStyle: overlay.italic ? "italic" : "normal",
@@ -821,12 +821,13 @@ export function PDFCanvas({
                         setEditingOverlayId(overlay.id);
                       }}
                       className={`whitespace-pre-wrap select-none ${
-                        // Add select-none here too
                         overlay.fontFamilyClassName || ""
                       }`}
+                      data-font-family={overlay.fontFamily}
+                      data-font-class={overlay.fontFamilyClassName}
                       style={{
                         textAlign: overlay.textAlign,
-                        fontFamily: overlay.fontFamily,
+                        fontFamily: `"${overlay.fontFamily}", sans-serif`,
                         fontSize: `${overlay.fontSize}px`,
                         fontWeight: overlay.bold ? "bold" : "normal",
                         fontStyle: overlay.italic ? "italic" : "normal",

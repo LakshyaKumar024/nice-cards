@@ -55,27 +55,34 @@ export async function exportPDFWithOverlays(
     const textOverlays = overlays.filter(o => o.type === 'text') as TextOverlay[];
     const uniqueFonts = [...new Set(textOverlays.map(o => o.fontFamily))];
 
-    console.log('📊 Fonts to process:', uniqueFonts);
-
     // Embed fonts
     for (const fontFamily of uniqueFonts) {
-      console.log(`🎨 Processing font: "${fontFamily}"`);
-
       if (isCustomFont(fontFamily)) {
-        console.log(`   🔧 Identified as custom font`);
         const fontBytes = await loadCustomFont(fontFamily);
 
         if (fontBytes) {
           try {
-            console.log(`   📥 Embedding custom font into PDF...`);
             const customFont = await pdfDoc.embedFont(fontBytes);
             fontCache.set(fontFamily, customFont);
-            console.log(`   ✅ Successfully embedded custom font: ${fontFamily}`);
+            
+            // WORKAROUND: pdf-lib strips spaces from font names internally
+            // Store font with both original name and space-stripped version
+            const fontFamilyNoSpaces = fontFamily.replace(/\s+/g, '');
+            if (fontFamilyNoSpaces !== fontFamily) {
+              fontCache.set(fontFamilyNoSpaces, customFont);
+            }
 
             // For custom fonts, use the same font for all styles
             fontCache.set(fontFamily + '-bold', customFont);
             fontCache.set(fontFamily + '-italic', customFont);
             fontCache.set(fontFamily + '-bolditalic', customFont);
+            
+            // Also cache space-stripped versions for styles
+            if (fontFamilyNoSpaces !== fontFamily) {
+              fontCache.set(fontFamilyNoSpaces + '-bold', customFont);
+              fontCache.set(fontFamilyNoSpaces + '-italic', customFont);
+              fontCache.set(fontFamilyNoSpaces + '-bolditalic', customFont);
+            }
           } catch (embedError) {
             console.error(`   ❌ Failed to embed custom font ${fontFamily}:`, embedError);
             console.log(`   🔄 Using fallback font`);
@@ -120,16 +127,6 @@ export async function exportPDFWithOverlays(
       }
     }
 
-    // Debug: Test all fonts
-    console.log('=== FONT CACHE DEBUG ===');
-    for (const [key, font] of fontCache.entries()) {
-      console.log(`Font "${key}":`, {
-        type: font?.constructor?.name,
-        name: font?.name,
-        isStandardFont: font instanceof PDFDocument.prototype.embedStandardFont
-      });
-    }
-
     // Add overlays to each page
     for (const overlay of sortedOverlays) {
       if (!overlay.visible || overlay.page > pages.length) continue;
@@ -149,7 +146,7 @@ export async function exportPDFWithOverlays(
     return new Blob([uint8Array], { type: 'application/pdf' });
 
   } catch (error) {
-    console.error('💥 Error exporting PDF with overlays:', error);
+    console.error('Error exporting PDF with overlays:', error);
     throw new Error('Failed to export PDF');
   }
 }
@@ -174,28 +171,22 @@ async function drawTextOverlay(
     else if (overlay.bold) fontKey += "-bold";
     else if (overlay.italic) fontKey += "-italic";
 
-    console.log(`🔍 Font lookup for overlay:`, {
-      fontFamily: overlay.fontFamily,
-      bold: overlay.bold,
-      italic: overlay.italic,
-      fontKey,
-      availableFonts: Array.from(fontCache.keys())
-    });
-
+    // Try to get font with original key, then base family, then space-stripped versions
     let font = fontCache.get(fontKey) || fontCache.get(overlay.fontFamily);
+    
+    // WORKAROUND: If not found, try space-stripped version (pdf-lib strips spaces)
+    if (!font) {
+      const fontKeyNoSpaces = fontKey.replace(/\s+/g, '');
+      const fontFamilyNoSpaces = overlay.fontFamily.replace(/\s+/g, '');
+      font = fontCache.get(fontKeyNoSpaces) || fontCache.get(fontFamilyNoSpaces);
+    }
+    
     if (!font) font = fontCache.values().next().value; // last fallback
 
     // Check if we got a different font variant or the same font
     const baseFontName = fontCache.get(overlay.fontFamily)?.name;
     const selectedFontName = font?.name;
     const hasActualVariant = baseFontName !== selectedFontName;
-
-    console.log(`✓ Selected font:`, {
-      name: font?.name || 'unknown',
-      baseFontName,
-      selectedFontName,
-      hasActualVariant
-    });
 
     // ============= SIZES ======================
     const CANVAS_SCALE = 1.5;
@@ -261,19 +252,8 @@ async function drawTextOverlay(
 
       const textColor = hexToRgb(overlay.color);
 
-      console.log(`📝 Drawing text line:`, {
-        text: line.substring(0, 20),
-        bold: overlay.bold,
-        italic: overlay.italic,
-        isCustomFont: isCustomFont(overlay.fontFamily),
-        hasActualVariant,
-        needsSimulateBold,
-        needsSimulateItalic
-      });
-
       // If bold is enabled and we're using a custom font without bold variant, simulate bold
       if (needsSimulateBold) {
-        console.log(`   🔨 Simulating bold for custom font`);
         // Simulate bold by drawing text multiple times with slight horizontal offsets
         // This mimics how browsers synthesize bold text
         const boldOffsets = [0, 0.3, 0.6]; // Three passes for better bold effect
@@ -287,7 +267,6 @@ async function drawTextOverlay(
           });
         }
       } else {
-        console.log(`   ✏️ Normal rendering`);
         // Normal rendering (includes standard fonts with proper bold/italic)
         // Note: Italic simulation for custom fonts is not supported in PDF export
         page.drawText(line, {
@@ -304,10 +283,8 @@ async function drawTextOverlay(
       page.pushOperators(popGraphicsState());
     }
 
-    console.log("✓ Text drawn correctly");
-
   } catch (err) {
-    console.error("❌ drawTextOverlay error:", err);
+    console.error("Error drawing text overlay:", err);
   }
 }
 
@@ -330,12 +307,6 @@ function drawShapeOverlay(page: any, overlay: ShapeOverlay, pageWidth: number, p
     // So in PDF, we need to draw them centered at the same position
     const x = overlay.x * pageWidth;
     const y = pageHeight - (overlay.y * pageHeight);
-
-    console.log(`🎨 Drawing shape:`, {
-      originalOverlay: { x: overlay.x, y: overlay.y },
-      calculatedCoords: { x, y },
-      shapeSize: { width: shapeWidth, height: shapeHeight }
-    });
 
     if (overlay.rotation !== 0) {
       const radians = -(overlay.rotation * Math.PI / 180);
@@ -371,6 +342,6 @@ function drawShapeOverlay(page: any, overlay: ShapeOverlay, pageWidth: number, p
     }
 
   } catch (err) {
-    console.error("Shape export error:", err);
+    console.error("Error drawing shape overlay:", err);
   }
 }

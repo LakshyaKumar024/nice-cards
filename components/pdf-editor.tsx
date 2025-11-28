@@ -97,7 +97,6 @@ export default function PDFEditor({ pdfFName, templateId }: PDFEditorProps) {
     // Preload custom fonts for export
     const preloadFonts = async () => {
       try {
-        console.log("Preloading custom fonts for export...");
         await Promise.all([
           // Hindi/Devanagari Fonts
           fetch("/fonts/A0047636.TTF"),
@@ -127,7 +126,7 @@ export default function PDFEditor({ pdfFName, templateId }: PDFEditorProps) {
           fetch("/fonts/ARENSKI.TTF"),
           fetch("/fonts/arial.ttf"),
           fetch("/fonts/bokr76w.ttf"),
-          fetch("/fonts/CALIGORN.TTF"),
+          fetch("/fonts/DF Calligraphic Ornament Regular.otf"),
           fetch("/fonts/EMBASSYN.TTF"),
           fetch("/fonts/Martel-Bold.ttf"),
           fetch("/fonts/Martel-Regular.ttf"),
@@ -137,9 +136,8 @@ export default function PDFEditor({ pdfFName, templateId }: PDFEditorProps) {
           fetch("/fonts/Teko-Medium.ttf"),
           fetch("/fonts/Teko-Regular.ttf"),
         ]);
-        console.log("✅ Custom fonts preloaded successfully");
       } catch (error) {
-        console.warn("Failed to preload custom fonts:", error);
+        console.error("Failed to preload custom fonts:", error);
       }
     };
 
@@ -199,7 +197,7 @@ export default function PDFEditor({ pdfFName, templateId }: PDFEditorProps) {
           "BHARTIYA HINDI_142": "bhartiya-hindi-142",
           "ITC Bookman Demi Italic": "itc-bookman-demi-italic",
           "ISFOC-TTBorder-1 Normal": "isfoc-ttborder-1-normal",
-          "DF Calligraphic Ornaments LET": "df-calligraphic-ornaments-let",
+          "DFCalligraphicOrnament": "df-calligraphic-ornament",
           "Embassy BT": "embassy-bt",
           "Kruti Dev 010": "kruti-dev-010",
           "Kruti Dev 012": "kruti-dev-012",
@@ -298,7 +296,7 @@ export default function PDFEditor({ pdfFName, templateId }: PDFEditorProps) {
               "BHARTIYA HINDI_142": "bhartiya-hindi-142",
               "ITC Bookman Demi Italic": "itc-bookman-demi-italic",
               "ISFOC-TTBorder-1 Normal": "isfoc-ttborder-1-normal",
-              "DF Calligraphic Ornaments LET": "df-calligraphic-ornaments-let",
+              "DFCalligraphicOrnament": "df-calligraphic-ornament",
               "Embassy BT": "embassy-bt",
               "Kruti Dev 010": "kruti-dev-010",
               "Kruti Dev 012": "kruti-dev-012",
