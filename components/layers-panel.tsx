@@ -19,7 +19,7 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import type { Overlay } from "./pdf-editor";
+import type { Overlay } from "@/lib/types";
 import { Square } from "lucide-react";
 
 interface LayersPanelProps {

@@ -106,21 +106,21 @@ export default function Home() {
           <div className="mb-4 sm:mb-6 lg:mb-8">
             <Image
               src="/logo.jpg"
-              width={200}
-              height={200}
+              width={150}
+              height={150}
               alt="NC"
-              className="w-24 h-24 sm:w-32 sm:h-32 lg:w-40 lg:h-40 xl:w-48 xl:h-48"
+              className="w-20 h-20 sm:w-30 sm:h-30 lg:w-38 lg:h-38 xl:w-44 xl:h-44"
               priority
             />
           </div>
 
           <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold mb-3 sm:mb-4 lg:mb-6 bg-linear-to-r from-[#6c47ff] to-[#8a6cff] bg-clip-text text-transparent px-4">
-            Beautiful Invitation Templates
+            Beautiful Invitation Cards
           </h1>
 
           <p className="text-base sm:text-lg lg:text-xl text-muted-foreground max-w-xs sm:max-w-md lg:max-w-2xl mx-auto px-4 sm:px-0">
-            Choose from our collection of stunning invitation card templates for
-            every occasion
+            Browse, customize and download stunning invitation cards for every
+            occasion instantly.
           </p>
         </div>
 

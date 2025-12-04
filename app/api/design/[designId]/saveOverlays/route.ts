@@ -11,42 +11,26 @@ export async function POST(
         body = await request.json();
     } catch (err) {
         console.log(err);
-        
+
         body = {};
     }
-    const { userId } = body;
+    const { overlays, userId } = body;
     const { designId } = await context.params;
 
 
     try {
-        const template = await prisma.template.findUnique({
-            where: { uuid: designId },
-            select: {
-                uuid: true,
-                name: true,
-                description: true,
-                catogery: true,
-                tags: true,
-                price: true,
-                paid: true,
-                svg: true,
-                pdf: true,
-                image: true,
-                createdAt: true,
-                savedTemplates: userId
-                    ? {
-                        where: { userId },
-                        select: {
-                            uuid: true,
-                            content: true,
-                            createdAt: true,
-                        },
-                    }
-                    : {}
+        const updatedTemplate = await prisma.savedTemplate.updateMany({
+            where: {
+                userId: userId,
+                templateId: designId
+            },
+            data: {
+                content: overlays
             }
+
         })
 
-        if (!template) {
+        if (!updatedTemplate) {
             return NextResponse.json(
                 { success: false, error: "Template not found" },
                 { status: 404 }
@@ -54,14 +38,12 @@ export async function POST(
         }
 
 
-        const savedTemplates = userId ? template.savedTemplates || [] : [];
-        const hasPurchased = savedTemplates.length > 0;
         return NextResponse.json(
             {
                 success: true,
+                updated: true,
                 data: {
-                    ...template,
-                    hasPurchased,
+                    overlays: overlays
                 },
             },
             { status: 200 }

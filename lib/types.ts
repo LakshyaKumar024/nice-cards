@@ -17,3 +17,44 @@ export const DesignSchema = z.object({
     placeholderImageFileName: z.string().min(4),
     pdfFileName: z.string().min(4)
 });
+
+
+
+
+
+
+export interface TextOverlay {
+  id: string;
+  type: "text";
+  text: string;
+  x: number;
+  y: number;
+  fontSize: number;
+  fontFamily: string;
+  bold: boolean;
+  italic: boolean;
+  color: string;
+  page: number;
+  visible: boolean;
+  zIndex: number;
+  fontFamilyClassName?: string;
+  rotation: number; // Add rotation property (degrees)
+  textAlign: "left" | "center" | "right" | "justify"; // NEW
+}
+
+export interface ShapeOverlay {
+  id: string;
+  type: "shape";
+  shapeType: "square";
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  color: string;
+  page: number;
+  visible: boolean;
+  zIndex: number;
+  rotation: number; // Add rotation property (degrees)
+}
+
+export type Overlay = TextOverlay | ShapeOverlay;

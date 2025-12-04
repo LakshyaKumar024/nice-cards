@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import "@/app/fonts.css"; // Import custom fonts
 import { Info, X } from "lucide-react";
+import { Overlay } from "@/lib/types";
 
 interface EditPDFPageProps {
   params: Promise<{
@@ -18,6 +19,7 @@ export default function EditPDFPage({ params }: EditPDFPageProps) {
   const { templateId } = use(params);
   const { user, isLoaded: userLoaded } = useUser();
   const [pdfFName, setPdfFName] = useState<string | null>(null);
+  const [userContent, setUserContent] = useState<Overlay[] | []>(null);
   const [showNote, setShowNote] = useState(true);
 
   const router = useRouter();
@@ -60,6 +62,9 @@ export default function EditPDFPage({ params }: EditPDFPageProps) {
         }
         //its pdf filename
         setPdfFName(data.data.pdf);
+        
+        setUserContent(JSON.parse(data.data.savedTemplates[0].content));
+
       } catch (error) {
         console.error("Error checking access:", error);
         toast.error("An error occurred while checking access.");
@@ -108,7 +113,7 @@ export default function EditPDFPage({ params }: EditPDFPageProps) {
           </div>
         )}
         <div className="flex-1 min-h-0">
-          <PDFEditor templateId={templateId} pdfFName={pdfFName} />
+          <PDFEditor templateId={templateId} userId={user?.id} pdfFName={pdfFName} defaultOverlays={userContent} />
         </div>
       </div>
     </>

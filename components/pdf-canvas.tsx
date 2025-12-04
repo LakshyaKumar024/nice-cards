@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import * as pdfjsLib from "pdfjs-dist";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Overlay, TextOverlay, ShapeOverlay } from "./pdf-editor";
+import type { Overlay, TextOverlay, ShapeOverlay } from "@/lib/types";
 
 // Configure pdfjs worker
 if (typeof window !== "undefined") {

@@ -49,7 +49,7 @@ model SavedTemplate {
   uuid          String   @id @default(uuid())
   userId        String
   templateId    String
-  file_location String?
+  content String?
   createdAt     DateTime @default(now())
 
   template Template @relation(fields: [templateId], references: [uuid], onDelete: Cascade)

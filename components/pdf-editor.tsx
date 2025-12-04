@@ -25,51 +25,19 @@ import { FormattingToolbar } from "@/components/formatting-toolbar";
 import { LayersPanel } from "@/components/layers-panel";
 import { loadPDFDocument } from "@/lib/pdf-utils";
 import { exportPDFWithOverlays } from "@/lib/export-utils";
+import { Overlay, ShapeOverlay, TextOverlay } from "@/lib/types";
+import { toast } from "sonner";
 
 // Configure pdfjs worker
 if (typeof window !== "undefined") {
   pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 }
 
-export interface TextOverlay {
-  id: string;
-  type: "text";
-  text: string;
-  x: number;
-  y: number;
-  fontSize: number;
-  fontFamily: string;
-  bold: boolean;
-  italic: boolean;
-  color: string;
-  page: number;
-  visible: boolean;
-  zIndex: number;
-  fontFamilyClassName?: string;
-  rotation: number; // Add rotation property (degrees)
-  textAlign: "left" | "center" | "right" | "justify"; // NEW
-}
-
-export interface ShapeOverlay {
-  id: string;
-  type: "shape";
-  shapeType: "square";
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  color: string;
-  page: number;
-  visible: boolean;
-  zIndex: number;
-  rotation: number; // Add rotation property (degrees)
-}
-
-export type Overlay = TextOverlay | ShapeOverlay;
-
 interface PDFEditorProps {
   pdfFName: string;
   templateId: string;
+  defaultOverlays?: Overlay[];
+  userId: string;
 }
 
 // Utility to convert a font family (like "Open Sans") to a class name ("open-sans")
@@ -77,13 +45,13 @@ function fontFamilyToClassName(fontFamily: string) {
   return fontFamily.replace(/\s+/g, "-").toLowerCase();
 }
 
-export default function PDFEditor({ pdfFName, templateId }: PDFEditorProps) {
+export default function PDFEditor({ pdfFName, templateId, defaultOverlays, userId }: PDFEditorProps) {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [pdfDocument, setPdfDocument] =
     useState<pdfjsLib.PDFDocumentProxy | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [numPages, setNumPages] = useState(0);
-  const [overlays, setOverlays] = useState<Overlay[]>([]);
+  const [overlays, setOverlays] = useState<Overlay[]>(defaultOverlays || []);
   const [selectedOverlayId, setSelectedOverlayId] = useState<string | null>(
     null
   );
@@ -92,7 +60,7 @@ export default function PDFEditor({ pdfFName, templateId }: PDFEditorProps) {
   const [toolMode, setToolMode] = useState<"text" | "shape">("text");
   const applyFontToSelectionRef = useRef<((fontFamily: string) => void) | null>(null);
 
-  const selectedOverlay = overlays.find((o) => o.id === selectedOverlayId);
+  const selectedOverlay = overlays?.find((o) => o.id === selectedOverlayId) || null;
 
   useEffect(() => {
     // Preload custom fonts for export
@@ -165,10 +133,12 @@ export default function PDFEditor({ pdfFName, templateId }: PDFEditorProps) {
         setPdfDocument(pdf);
         setNumPages(pdf.numPages);
         setCurrentPage(1);
-        setOverlays([]);
+        setOverlays(defaultOverlays || []); // Add fallback here
         setSelectedOverlayId(null);
       } catch (error) {
         console.error("Error loading PDF:", error);
+        // Also set overlays to empty array on error
+        setOverlays([]);
       } finally {
         setIsLoading(false);
       }
@@ -176,6 +146,7 @@ export default function PDFEditor({ pdfFName, templateId }: PDFEditorProps) {
 
     loadPDF();
   }, [pdfFName, templateId]);
+
 
   const handleAddOverlay = useCallback(
     (overlay: Omit<TextOverlay, "id"> | Omit<ShapeOverlay, "id">) => {
@@ -413,6 +384,23 @@ export default function PDFEditor({ pdfFName, templateId }: PDFEditorProps) {
       link.click();
 
       URL.revokeObjectURL(url);
+
+      const saveOverlays = await fetch(`/api/design/${templateId}/saveOverlays`, {
+        method: "POST",
+        body: JSON.stringify({
+          userId: userId,
+          overlays: JSON.stringify(overlays),
+        }),
+        headers: {
+          "Content-Type": "application/json",
+        }
+      })
+      if (saveOverlays.ok) {
+        toast.success("Saved Current Design", { description: "Your edits are saved and will be preloded next time." })
+      }
+      else {
+        toast.info("Current Design is not saved", { description: "Your edits are'nt saved and will not be preloded next time." })
+      }
     } catch (error) {
       console.error("Error exporting PDF:", error);
     } finally {

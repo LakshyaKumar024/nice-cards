@@ -10,7 +10,7 @@ import {
   translate,
 } from 'pdf-lib';
 import * as fontkit from 'fontkit';
-import type { Overlay, TextOverlay, ShapeOverlay } from '@/components/pdf-editor';
+import type { Overlay, TextOverlay, ShapeOverlay } from '@/lib/types';
 import { loadCustomFont, isCustomFont } from './custom-fonts';
 
 function hexToRgb(hex: string) {

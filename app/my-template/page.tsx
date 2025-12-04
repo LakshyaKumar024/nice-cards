@@ -29,7 +29,7 @@ export default function TemplatesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredTemplates, setFilteredTemplates] = useState<Template[]>([]);
   const router = useRouter();
-  
+
   useEffect(() => {
     fetch("/api/design/mytemplates", {
       method: "GET",
@@ -65,13 +65,13 @@ export default function TemplatesPage() {
     <div className="min-h-screen bg-background">
       {/* Header Section */}
       <div className="border-b border-border bg-card">
-        <div className="container mx-auto px-4 py-12 sm:py-16">
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold tracking-tight text-foreground md:text-5xl text-balance">
-              My Design Templates
-            </h1>
-            <p className="mt-3 text-lg text-muted-foreground">
-              Access and manage your purchased SVG templates
+        <div className="container mx-auto px-4 py-5 sm:py-12">
+          <div className="mb-5">
+            <h2 className="text-4xl font-bold tracking-tight text-foreground md:text-5xl text-balance">
+              My Templates
+            </h2>
+            <p className="mt-3 text-md text-muted-foreground">
+              Access and manage your purchased Cards
             </p>
           </div>
 
@@ -89,7 +89,7 @@ export default function TemplatesPage() {
       </div>
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-4 py-4">
         {/* Results Count */}
         <div className="mb-8 flex items-center gap-2 text-sm text-muted-foreground">
           <Grid className="h-4 w-4" />
@@ -99,7 +99,7 @@ export default function TemplatesPage() {
           </span>
         </div>
 
-        {/* Templates Grid */}
+        {/* cards Grid */}
         {filteredTemplates.length > 0 ? (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {filteredTemplates.map((template) => (
@@ -140,7 +140,8 @@ export default function TemplatesPage() {
 
                   <CardContent>
                     <Button
-                      className="w-full bg-primary hover:bg-primary/90"
+
+                      className="w-full bg-primary hover:bg-primary/90 cursor-pointer"
                       onClick={(e) => {
                         router.push(`/edit/${template.uuid}`);
                       }}
@@ -157,12 +158,12 @@ export default function TemplatesPage() {
           <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border bg-card/50 py-16 px-4">
             <FileImage className="mb-4 h-12 w-12 text-muted-foreground opacity-50" />
             <h3 className="mb-2 text-lg font-semibold text-foreground">
-              No templates found
+              No Card found
             </h3>
             <p className="text-sm text-muted-foreground">
               {searchQuery
                 ? "Try adjusting your search criteria"
-                : "You haven't purchased any templates yet"}
+                : "You haven't purchased any cards yet"}
             </p>
           </div>
         )}
