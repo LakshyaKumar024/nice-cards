@@ -190,7 +190,8 @@ async function drawTextOverlay(
     const normalized = rawText.normalize("NFC");
 
     // ========== ADJUSTABLE POSITION OFFSET ==========
-    const EXPLICIT_POSITION_ADDITION = 8; // Adjust this value as needed (positive = move up)
+    const EXPLICIT_POSITION_ADDITION = 4; // Adjust this value as needed (positive = move up)
+    const EXPLICIT_POSITION_LEFT = 2; // Adjust this value as needed (positive = move up)
 
     // ========== PARSE HTML INTO SEGMENTS (multi-font) ==========
     const segments: Array<{ text: string; font: any }> = [];
@@ -202,7 +203,7 @@ async function drawTextOverlay(
       if (isBlockElement && segments.length > 0 && segments[segments.length - 1].text !== "\n") {
         segments.push({ text: "\n", font: resolveFont(currentFontFamily) });
       }
-      
+
       for (const child of node.childNodes) {
         if (child.nodeType === 3) { // TEXT_NODE
           const text = child.textContent || "";
@@ -215,10 +216,10 @@ async function drawTextOverlay(
         } else if (child.nodeType === 1) { // ELEMENT_NODE
           const el = child as HTMLElement;
           const chosenFont = el.getAttribute("data-font") || currentFontFamily;
-          
+
           // Check if this is a block-level element that should create a new line
           const isBlock = ["DIV", "P", "H1", "H2", "H3", "H4", "H5", "H6", "UL", "OL", "LI", "SECTION", "ARTICLE"].includes(el.tagName);
-          
+
           // Handle BR elements
           if (el.tagName === "BR") {
             segments.push({ text: "\n", font: resolveFont(chosenFont) });
@@ -226,7 +227,7 @@ async function drawTextOverlay(
             // Process children of other elements
             walk(el, chosenFont, isBlock);
           }
-          
+
           // Add newline after block elements (except for the last one)
           if (isBlock && child.nextSibling) {
             segments.push({ text: "\n", font: resolveFont(chosenFont) });
@@ -316,9 +317,9 @@ async function drawTextOverlay(
     const centerY = pageHeight - overlay.y * pageHeight; // Convert to PDF coords (Y down)
 
     const lineHeight = fontSize * 1.25;
-    
+
     // Calculate line widths for alignment
-    const lineWidths = lines.map(line => 
+    const lineWidths = lines.map(line =>
       line.reduce((total, seg) => total + seg.width, 0)
     );
     const maxLineWidth = Math.max(...lineWidths, 0); // Handle empty lines
@@ -328,7 +329,7 @@ async function drawTextOverlay(
     // So the text box is centered at (centerX, centerY)
     // In PDF: boxY is the BOTTOM of the text box (Y increases upward)
     // Apply the explicit position adjustment here
-    const boxX = centerX - maxLineWidth / 2;  // Left edge of bounding box
+    const boxX = centerX - maxLineWidth / 2 - EXPLICIT_POSITION_LEFT;  // Left edge of bounding box
     const boxY = centerY - totalHeight / 2 + EXPLICIT_POSITION_ADDITION;   // Bottom edge with adjustment
 
     // ========== ALIGNMENT INSIDE THE BOX ==========
@@ -348,10 +349,10 @@ async function drawTextOverlay(
         // Filter out empty segments but keep spaces
         const cleaned = line.filter(s => s.text.trim() !== "" || s.text === " ");
         const lineWidth = cleaned.reduce((total, seg) => total + seg.width, 0);
-        
+
         // Get X position based on alignment
         const x = getAlignedX(lineWidth);
-        
+
         // Y position: 
         // In PDF, Y increases upward, so we need to calculate from bottom up
         // First line (index 0) should be at the TOP in canvas view, but
