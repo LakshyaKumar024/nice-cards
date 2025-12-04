@@ -56,6 +56,8 @@ export function PDFCanvas({
   // Use a persistent DOM marker to represent the user's selection so it
   // survives focus changes (toolbars, portals) which collapse native Ranges.
   const savedMarkerRef = useRef<HTMLElement | null>(null);
+  // Track if we're intentionally exiting edit mode (e.g., via Escape)
+  const isExitingEditMode = useRef(false);
 
   // Wait for fonts to load
   useEffect(() => {
@@ -1009,6 +1011,12 @@ export function PDFCanvas({
                           }
                         }}
                         onBlur={() => {
+                          // Don't refocus if we're intentionally exiting edit mode
+                          if (isExitingEditMode.current) {
+                            isExitingEditMode.current = false;
+                            return;
+                          }
+                          
                           // Always refocus the editor while in editing mode
                           // This keeps it focused even when clicking toolbar or outside
                           setTimeout(() => {
@@ -1019,6 +1027,12 @@ export function PDFCanvas({
                         }}
                         onKeyDown={(e) => {
                           if (e.key === "Escape") {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            
+                            // Set flag to prevent onBlur from refocusing
+                            isExitingEditMode.current = true;
+                            
                             // Clear highlight on escape and exit edit mode
                             if (editableDivRef.current) {
                               const marks =
@@ -1032,6 +1046,8 @@ export function PDFCanvas({
                                 }
                                 parent?.removeChild(mark);
                               });
+                              // Blur the editor to exit edit mode
+                              editableDivRef.current.blur();
                             }
                             savedMarkerRef.current = null;
                             handleTextBlur();
