@@ -169,6 +169,15 @@ export async function exportPDFWithOverlays(
 
 
 
+
+
+
+
+
+
+
+
+
 async function drawTextOverlay(
   page: any,
   overlay: TextOverlay,
@@ -180,32 +189,53 @@ async function drawTextOverlay(
     const rawText = overlay.text || "";
     const normalized = rawText.normalize("NFC");
 
-const EXPLICIT_POSITION_ADDITION = 4; 
+    // ========== ADJUSTABLE POSITION OFFSET ==========
+    const EXPLICIT_POSITION_ADDITION = 10; // Adjust this value as needed (positive = move up)
 
     // ========== PARSE HTML INTO SEGMENTS (multi-font) ==========
     const segments: Array<{ text: string; font: any }> = [];
     const parser = new DOMParser();
     const doc = parser.parseFromString(rawText, "text/html");
 
-    function walk(node: any, currentFontFamily: string | null) {
+    function walk(node: any, currentFontFamily: string | null, isBlockElement: boolean = false) {
+      // If this is a block element and we have previous content, add a newline
+      if (isBlockElement && segments.length > 0 && segments[segments.length - 1].text !== "\n") {
+        segments.push({ text: "\n", font: resolveFont(currentFontFamily) });
+      }
+      
       for (const child of node.childNodes) {
-        if (child.nodeType === 3) {
-          segments.push({
-            text: child.textContent || "",
-            font: resolveFont(currentFontFamily),
-          });
-        } else if (child.nodeType === 1) {
+        if (child.nodeType === 3) { // TEXT_NODE
+          const text = child.textContent || "";
+          if (text.trim() !== "") {
+            segments.push({
+              text: text,
+              font: resolveFont(currentFontFamily),
+            });
+          }
+        } else if (child.nodeType === 1) { // ELEMENT_NODE
           const el = child as HTMLElement;
           const chosenFont = el.getAttribute("data-font") || currentFontFamily;
+          
+          // Check if this is a block-level element that should create a new line
+          const isBlock = ["DIV", "P", "H1", "H2", "H3", "H4", "H5", "H6", "UL", "OL", "LI", "SECTION", "ARTICLE"].includes(el.tagName);
+          
+          // Handle BR elements
           if (el.tagName === "BR") {
             segments.push({ text: "\n", font: resolveFont(chosenFont) });
+          } else {
+            // Process children of other elements
+            walk(el, chosenFont, isBlock);
           }
-          walk(el, chosenFont);
+          
+          // Add newline after block elements (except for the last one)
+          if (isBlock && child.nextSibling) {
+            segments.push({ text: "\n", font: resolveFont(chosenFont) });
+          }
         }
       }
     }
 
-    walk(doc.body, overlay.fontFamily);
+    walk(doc.body, overlay.fontFamily, false);
 
     // ========== HELPER: SELECT FONT FROM CACHE ==========
     function resolveFont(fontFamily: string | null) {
@@ -232,21 +262,35 @@ const EXPLICIT_POSITION_ADDITION = 4;
     const fontSize = overlay.fontSize / CANVAS_SCALE;
 
     for (const seg of segments) {
-      if (seg.text.includes("\n")) {
+      if (seg.text === "\n") {
+        // BR tag or explicit newline - start a new line
+        if (currentLine.length > 0) {
+          lines.push([...currentLine]);
+        }
+        currentLine = [];
+      } else if (seg.text.includes("\n")) {
+        // Text contains newlines - split it
         const parts = seg.text.split("\n");
-        parts.forEach((p, idx) => {
-          const width = seg.font.widthOfTextAtSize(p, fontSize);
-          currentLine.push({
-            text: p,
-            font: seg.font,
-            width: width,
-          });
-          if (idx < parts.length - 1) {
-            lines.push(currentLine);
+        for (let i = 0; i < parts.length; i++) {
+          const part = parts[i];
+          if (part.trim() !== "") {
+            const width = seg.font.widthOfTextAtSize(part, fontSize);
+            currentLine.push({
+              text: part,
+              font: seg.font,
+              width: width,
+            });
+          }
+          // If this is not the last part, start a new line
+          if (i < parts.length - 1) {
+            if (currentLine.length > 0) {
+              lines.push([...currentLine]);
+            }
             currentLine = [];
           }
-        });
+        }
       } else {
+        // Normal text segment
         const width = seg.font.widthOfTextAtSize(seg.text, fontSize);
         currentLine.push({
           text: seg.text,
@@ -256,7 +300,15 @@ const EXPLICIT_POSITION_ADDITION = 4;
       }
     }
 
-    if (currentLine.length > 0) lines.push(currentLine);
+    // Add the last line if it has content
+    if (currentLine.length > 0) {
+      lines.push([...currentLine]);
+    }
+
+    // Handle empty lines (if we have consecutive newlines)
+    if (lines.length === 0 && segments.some(s => s.text === "\n")) {
+      lines.push([]); // Add an empty line
+    }
 
     // ========== POSITIONING ==========
     // canvas: anchor is CENTER of the text box with translate(-50%, -50%)
@@ -269,14 +321,15 @@ const EXPLICIT_POSITION_ADDITION = 4;
     const lineWidths = lines.map(line => 
       line.reduce((total, seg) => total + seg.width, 0)
     );
-    const maxLineWidth = Math.max(...lineWidths);
+    const maxLineWidth = Math.max(...lineWidths, 0); // Handle empty lines
     const totalHeight = lines.length * lineHeight;
 
     // canvas uses: translate(-50%, -50%) for centering
     // So the text box is centered at (centerX, centerY)
     // In PDF: boxY is the BOTTOM of the text box (Y increases upward)
+    // Apply the explicit position adjustment here
     const boxX = centerX - maxLineWidth / 2;  // Left edge of bounding box
-    const boxY = centerY - totalHeight / 2 + EXPLICIT_POSITION_ADDITION;   // Bottom edge of bounding box
+    const boxY = centerY - totalHeight / 2 + EXPLICIT_POSITION_ADDITION;   // Bottom edge with adjustment
 
     // ========== ALIGNMENT INSIDE THE BOX ==========
     function getAlignedX(lineWidth: number) {
@@ -293,7 +346,7 @@ const EXPLICIT_POSITION_ADDITION = 4;
     const drawEverything = () => {
       lines.forEach((line, idx) => {
         // Filter out empty segments but keep spaces
-        const cleaned = line.filter(s => s.text !== ""); // Keep spaces
+        const cleaned = line.filter(s => s.text.trim() !== "" || s.text === " ");
         const lineWidth = cleaned.reduce((total, seg) => total + seg.width, 0);
         
         // Get X position based on alignment
@@ -340,6 +393,17 @@ const EXPLICIT_POSITION_ADDITION = 4;
     console.error("❌ Error drawing text overlay:", error);
   }
 }
+
+
+
+
+
+
+
+
+
+
+
 
 
 
