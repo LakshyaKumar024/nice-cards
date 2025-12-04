@@ -9,6 +9,6 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ['/dashboard', '/developer', '/api/'],
       },
     ],
-    sitemap: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://nicecard.in'}/sitemap.xml`,
+    sitemap: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://nicecards.shop'}/sitemap.xml`,
   }
 }

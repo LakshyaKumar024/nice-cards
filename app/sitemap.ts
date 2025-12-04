@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://nicecard.in'
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://nicecards.shop'
 
   // Static routes
   const routes = [

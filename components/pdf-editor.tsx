@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import * as pdfjsLib from "pdfjs-dist";
 import {
   ChevronLeft,
@@ -90,6 +90,7 @@ export default function PDFEditor({ pdfFName, templateId }: PDFEditorProps) {
   const [isExporting, setIsExporting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [toolMode, setToolMode] = useState<"text" | "shape">("text");
+  const applyFontToSelectionRef = useRef<((fontFamily: string) => void) | null>(null);
 
   const selectedOverlay = overlays.find((o) => o.id === selectedOverlayId);
 
@@ -497,6 +498,17 @@ export default function PDFEditor({ pdfFName, templateId }: PDFEditorProps) {
               onRotationChange={(rotation) =>
                 handleUpdateOverlay(selectedOverlay.id, { rotation })
               }
+              onApplyFontToSelection={(fontFamily) => {
+                // Call the canvas function directly to apply font to selection
+                console.log('onApplyFontToSelection called with:', fontFamily);
+                console.log('applyFontToSelectionRef.current:', applyFontToSelectionRef.current);
+                if (applyFontToSelectionRef.current) {
+                  console.log('Calling applyFontToSelection...');
+                  applyFontToSelectionRef.current(fontFamily);
+                } else {
+                  console.log('ERROR: applyFontToSelectionRef.current is null!');
+                }
+              }}
             />
           ) : (
             <FormattingToolbar
@@ -629,7 +641,15 @@ export default function PDFEditor({ pdfFName, templateId }: PDFEditorProps) {
         </div>
 
         {/* PDF Canvas Area - Scrollable */}
-        <div className="flex-1 overflow-auto bg-muted/30">
+        <div className="flex-1 overflow-auto bg-muted/30 relative">
+          {/* ESC Hint - Shows when editing */}
+          {selectedOverlayId && (
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-primary text-primary-foreground px-4 py-2 rounded-md shadow-lg text-sm font-medium flex items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
+              <span>Press</span>
+              <kbd className="px-2 py-1 bg-primary-foreground/20 rounded text-xs font-mono">ESC</kbd>
+              <span>to exit editing mode</span>
+            </div>
+          )}
           <div className="min-h-full p-8 flex justify-center items-start">
             <PDFCanvas
               pdfDocument={pdfDocument}
@@ -641,6 +661,9 @@ export default function PDFEditor({ pdfFName, templateId }: PDFEditorProps) {
               onAddOverlay={handleAddOverlay}
               onAddShape={handleAddShape}
               toolMode={toolMode}
+              onApplyFontRef={(fn) => {
+                applyFontToSelectionRef.current = fn;
+              }}
             />
           </div>
         </div>

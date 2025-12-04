@@ -23,6 +23,7 @@ interface PDFCanvasProps {
   onAddOverlay: (overlay: Omit<TextOverlay, "id">) => void;
   onAddShape: (x: number, y: number) => void;
   toolMode: "text" | "shape";
+  onApplyFontRef?: (ref: (fontFamily: string) => void) => void;
 }
 
 export function PDFCanvas({
@@ -35,10 +36,10 @@ export function PDFCanvas({
   onAddOverlay,
   onAddShape,
   toolMode,
+  onApplyFontRef,
 }: PDFCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const editableDivRef = useRef<HTMLDivElement>(null);
 
   const [pageDimensions, setPageDimensions] = useState({ width: 0, height: 0 });
@@ -52,6 +53,9 @@ export function PDFCanvas({
   const renderTaskRef = useRef<pdfjsLib.RenderTask | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [fontsLoaded, setFontsLoaded] = useState(false);
+  // Use a persistent DOM marker to represent the user's selection so it
+  // survives focus changes (toolbars, portals) which collapse native Ranges.
+  const savedMarkerRef = useRef<HTMLElement | null>(null);
 
   // Wait for fonts to load
   useEffect(() => {
@@ -65,50 +69,192 @@ export function PDFCanvas({
   }, []);
 
   useEffect(() => {
-    if (editingOverlayId && textareaRef.current) {
-      const textarea = textareaRef.current;
+    if (editingOverlayId && editableDivRef.current) {
+      const el = editableDivRef.current;
       const overlay = overlays.find((o) => o.id === editingOverlayId);
 
       if (!overlay || overlay.type !== "text") return;
 
       // Reset height and width first
-      textarea.style.height = "auto";
-      textarea.style.width = "auto";
+      el.style.height = "auto";
+      el.style.width = "auto";
 
       // Calculate the required width based on text content
       const canvas = document.createElement("canvas");
       const context = canvas.getContext("2d");
+      const innerText = el.innerText || overlay.text || "";
       if (context) {
         context.font = `${overlay.bold ? "bold " : ""}${
           overlay.italic ? "italic " : ""
         }${overlay.fontSize}px ${overlay.fontFamily}`;
-        const textWidth = context.measureText(textarea.value || "M").width;
+        const textWidth = context.measureText(innerText || "M").width;
 
         // Set width with some padding
         const newWidth = Math.max(50, textWidth + 10);
-        textarea.style.width = `${newWidth}px`;
+        el.style.width = `${newWidth}px`;
       }
 
-      // NEW: Calculate the required height based on text content
-      // Calculate approximate line height
+      // Calculate the required height based on text content
       const lineHeight = overlay.fontSize * 1.2;
-
-      // Count the number of lines (approximate)
-      const textLines = textarea.value.split("\n");
+      const textLines = (el.innerText || overlay.text || "").split("\n");
       const numLines = Math.max(1, textLines.length);
-
-      // Set height based on number of lines
       const newHeight = Math.max(
         overlay.fontSize + 4,
         numLines * lineHeight + 4
       );
-      textarea.style.height = `${newHeight}px`;
+      el.style.height = `${newHeight}px`;
 
       // Focus and place cursor at the end
-      textarea.focus();
-      textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+      el.focus();
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      range.collapse(false);
+      const sel = window.getSelection();
+      sel?.removeAllRanges();
+      sel?.addRange(range);
     }
   }, [editingOverlayId, overlays]);
+
+  // Helper function to highlight a range with background color and return
+  // the created marker element. Returning a DOM element lets callers keep
+  // a persistent reference to the selection even after the editor loses focus.
+  const highlightRange = useCallback((range: Range) => {
+    // Remove previous highlights
+    if (editableDivRef.current) {
+      const marks = editableDivRef.current.querySelectorAll(
+        "mark[data-selection]"
+      );
+      marks.forEach((mark) => {
+        const parent = mark.parentNode;
+        while (mark.firstChild) {
+          parent?.insertBefore(mark.firstChild, mark);
+        }
+        parent?.removeChild(mark);
+      });
+    }
+
+    // Create mark element for highlighting
+    const mark = document.createElement("mark");
+    mark.setAttribute("data-selection", "true");
+    mark.style.backgroundColor = "#FFFF00";
+    mark.style.opacity = "0.4";
+
+    try {
+      range.surroundContents(mark);
+    } catch {
+      // If surroundContents fails (range spans multiple elements), use a different approach
+      const contents = range.extractContents();
+      mark.appendChild(contents);
+      range.insertNode(mark);
+    }
+
+    return mark;
+  }, []);
+
+  // Apply selected font to current persistent marker selection inside contentEditable
+  const applyFontToSelection = useCallback(
+    (fontFamily: string) => {
+      console.log("=== applyFontToSelection called ===");
+      console.log("fontFamily:", fontFamily);
+      console.log("savedMarkerRef.current:", savedMarkerRef.current);
+      console.log("editingOverlayId:", editingOverlayId);
+
+      const marker = savedMarkerRef.current;
+      if (!marker) {
+        console.log("EARLY RETURN: No saved marker for selection");
+        return;
+      }
+      try {
+        // --------------------------------------------
+        // STEP 1 — REMOVE ALL FONT SPANS (ancestors + inner)
+        // --------------------------------------------
+
+        // 1️⃣ remove ancestor spans above the marker
+        let parent = marker.parentElement;
+        while (parent && parent !== editableDivRef.current) {
+          if (parent.hasAttribute("data-font")) {
+            const outer = parent;
+            const grand = outer.parentElement;
+
+            // unwrap the span
+            while (outer.firstChild) {
+              grand?.insertBefore(outer.firstChild, outer);
+            }
+            grand?.removeChild(outer);
+          }
+          parent = parent.parentElement;
+        }
+
+        // 2️⃣ remove any spans inside the marker
+        const innerSpans = marker.querySelectorAll("span[data-font]");
+        innerSpans.forEach((s) => {
+          const p = s.parentNode;
+          while (s.firstChild) p?.insertBefore(s.firstChild, s);
+          p?.removeChild(s);
+        });
+
+        // --------------------------------------------
+        // STEP 2 — CREATE NEW FONT SPAN WITH INLINE STYLE
+        // --------------------------------------------
+
+        const span = document.createElement("span");
+
+        // build CSS class name
+        const className = fontFamily
+          .replace(/\s+/g, "-")
+          .replace(/[^a-zA-Z0-9\-]/g, "")
+          .toLowerCase();
+
+        span.setAttribute("data-font", fontFamily);
+        span.setAttribute("data-font-class", className);
+        span.className = className;
+
+        // IMPORTANT: set inline font-family so font actually renders
+        span.style.fontFamily = `"${fontFamily}", sans-serif`;
+
+        // move highlighted text inside new span
+        while (marker.firstChild) {
+          span.appendChild(marker.firstChild);
+        }
+
+        // replace marker with this new span
+        marker.parentNode?.replaceChild(span, marker);
+
+        // clear saved marker
+        savedMarkerRef.current = null;
+
+        // remove remaining <mark> elements from DOM
+        if (editableDivRef.current) {
+          const marks = editableDivRef.current.querySelectorAll(
+            "mark[data-selection]"
+          );
+          marks.forEach((m) => {
+            const parent = m.parentNode;
+            while (m.firstChild) parent?.insertBefore(m.firstChild, m);
+            parent?.removeChild(m);
+          });
+        }
+
+        // update overlay HTML
+        if (editingOverlayId) {
+          const html = editableDivRef.current?.innerHTML || "";
+          onUpdateOverlay(editingOverlayId, { text: html });
+        }
+      } catch (error) {
+        console.error("Error in applyFontToSelection:", error);
+      }
+    },
+    [editingOverlayId, onUpdateOverlay]
+  );
+
+  // Pass applyFontToSelection function to parent so toolbar can call it directly
+  useEffect(() => {
+    console.log("Setting applyFontToSelection ref");
+    if (onApplyFontRef) {
+      onApplyFontRef(applyFontToSelection);
+      console.log("Ref set!");
+    }
+  }, [applyFontToSelection, onApplyFontRef]);
 
   // Handle keyboard for editing only
   useEffect(() => {
@@ -117,17 +263,36 @@ export function PDFCanvas({
         event.preventDefault();
         setEditingOverlayId(selectedOverlayId);
       }
-      if (event.key === "Escape" && editingOverlayId) {
+      if (event.key === "Escape") {
         event.preventDefault();
-        setEditingOverlayId(null);
+        // If editing, clear highlight and exit edit mode
+        if (editingOverlayId) {
+          if (editableDivRef.current) {
+            const marks = editableDivRef.current.querySelectorAll(
+              "mark[data-selection]"
+            );
+            marks.forEach((mark) => {
+              const parent = mark.parentNode;
+              while (mark.firstChild) {
+                parent?.insertBefore(mark.firstChild, mark);
+              }
+              parent?.removeChild(mark);
+            });
+          }
+          savedMarkerRef.current = null;
+          setEditingOverlayId(null);
+        }
+        // Always deselect overlay on ESC (whether editing or just selected)
+        onSelectOverlay(null);
       }
     };
 
     document.addEventListener("keydown", handleKeyDown);
+
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [selectedOverlayId, editingOverlayId]);
+  }, [selectedOverlayId, editingOverlayId, onSelectOverlay]);
 
   // Render PDF page
   useEffect(() => {
@@ -189,6 +354,28 @@ export function PDFCanvas({
       }
     };
   }, [pdfDocument, pageNumber]);
+
+  useEffect(() => {
+    const el = editableDivRef.current;
+    if (!el) return;
+
+    const handleSelection = () => {
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
+        const range = sel.getRangeAt(0);
+        const marker = highlightRange(range);
+        savedMarkerRef.current = marker;
+      }
+    };
+
+    el.addEventListener("mouseup", handleSelection);
+    el.addEventListener("keyup", handleSelection);
+
+    return () => {
+      el.removeEventListener("mouseup", handleSelection);
+      el.removeEventListener("keyup", handleSelection);
+    };
+  }, [highlightRange]);
 
   // Handle double-click to add new text or shape
   const handleCanvasDoubleClick = useCallback(
@@ -300,14 +487,40 @@ export function PDFCanvas({
 
       if (clickedOverlay) {
         onSelectOverlay(clickedOverlay.id);
-        setEditingOverlayId(null);
+        // Exit edit mode if clicking on a different overlay
+        if (editingOverlayId && clickedOverlay.id !== editingOverlayId) {
+          // Clear highlight before exiting
+          if (editableDivRef.current) {
+            const marks = editableDivRef.current.querySelectorAll(
+              "mark[data-selection]"
+            );
+            marks.forEach((mark) => {
+              const parent = mark.parentNode;
+              while (mark.firstChild) {
+                parent?.insertBefore(mark.firstChild, mark);
+              }
+              parent?.removeChild(mark);
+            });
+          }
+          savedMarkerRef.current = null;
+          setEditingOverlayId(null);
+        }
       } else {
-        // Clicked outside any overlay - deselect everything
-        onSelectOverlay(null);
-        setEditingOverlayId(null);
+        // Clicked outside any overlay - keep edit mode active (like Canva)
+        // Only deselect if not currently editing
+        if (!editingOverlayId) {
+          onSelectOverlay(null);
+        }
       }
     },
-    [overlays, pageNumber, pageDimensions, isLoading, onSelectOverlay]
+    [
+      overlays,
+      pageNumber,
+      pageDimensions,
+      isLoading,
+      onSelectOverlay,
+      editingOverlayId,
+    ]
   );
 
   const handleDragStart = useCallback(
@@ -774,20 +987,58 @@ export function PDFCanvas({
                       className="relative"
                       onDoubleClick={(e) => e.stopPropagation()}
                       onMouseDown={(e) => e.stopPropagation()}
+                      onClick={(e) => e.stopPropagation()}
                     >
-                      <textarea
-                        ref={textareaRef}
-                        value={overlay.text}
-                        onChange={(e) =>
-                          handleTextChange(overlay.id, e.target.value)
-                        }
-                        onBlur={handleTextBlur}
-                        onKeyDown={(e) => {
-                          if (e.key === "Escape") {
-                            handleTextBlur();
+                      <div
+                        ref={editableDivRef}
+                        contentEditable
+                        suppressContentEditableWarning
+                        onInput={(e) => {
+                          const html = (e.target as HTMLDivElement).innerHTML;
+                          handleTextChange(overlay.id, html);
+                        }}
+                        onMouseUp={() => {
+                          // Save selection on mouse up
+                          const sel = window.getSelection();
+                          if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
+                            const range = sel.getRangeAt(0);
+                            // Create a persistent marker element for the selection so
+                            // it survives focus/blur when interacting with toolbar UI.
+                            const marker = highlightRange(range.cloneRange());
+                            savedMarkerRef.current = marker;
                           }
                         }}
-                        className="outline-none bg-transparent resize-none border-none overflow-hidden"
+                        onBlur={() => {
+                          // Always refocus the editor while in editing mode
+                          // This keeps it focused even when clicking toolbar or outside
+                          setTimeout(() => {
+                            if (editableDivRef.current && editingOverlayId) {
+                              editableDivRef.current.focus();
+                            }
+                          }, 0);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Escape") {
+                            // Clear highlight on escape and exit edit mode
+                            if (editableDivRef.current) {
+                              const marks =
+                                editableDivRef.current.querySelectorAll(
+                                  "mark[data-selection]"
+                                );
+                              marks.forEach((mark) => {
+                                const parent = mark.parentNode;
+                                while (mark.firstChild) {
+                                  parent?.insertBefore(mark.firstChild, mark);
+                                }
+                                parent?.removeChild(mark);
+                              });
+                            }
+                            savedMarkerRef.current = null;
+                            handleTextBlur();
+                            onSelectOverlay(null); // Deselect overlay to remove blue ring
+                          }
+                        }}
+                        className="outline-none bg-transparent border-none overflow-hidden"
                         style={{
                           fontFamily: `"${overlay.fontFamily}", sans-serif`,
                           fontSize: `${overlay.fontSize}px`,
@@ -798,20 +1049,17 @@ export function PDFCanvas({
                           lineHeight: "1.2",
                           padding: "2px",
                           minWidth: "50px",
-                          minHeight: `${overlay.fontSize + 4}px`, // Minimum height
+                          minHeight: `${overlay.fontSize + 4}px`,
                           width: "auto",
                           height: "auto",
                           maxWidth: `${pageDimensions.width * 0.8}px`,
                           marginTop: `${overlay.fontSize / 2}px`,
                           display: "block",
                           direction: "ltr",
-                          // Allow vertical expansion
-                          whiteSpace: "pre-wrap", // Changed from "nowrap" to allow wrapping
-                          overflow: "hidden", // Keep hidden to prevent scrollbars
+                          whiteSpace: "pre-wrap",
+                          overflow: "hidden",
                         }}
-                        autoFocus
-                        wrap="off"
-                        rows={1}
+                        dangerouslySetInnerHTML={{ __html: overlay.text || "" }}
                       />
                     </div>
                   ) : (
@@ -845,7 +1093,11 @@ export function PDFCanvas({
                         cursor: "move",
                       }}
                     >
-                      {overlay.text || (
+                      {overlay.text ? (
+                        <div
+                          dangerouslySetInnerHTML={{ __html: overlay.text }}
+                        />
+                      ) : (
                         <span className="text-gray-500 italic">
                           Double-click to edit
                         </span>

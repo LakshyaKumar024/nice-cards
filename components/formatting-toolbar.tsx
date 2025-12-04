@@ -44,6 +44,7 @@ interface FormattingToolbarProps {
   onShapeHeightChange?: (height: number) => void;
   textAlign?: "left" | "center" | "right" | "justify";
   onTextAlignChange?: (align: "left" | "center" | "right" | "justify") => void;
+  onApplyFontToSelection?: (fontFamily: string) => void; // NEW: apply font to selected text
 }
 
 // Organized font groups
@@ -118,6 +119,7 @@ export function FormattingToolbar({
   onShapeHeightChange,
   textAlign,
   onTextAlignChange,
+  onApplyFontToSelection, // NEW
 }: FormattingToolbarProps) {
   const isShapeMode = shapeWidth !== undefined && shapeHeight !== undefined;
 
@@ -141,7 +143,7 @@ export function FormattingToolbar({
   };
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="p-4 space-y-4" data-toolbar="true">
       {isShapeMode ? (
         <>
           {/* Shape Size - Width */}
@@ -282,6 +284,58 @@ export function FormattingToolbar({
               </SelectContent>
             </Select>
           </div>
+
+          {/* Apply Font to Selected Text */}
+          {onApplyFontToSelection && (
+            <div className="space-y-2" onMouseDown={(e) => {
+              // Prevent blur on editor when interacting with select
+              e.preventDefault();
+            }}>
+              <Label htmlFor="apply-font">Apply Font to Selection</Label>
+              <Select onValueChange={onApplyFontToSelection}>
+                <SelectTrigger onMouseDown={(e) => e.preventDefault()}>
+                  <SelectValue placeholder="Select font to apply" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectLabel>Standard Fonts</SelectLabel>
+                    {fontGroups.standard.map((font) => (
+                      <SelectItem key={font} value={font}>
+                        {font}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+
+                  <SelectGroup>
+                    <SelectLabel>Unicode Hindi (Recommended)</SelectLabel>
+                    {fontGroups.unicodeHindi.map((font) => (
+                      <SelectItem key={font} value={font}>
+                        {font}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+
+                  <SelectGroup>
+                    <SelectLabel>Legacy Hindi (Typing Only)</SelectLabel>
+                    {fontGroups.legacyHindi.map((font) => (
+                      <SelectItem key={font} value={font}>
+                        {font}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+
+                  <SelectGroup>
+                    <SelectLabel>Decorative Fonts</SelectLabel>
+                    {fontGroups.decorative.map((font) => (
+                      <SelectItem key={font} value={font}>
+                        {font}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Font Size */}
           <div className="space-y-2">

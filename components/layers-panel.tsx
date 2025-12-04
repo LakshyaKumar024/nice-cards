@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Eye, EyeOff, Trash2, GripVertical, RotateCw } from 'lucide-react';
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Eye, EyeOff, Trash2, GripVertical, RotateCw } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -11,16 +11,16 @@ import {
   useSensor,
   useSensors,
   DragEndEvent,
-} from '@dnd-kit/core';
+} from "@dnd-kit/core";
 import {
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
   useSortable,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import type { Overlay } from './pdf-editor';
-import { Square } from 'lucide-react';
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import type { Overlay } from "./pdf-editor";
+import { Square } from "lucide-react";
 
 interface LayersPanelProps {
   overlays: Overlay[];
@@ -38,6 +38,35 @@ interface SortableOverlayItemProps {
   onSelectOverlay: (id: string) => void;
   onDeleteOverlay: (id: string) => void;
   onToggleVisibility: (id: string) => void;
+}
+
+function trimHTMLPreserveSpans(html: string, maxChars: number): string {
+  const div = document.createElement("div");
+  div.innerHTML = html;
+
+  let remaining = maxChars;
+
+  function trimNode(node: Node) {
+    if (remaining <= 0) {
+      node.textContent = "";
+      return;
+    }
+    if (node.nodeType === Node.TEXT_NODE) {
+      const text = node.textContent || "";
+      if (text.length > remaining) {
+        node.textContent = text.slice(0, remaining);
+        remaining = 0;
+      } else {
+        remaining -= text.length;
+      }
+    } else {
+      const children = Array.from(node.childNodes);
+      for (const child of children) trimNode(child);
+    }
+  }
+
+  trimNode(div);
+  return div.innerHTML;
 }
 
 function SortableOverlayItem({
@@ -67,9 +96,9 @@ function SortableOverlayItem({
       style={style}
       className={`flex items-center gap-2 p-2 rounded-lg border transition-colors ${
         selectedOverlayId === overlay.id
-          ? 'bg-blue-50 border-blue-200'
-          : 'bg-white border-gray-200 hover:bg-gray-50'
-      } ${isDragging ? 'opacity-50' : ''}`}
+          ? "bg-blue-50 border-blue-200"
+          : "bg-white border-gray-200 hover:bg-gray-50"
+      } ${isDragging ? "opacity-50" : ""}`}
     >
       <Button
         variant="ghost"
@@ -80,23 +109,29 @@ function SortableOverlayItem({
       >
         <GripVertical className="w-4 h-4" />
       </Button>
-      
-      <div 
+
+      <div
         className="flex-1 cursor-pointer overflow-hidden"
         onClick={() => onSelectOverlay(overlay.id)}
       >
-        {overlay.type === 'shape' ? (
+        {overlay.type === "shape" ? (
           <>
             <div className="flex items-center gap-2">
-              <Square className="w-4 h-4 shrink-0" style={{ color: overlay.color }} />
-              <p className="text-sm font-medium truncate">
-                Square Shape
-              </p>
+              <Square
+                className="w-4 h-4 shrink-0"
+                style={{ color: overlay.color }}
+              />
+              <p className="text-sm font-medium truncate">Square Shape</p>
             </div>
             <div className="flex items-center gap-2 text-xs text-muted-foreground truncate">
-              <span>{Math.round(overlay.x * 100)}%, {Math.round(overlay.y * 100)}%</span>
+              <span>
+                {Math.round(overlay.x * 100)}%, {Math.round(overlay.y * 100)}%
+              </span>
               <span>•</span>
-              <span>{Math.round(overlay.width * 100)}% × {Math.round(overlay.height * 100)}%</span>
+              <span>
+                {Math.round(overlay.width * 100)}% ×{" "}
+                {Math.round(overlay.height * 100)}%
+              </span>
               {overlay.rotation !== 0 && (
                 <>
                   <span>•</span>
@@ -110,24 +145,30 @@ function SortableOverlayItem({
           </>
         ) : (
           <>
-            <p 
-              className="text-sm font-medium" 
-              style={{ 
+            <p
+              className="text-sm font-medium"
+              style={{
                 fontFamily: overlay.fontFamily,
-                fontSize: '14px',
-                fontWeight: overlay.bold ? 'bold' : 'normal',
-                fontStyle: overlay.italic ? 'italic' : 'normal',
+                fontSize: "14px",
+                fontWeight: overlay.bold ? "bold" : "normal",
+                fontStyle: overlay.italic ? "italic" : "normal",
                 color: overlay.color,
-                wordBreak: 'break-word',
-                overflowWrap: 'break-word',
-                whiteSpace: 'normal',
-                lineHeight: '1.4',
+                wordBreak: "break-word",
+                overflowWrap: "break-word",
+                whiteSpace: "normal",
+                lineHeight: "1.4",
               }}
-            >
-              {overlay.text || 'Empty text'}
-            </p>
+              dangerouslySetInnerHTML={{
+                __html:
+                  overlay.type === "text"
+                    ? trimHTMLPreserveSpans(overlay.text || "", 10)
+                    : "Empty text",
+              }}
+            ></p>
             <div className="flex items-center gap-2 text-xs text-muted-foreground truncate">
-              <span>{Math.round(overlay.x * 100)}%, {Math.round(overlay.y * 100)}%</span>
+              <span>
+                {Math.round(overlay.x * 100)}%, {Math.round(overlay.y * 100)}%
+              </span>
               {overlay.rotation !== 0 && (
                 <>
                   <span>•</span>
@@ -155,7 +196,7 @@ function SortableOverlayItem({
             <EyeOff className="w-4 h-4" />
           )}
         </Button>
-        
+
         <Button
           variant="ghost"
           size="icon"
@@ -186,7 +227,7 @@ export function LayersPanel({
   );
 
   const currentPageOverlays = overlays
-    .filter(overlay => overlay.page === currentPage)
+    .filter((overlay) => overlay.page === currentPage)
     .sort((a, b) => b.zIndex - a.zIndex); // Top layer (higher zIndex) first
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -208,19 +249,21 @@ export function LayersPanel({
   }
 
   return (
-    <div className="p-4 h-full flex flex-col">
+    <div className="p-4 h-full flex flex-col z-50">
       <h3 className="text-sm font-semibold mb-3">Layers</h3>
-      <ScrollArea className="flex-1  max-h-10">
+      <ScrollArea className="flex-1  max-h-5">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragEnd={handleDragEnd}
         >
-          <SortableContext 
-            items={currentPageOverlays.map(overlay => overlay.id)}
+          <SortableContext
+            items={currentPageOverlays.map((overlay) => overlay.id)}
             strategy={verticalListSortingStrategy}
           >
-            <div className="space-y-2 pr-2"> {/* Added pr-2 for scrollbar space */}
+            <div className="space-y-2 pr-2 mb-20">
+              {" "}
+              {/* Added pr-2 for scrollbar space */}
               {currentPageOverlays.map((overlay) => (
                 <SortableOverlayItem
                   key={overlay.id}

@@ -53,7 +53,22 @@ export async function exportPDFWithOverlays(
 
     // Get unique fonts from overlays
     const textOverlays = overlays.filter(o => o.type === 'text') as TextOverlay[];
-    const uniqueFonts = [...new Set(textOverlays.map(o => o.fontFamily))];
+
+    // Extract fonts declared inside overlay HTML (data-font attributes) and
+    // also include the overlay-level fontFamily as fallback.
+    const fontSet = new Set<string>();
+    const dataFontRegex = /data-font="([^"]+)"/g;
+
+    for (const o of textOverlays) {
+      if (o.fontFamily) fontSet.add(o.fontFamily);
+      const text = o.text || "";
+      let match;
+      while ((match = dataFontRegex.exec(text))) {
+        fontSet.add(match[1]);
+      }
+    }
+
+    const uniqueFonts = [...fontSet];
 
     // Embed fonts
     for (const fontFamily of uniqueFonts) {
@@ -64,7 +79,7 @@ export async function exportPDFWithOverlays(
           try {
             const customFont = await pdfDoc.embedFont(fontBytes);
             fontCache.set(fontFamily, customFont);
-            
+
             // WORKAROUND: pdf-lib strips spaces from font names internally
             // Store font with both original name and space-stripped version
             const fontFamilyNoSpaces = fontFamily.replace(/\s+/g, '');
@@ -76,7 +91,7 @@ export async function exportPDFWithOverlays(
             fontCache.set(fontFamily + '-bold', customFont);
             fontCache.set(fontFamily + '-italic', customFont);
             fontCache.set(fontFamily + '-bolditalic', customFont);
-            
+
             // Also cache space-stripped versions for styles
             if (fontFamilyNoSpaces !== fontFamily) {
               fontCache.set(fontFamilyNoSpaces + '-bold', customFont);
@@ -134,7 +149,7 @@ export async function exportPDFWithOverlays(
       const page = pages[overlay.page - 1];
       const { width, height } = page.getSize();
 
-      if (overlay.type === 'text' && overlay.text.trim()) {
+      if (overlay.type === 'text' && (overlay.text || "").trim()) {
         await drawTextOverlay(page, overlay, width, height, fontCache);
       } else if (overlay.type === 'shape' && overlay.shapeType === 'square') {
         await drawShapeOverlay(page, overlay, width, height);
@@ -160,167 +175,158 @@ async function drawTextOverlay(
   fontCache: Map<string, any>
 ) {
   try {
-    const normalizedText = overlay.text.normalize("NFC");
+    const rawText = overlay.text || "";
+    const normalizedText = rawText && typeof rawText.normalize === 'function' ? rawText.normalize('NFC') : rawText;
 
-    // ============= FONT ======================
-    let fontKey = overlay.fontFamily;
-    const needsBoldVariant = overlay.bold;
-    const needsItalicVariant = overlay.italic;
-    
-    if (overlay.bold && overlay.italic) fontKey += "-bolditalic";
-    else if (overlay.bold) fontKey += "-bold";
-    else if (overlay.italic) fontKey += "-italic";
-
-    // Try to get font with original key, then base family, then space-stripped versions
-    let font = fontCache.get(fontKey) || fontCache.get(overlay.fontFamily);
-    
-    // WORKAROUND: If not found, try space-stripped version (pdf-lib strips spaces)
-    if (!font) {
-      const fontKeyNoSpaces = fontKey.replace(/\s+/g, '');
-      const fontFamilyNoSpaces = overlay.fontFamily.replace(/\s+/g, '');
-      font = fontCache.get(fontKeyNoSpaces) || fontCache.get(fontFamilyNoSpaces);
-    }
-    
-    if (!font) font = fontCache.values().next().value; // last fallback
-
-    // Check if we got a different font variant or the same font
-    const baseFontName = fontCache.get(overlay.fontFamily)?.name;
-    const selectedFontName = font?.name;
-    const hasActualVariant = baseFontName !== selectedFontName;
-
-    // ============= SIZES ======================
+    // CANVAS SCALE ADJUSTMENT for font size only
     const CANVAS_SCALE = 1.5;
-    const fontSize = overlay.fontSize / CANVAS_SCALE;
+    const adjustedFontSize = overlay.fontSize / CANVAS_SCALE;
 
-    // ============= CANVAS → PDF COORD FIX ======================
-    // canvas: anchor is CENTER of the text box
-    const centerX = overlay.x * pageWidth;
-    const centerY = pageHeight - overlay.y * pageHeight;
-
-    // ========= MEASURE MULTILINE BOX =========
-    const lines = normalizedText.split("\n");
-    const lineHeight = fontSize * 1.2;
-
-    const lineWidths = lines.map((line) =>
-      font.widthOfTextAtSize(line, fontSize)
-    );
-
-    const boxWidth = Math.max(...lineWidths);
-    const boxHeight = lines.length * lineHeight;
-
-    // canvas uses: translate(-50%, -50%)
-    const boxX = centerX - boxWidth / 2;
-    const boxY = centerY - boxHeight / 2;
-
-    // ========== ALIGNMENT INSIDE THE BOX ==========
-    function getAlignedX(lineWidth: number) {
-      if (overlay.textAlign === "center")
-        return boxX + (boxWidth - lineWidth) / 2;
-      if (overlay.textAlign === "right")
-        return boxX + (boxWidth - lineWidth);
-      return boxX; // left
-    }
-
-    // Check if we need to simulate bold/italic for custom fonts
-    const needsSimulateBold = needsBoldVariant && isCustomFont(overlay.fontFamily) && !hasActualVariant;
-    const needsSimulateItalic = needsItalicVariant && isCustomFont(overlay.fontFamily) && !hasActualVariant;
-
-    // ========= APPLY ROTATION AND ITALIC ==========
-    const needsTransform = overlay.rotation !== 0 || needsSimulateItalic;
-    
-    if (needsTransform) {
-      page.pushOperators(pushGraphicsState());
-      
-      if (overlay.rotation !== 0) {
-        const rad = -(overlay.rotation * Math.PI) / 180;
-        page.pushOperators(translate(centerX, centerY));
-        page.pushOperators(rotateRadians(rad));
-        page.pushOperators(translate(-centerX, -centerY));
-      }
-      
-      // Apply italic skew if needed (for custom fonts without italic variant)
-      // Note: Skew transformation is complex in pdf-lib, so we'll handle italic
-      // by drawing at a slight angle instead (handled in the drawing loop)
-    }
-
-    // ========== DRAW TEXT LINES ==========
-    lines.forEach((line, i) => {
-      const width = lineWidths[i];
-
-      const x = getAlignedX(width);
-      const y = boxY + (boxHeight - lineHeight * (i + 1));
-
-      const textColor = hexToRgb(overlay.color);
-
-      // If bold is enabled and we're using a custom font without bold variant, simulate bold
-      if (needsSimulateBold) {
-        // Simulate bold by drawing text multiple times with slight horizontal offsets
-        // This mimics how browsers synthesize bold text
-        const boldOffsets = [0, 0.3, 0.6]; // Three passes for better bold effect
-        for (const offset of boldOffsets) {
-          page.drawText(line, {
-            x: x + offset,
-            y,
-            size: fontSize,
-            font,
-            color: textColor,
-          });
-        }
-      } else {
-        // Normal rendering (includes standard fonts with proper bold/italic)
-        // Note: Italic simulation for custom fonts is not supported in PDF export
-        page.drawText(line, {
-          x,
-          y,
-          size: fontSize,
-          font,
-          color: textColor,
-        });
-      }
-    });
-
-    if (needsTransform) {
-      page.pushOperators(popGraphicsState());
-    }
-
-  } catch (err) {
-    console.error("Error drawing text overlay:", err);
-  }
-}
-
-
-
-
-
-
-
-
-
-
-function drawShapeOverlay(page: any, overlay: ShapeOverlay, pageWidth: number, pageHeight: number) {
-  try {
-    const shapeWidth = overlay.width * pageWidth;
-    const shapeHeight = overlay.height * pageHeight;
-
-    // FIX: Match the canvas positioning with translate(-50%, -50%)
-    // In canvas, shapes are centered at (x,y) with translate(-50%, -50%)
-    // So in PDF, we need to draw them centered at the same position
+    // Convert coordinates from canvas (top-left) to PDF (bottom-left)
     const x = overlay.x * pageWidth;
     const y = pageHeight - (overlay.y * pageHeight);
 
-    if (overlay.rotation !== 0) {
-      const radians = -(overlay.rotation * Math.PI / 180);
+    // Parse HTML segments with optional data-font attributes
+    let segments: Array<{ text: string; fontFamily: string | null }> = [];
+    if (/<[a-z][\s\S]*>/i.test(rawText)) {
+      const parser = new (globalThis as any).DOMParser();
+      const doc = parser.parseFromString(rawText, 'text/html');
+      const body = doc.body;
 
-      // rotation center = shape center (matches canvas with translate(-50%, -50%))
-      const centerX = x;
-      const centerY = y;
+      function walk(node: any, currentFont: string | null) {
+        for (let i = 0; i < node.childNodes.length; i++) {
+          const child = node.childNodes[i];
+          if (child.nodeType === 3) {
+            const txt = child.textContent || '';
+            if (txt) segments.push({ text: txt, fontFamily: currentFont });
+          } else if (child.nodeType === 1) {
+            const el = child as Element;
+            const df = el.getAttribute('data-font');
+            const fontForChild = df || currentFont;
+            walk(child, fontForChild);
+            if (el.tagName === 'BR') segments.push({ text: '\n', fontFamily: fontForChild });
+          }
+        }
+      }
+
+      walk(body, overlay.fontFamily || null);
+    } else {
+      segments = [{ text: normalizedText, fontFamily: overlay.fontFamily || null }];
+    }
+
+    // Resolve fonts and measure segments
+    const resolvedSegments: Array<{ text: string; font: any; width: number }> = [];
+    let totalWidth = 0;
+    for (const seg of segments) {
+      const fontFamily = seg.fontFamily || overlay.fontFamily || '';
+      let fontKey = fontFamily;
+      if (overlay.bold && overlay.italic) fontKey = fontFamily + '-bolditalic';
+      else if (overlay.bold) fontKey = fontFamily + '-bold';
+      else if (overlay.italic) fontKey = fontFamily + '-italic';
+
+      let font = fontCache.get(fontKey) || fontCache.get(fontFamily) || fontCache.get('Arial') || fontCache.values().next().value;
+      if (!font) font = fontCache.values().next().value;
+
+      const segText = seg.text.replace(/\n/g, '');
+      const w = font.widthOfTextAtSize(segText, adjustedFontSize);
+      resolvedSegments.push({ text: segText, font, width: w });
+      totalWidth += w;
+    }
+
+    // Alignment
+    const centerX = x;
+    const centerY = y;
+
+    // --------------------------------------------
+    // 1️⃣ ALIGNMENT (same visually as canvas)
+    // --------------------------------------------
+    let startX = centerX - totalWidth / 2;
+
+    if (overlay.textAlign === 'center') {
+      startX = centerX - totalWidth / 2;
+    } else if (overlay.textAlign === 'right') {
+      startX = centerX + totalWidth / 2 - totalWidth;
+    } else {
+      // left align
+      startX = centerX - totalWidth / 2;
+    }
+
+    
+    const firstSegFont = resolvedSegments[0]?.font;
+
+    // fallback if missing
+    const ascent = firstSegFont?.ascent || firstSegFont?.font?.ascent || 0;
+    const units = firstSegFont?.unitsPerEm || 1000;
+
+    // this fixes DOWNWARD SHIFT
+    const baselineAdjust = (ascent / units) * adjustedFontSize;
+
+    // CANVAS centerY = PDF baseline → adjust by half font size + baseline
+    const finalY = centerY - adjustedFontSize / 2 + baselineAdjust + 4;
+
+
+    // Draw with rotation if needed
+    if (overlay.rotation && overlay.rotation !== 0) {
+      const radians = -(overlay.rotation * Math.PI) / 180;
+      const centerX = startX + totalWidth / 2;
+      const centerY = finalY + adjustedFontSize / 2;
 
       page.pushOperators(pushGraphicsState());
       page.pushOperators(translate(centerX, centerY));
       page.pushOperators(rotateRadians(radians));
       page.pushOperators(translate(-centerX, -centerY));
 
-      // Draw centered (matches canvas with translate(-50%, -50%))
+      let cursorX = startX;
+      for (const seg of resolvedSegments) {
+        page.drawText(seg.text, { x: cursorX, y: finalY, size: adjustedFontSize, font: seg.font, color: hexToRgb(overlay.color) });
+        cursorX += seg.width;
+      }
+
+      page.pushOperators(popGraphicsState());
+    } else {
+      let cursorX = startX;
+      for (const seg of resolvedSegments) {
+        page.drawText(seg.text, { x: cursorX, y: finalY, size: adjustedFontSize, font: seg.font, color: hexToRgb(overlay.color) });
+        cursorX += seg.width;
+      }
+    }
+
+  } catch (error) {
+    console.error('❌ Error drawing text overlay:', error);
+    // Fallback: draw plain text
+    try {
+      const adjustedFontSize = (overlay.fontSize || 12) / 1.5;
+      const x = overlay.x * pageWidth;
+      const y = pageHeight - (overlay.y * pageHeight) - adjustedFontSize;
+      const font = fontCache.get(overlay.fontFamily) || fontCache.values().next().value;
+      page.drawText(String(overlay.text || ''), { x, y, size: adjustedFontSize, font, color: hexToRgb(overlay.color) });
+    } catch (fallbackError) {
+      console.error('💥 Fallback drawing failed:', fallbackError);
+    }
+  }
+}
+
+async function drawShapeOverlay(
+  page: any,
+  overlay: ShapeOverlay,
+  pageWidth: number,
+  pageHeight: number
+) {
+  try {
+    const shapeWidth = overlay.width * pageWidth;
+    const shapeHeight = overlay.height * pageHeight;
+
+    // Canvas places element with translate(-50%, -50%) so x,y are centers
+    const centerX = overlay.x * pageWidth;
+    const centerY = pageHeight - (overlay.y * pageHeight);
+
+    if (overlay.rotation && overlay.rotation !== 0) {
+      const radians = -(overlay.rotation * Math.PI) / 180;
+      page.pushOperators(pushGraphicsState());
+      page.pushOperators(translate(centerX, centerY));
+      page.pushOperators(rotateRadians(radians));
+      page.pushOperators(translate(-centerX, -centerY));
+
       page.drawRectangle({
         x: centerX - shapeWidth / 2,
         y: centerY - shapeHeight / 2,
@@ -331,17 +337,24 @@ function drawShapeOverlay(page: any, overlay: ShapeOverlay, pageWidth: number, p
 
       page.pushOperators(popGraphicsState());
     } else {
-      // No rotation - centered positioning (matches canvas with translate(-50%, -50%))
       page.drawRectangle({
-        x: x - (shapeWidth / 2),
-        y: y - (shapeHeight / 2),
+        x: centerX - shapeWidth / 2,
+        y: centerY - shapeHeight / 2,
         width: shapeWidth,
         height: shapeHeight,
         color: hexToRgb(overlay.color),
       });
     }
-
   } catch (err) {
-    console.error("Error drawing shape overlay:", err);
+    console.error('Error drawing shape overlay:', err);
+    try {
+      const shapeWidth = overlay.width * pageWidth;
+      const shapeHeight = overlay.height * pageHeight;
+      const centerX = overlay.x * pageWidth;
+      const centerY = pageHeight - (overlay.y * pageHeight);
+      page.drawRectangle({ x: centerX - shapeWidth / 2, y: centerY - shapeHeight / 2, width: shapeWidth, height: shapeHeight, color: hexToRgb(overlay.color) });
+    } catch (fallbackError) {
+      console.error('💥 Fallback shape drawing failed:', fallbackError);
+    }
   }
 }
