@@ -266,6 +266,7 @@ export function PDFCanvas({
         setEditingOverlayId(selectedOverlayId);
       }
       if (event.key === "Escape") {
+        console.log("🔑 Escape key pressed - global handler", { editingOverlayId, selectedOverlayId });
         event.preventDefault();
         // If editing, clear highlight and exit edit mode
         if (editingOverlayId) {
@@ -1027,6 +1028,7 @@ export function PDFCanvas({
                         }}
                         onKeyDown={(e) => {
                           if (e.key === "Escape") {
+                            console.log("🔑 Escape key pressed - contentEditable handler");
                             e.preventDefault();
                             e.stopPropagation();
                             

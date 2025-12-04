@@ -190,7 +190,7 @@ async function drawTextOverlay(
     const normalized = rawText.normalize("NFC");
 
     // ========== ADJUSTABLE POSITION OFFSET ==========
-    const EXPLICIT_POSITION_ADDITION = 10; // Adjust this value as needed (positive = move up)
+    const EXPLICIT_POSITION_ADDITION = 8; // Adjust this value as needed (positive = move up)
 
     // ========== PARSE HTML INTO SEGMENTS (multi-font) ==========
     const segments: Array<{ text: string; font: any }> = [];
