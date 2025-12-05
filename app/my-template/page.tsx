@@ -1,12 +1,12 @@
 import TemplatesClient from "./TemplateClient";
 import { currentUser } from "@clerk/nextjs/server";
 import prisma from "@/lib/db-init";
+import { redirect } from "next/navigation";
 
 export default async function MyTemplatesPage() {
   const user = await currentUser();
-  if (!user) return window.location.replace("/sign-up");
-
-  // 🔥 Server-side fetch (instant, no flashing)
+  if (!user) redirect("/sign-up");
+  
   const templates = await prisma.template.findMany({
     where: { savedTemplates: { some: { userId: user.id } }, status: true },
     orderBy: { createdAt: "desc" },

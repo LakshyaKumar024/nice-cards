@@ -3,7 +3,7 @@ import { currentUser } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export async function GET(request: NextRequest, response: NextResponse) {
+export async function GET(request: NextRequest) {
     const user = await currentUser();
 
     if (!user) {
