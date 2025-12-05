@@ -159,6 +159,7 @@ export const transporter = nodemailer.createTransport({
 ## 🎨 PDF Editor Features
 
 ### Text Editing
+
 - Add text overlays with custom positioning
 - Font customization (family, size, color, bold, italic)
 - Support for Hindi fonts (Unicode and legacy)
@@ -166,17 +167,20 @@ export const transporter = nodemailer.createTransport({
 - Layer management with z-index control
 
 ### Shape Tools
+
 - Add rectangular shapes
 - Resize and reposition shapes
 - Color customization
 - Layer ordering
 
 ### Font Support
+
 - Standard fonts: Arial, Helvetica, Times New Roman, etc.
 - Hindi fonts: Noto Sans Devanagari (Unicode), AMS Aasmi, Kruti Dev 640
 - Custom font embedding in exported PDFs
 
 ### Export
+
 - Export edited PDFs with all overlays
 - Proper font embedding for Hindi text
 - Unicode normalization for copy-pasted text
@@ -188,6 +192,7 @@ export const transporter = nodemailer.createTransport({
 The application supports custom fonts for multi-language support. See [CUSTOM_FONTS_GUIDE.md](./CUSTOM_FONTS_GUIDE.md) for detailed instructions on adding new fonts.
 
 **Current Fonts:**
+
 - **Noto Sans Devanagari**: Unicode Hindi font (recommended for copy-paste)
 - **AMS Aasmi**: Legacy Hindi font (typing only)
 - **Kruti Dev 640**: Legacy Devanagari font (typing only)
@@ -270,6 +275,7 @@ bunx prisma db push
 ### Step 4. Setup Custom Fonts (Optional)
 
 For Hindi text support, download and add fonts to `public/fonts/`:
+
 - Noto Sans Devanagari (recommended for Unicode Hindi)
 - See [CUSTOM_FONTS_GUIDE.md](./CUSTOM_FONTS_GUIDE.md) for details
 
@@ -307,21 +313,41 @@ Other supported: **Vercel**, **Desigital Ocean**, **AWS**
 
 ---
 
-## �  Troubleshooting
+## � Troubleshooting
+
+### Authentication Issues
+
+If users cannot log in, sign up, or access protected routes:
+
+- Confirm your Clerk keys in .env are correct
+
+- Check network logs for failed Clerk API requests
+
+- Restart the development server after updating environment variables
+
+- Most importantly:
+
+  - → Clerk may be experiencing an outage
+    Check live status: https://status.clerk.com
+
+If the status page shows an incident, wait until Clerk resolves it. No action is needed on your side.
 
 ### PDF Editor Issues
 
 **Text shows as boxes in exported PDF:**
+
 - Ensure you're using a Unicode font (Noto Sans Devanagari) for Hindi text
 - Legacy fonts (AMS Aasmi, Kruti Dev) only work with keyboard typing, not copy-paste
 - See [HINDI_FONT_SETUP.md](./HINDI_FONT_SETUP.md) for details
 
 **Fonts not appearing in dropdown:**
+
 - Check that font is added to `components/formatting-toolbar.tsx`
 - Verify font file exists in `public/fonts/`
 - Restart dev server after adding fonts
 
 **PDF export fails:**
+
 - Check browser console for errors
 - Verify font files are accessible
 - Ensure pdf-lib and fontkit are properly installed
@@ -329,12 +355,14 @@ Other supported: **Vercel**, **Desigital Ocean**, **AWS**
 ### Database Issues
 
 **Prisma errors:**
+
 ```bash
 bunx prisma generate
 bunx prisma db push
 ```
 
 **Connection issues:**
+
 - Verify DATABASE_URL in `.env`
 - Check database server is running
 

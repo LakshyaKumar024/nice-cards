@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AnimatePresence, motion } from "motion/react";
 
 const categories = [
   "All",
@@ -163,21 +164,51 @@ export default function Home() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 lg:gap-8">
-              {filteredTemplates.map((template) => (
-                <TemplateCard
-                  key={template.uuid}
-                  uuid={template.uuid}
-                  name={template.name}
-                  description={template.description || ""}
-                  price={template.price}
-                  category={template.catogery}
-                  imageUrl={template.image}
-                  isPurchased={template.isPurchased}
-                  onPurchase={handlePurchase}
-                />
-              ))}
-            </div>
+            <motion.div
+              layout
+              className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 lg:gap-8"
+            >
+              <AnimatePresence mode="popLayout">
+                {filteredTemplates.map((template) => {
+                  let templateImage = template.image;
+
+                  if (typeof template.image === "string") {
+                    try {
+                      const parsed = JSON.parse(template.image);
+                      if (Array.isArray(parsed) && parsed.length > 0) {
+                        templateImage = parsed[0];
+                      }
+                    } catch (err) {
+                      console.log(err);
+                      
+                      templateImage = template.image;
+                    }
+                  }
+
+                  return (
+                    <motion.div
+                      key={template.uuid}
+                      layout
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.35, ease: "easeOut" }}
+                    >
+                      <TemplateCard
+                        uuid={template.uuid}
+                        name={template.name}
+                        description={template.description || ""}
+                        price={template.price}
+                        category={template.catogery}
+                        imageUrl={templateImage}
+                        isPurchased={template.isPurchased}
+                        onPurchase={handlePurchase}
+                      />
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
+            </motion.div>
 
             {filteredTemplates.length === 0 && (
               <div className="text-center py-12 sm:py-16 lg:py-20">

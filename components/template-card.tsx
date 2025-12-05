@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Badge } from "./ui/badge";
-
+import { motion } from "motion/react";
 interface TemplateCardProps {
   uuid: string;
   name: string;
@@ -29,7 +29,12 @@ export function TemplateCard({
   const Router = useRouter();
   return (
     <Link href={`/design/${uuid}`} className="group h-full">
-      <div className="relative h-full flex flex-col bg-card border border-border rounded-xl shadow-sm hover:shadow-lg hover:border-primary/50 transition-all duration-300 overflow-hidden">
+      <motion.div
+        whileHover={{ scale: 1.03, y: -4 }}
+        whileTap={{ scale: 0.98 }}
+        transition={{ type: "spring", stiffness: 200, damping: 15 }}
+        className="relative h-full flex flex-col bg-card border border-border rounded-xl shadow-sm hover:shadow-lg hover:border-primary/50 transition-all duration-300 overflow-hidden"
+      >
         {price === 0 && (
           <div className="absolute top-3 right-3 z-10 flex items-center gap-1 bg-linear-to-r from-green-500 to-emerald-600 px-3 py-1.5 rounded-full">
             <Gift className="h-4 w-4 text-white" />
@@ -68,7 +73,9 @@ export function TemplateCard({
           </div>
 
           <p className="text-xs text-muted-foreground line-clamp-2 mb-4 grow">
-            {description}
+            {description.length > 120
+              ? description.slice(0, 120) + "..."
+              : description}
           </p>
 
           <div className="flex items-center justify-between gap-2 pt-3 border-t border-border">
@@ -94,7 +101,7 @@ export function TemplateCard({
             </button>
           </div>
         </div>
-      </div>
+      </motion.div>
     </Link>
   );
 }

@@ -51,12 +51,7 @@ const templateSchema = z.object({
   tags: z.string().min(1, "Tags are required"),
   price: z.coerce.number().min(0, "Price must be 0 or greater").optional(),
   paid: z.boolean().default(false),
-  image: z
-    .instanceof(File)
-    .refine(
-      (file) => file.size <= 5 * 1024 * 1024,
-      "Image must be less than 5MB"
-    ),
+  images: z.array(z.instanceof(File)).min(1, "At least one image is required"),
   pdf: z
     .instanceof(File)
     .refine(
@@ -72,19 +67,33 @@ export default function AddTemplatePage() {
   const [imagePreview, setImagePreview] = useState<string>("");
   const [pdfFileName, setPdfFileName] = useState<string>("");
 
+  const [imageInputs, setImageInputs] = useState([{ id: Date.now() }]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+
   // 🖼️ Image
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleMultiImageChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    index: number
+  ) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
 
-      form.setValue("image", file, { shouldValidate: true }); // ✅ Sync with form
+    // Show preview
+    const reader = new FileReader();
+    reader.onload = () => {
+      setImagePreviews((prev) => {
+        const arr = [...prev];
+        arr[index] = reader.result as string;
+        return arr;
+      });
+    };
+    reader.readAsDataURL(file);
 
-    }
+    // Sync with form
+    const current = form.getValues("images") || [];
+    current[index] = file;
+
+    form.setValue("images", current, { shouldValidate: true });
   };
 
   // 📄 PDF
@@ -94,6 +103,20 @@ export default function AddTemplatePage() {
       setPdfFileName(file.name);
       form.setValue("pdf", file, { shouldValidate: true }); // ✅ Sync with form
     }
+  };
+
+  const addImageField = () => {
+    setImageInputs((prev) => [...prev, { id: Date.now() }]);
+  };
+
+  const removeImageField = (index: number) => {
+    setImageInputs((prev) => prev.filter((_, i) => i !== index));
+
+    const imgs = form.getValues("images") || [];
+    imgs.splice(index, 1);
+    form.setValue("images", imgs, { shouldValidate: true });
+
+    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
   const form = useForm<TemplateFormValues>({
@@ -106,7 +129,7 @@ export default function AddTemplatePage() {
       price: 0,
       paid: false,
       // these won't affect files but help avoid type mismatch
-      image: undefined as unknown as File,
+      images: [] as File[],
       pdf: undefined as unknown as File,
     },
   });
@@ -120,39 +143,38 @@ export default function AddTemplatePage() {
 
     try {
       // ---------- STEP 1: Upload Image ----------
-      toast.loading("Uploading image...", { id: toastId });
+      toast.loading("Uploading images...", { id: toastId });
 
-      const imageForm = new FormData();
+      const uploadedImageFilenames: string[] = [];
 
-      imageForm.append("file", data.image);
+      for (const img of data.images) {
+        const imageForm = new FormData();
+        imageForm.append("file", img);
 
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_EXPRESS_SERVER_URL}/upload/image`,
+          {
+            method: "POST",
+            body: imageForm,
+          }
+        );
 
+        if (!res.ok) {
+          const errorText = await res.text();
+          console.error("❌ Image upload failed:", errorText);
+          throw new Error(`Image upload failed: ${res.status}`);
+        }
 
-      const imageRes = await fetch(`${process.env.NEXT_PUBLIC_EXPRESS_SERVER_URL}/upload/image`, {
-        method: "POST",
-        body: imageForm,
-      });
+        const json = await res.json();
+        let filename = json?.data?.fileName;
 
+        if (!filename) throw new Error("No image filename returned");
 
-      if (!imageRes.ok) {
-        const errorText = await imageRes.text();
-        console.error("❌ Image upload failed:", errorText);
-        throw new Error(`Image upload failed: ${imageRes.status}`);
+        filename = filename.replace(/^["']|["']$/g, "");
+        uploadedImageFilenames.push(filename);
       }
 
-      const imageJson = await imageRes.json();
-      let imageFilename = imageJson?.data?.fileName;
-
-      if (!imageFilename) {
-        throw new Error("No image filename returned from server");
-      }
-
-      // Remove any extra quotes if they exist
-      if (typeof imageFilename === 'string') {
-        imageFilename = imageFilename.replace(/^["']|["']$/g, '');
-      }
-
-      console.log("✅ Image uploaded:", imageFilename);
+      console.log("Uploaded images:", uploadedImageFilenames);
 
       // ---------- STEP 2: Upload PDF ----------
       toast.loading("Uploading PDF...", { id: toastId });
@@ -160,10 +182,13 @@ export default function AddTemplatePage() {
       const pdfForm = new FormData();
       pdfForm.append("file", data.pdf);
 
-      const pdfRes = await fetch(`${process.env.NEXT_PUBLIC_EXPRESS_SERVER_URL}/upload/pdf`, {
-        method: "POST",
-        body: pdfForm,
-      });
+      const pdfRes = await fetch(
+        `${process.env.NEXT_PUBLIC_EXPRESS_SERVER_URL}/upload/pdf`,
+        {
+          method: "POST",
+          body: pdfForm,
+        }
+      );
 
       if (!pdfRes.ok) {
         const errorText = await pdfRes.text();
@@ -190,7 +215,10 @@ export default function AddTemplatePage() {
       finalForm.append("tags", data.tags);
       finalForm.append("price", data.price?.toString() || "0");
       finalForm.append("paid", data.paid.toString() || "false");
-      finalForm.append("placeholderImage", imageFilename);
+      finalForm.append(
+        "placeholderImage",
+        JSON.stringify(uploadedImageFilenames)
+      );
       finalForm.append("pdf", pdfFilename);
       finalForm.append("svg", "");
 
@@ -219,12 +247,12 @@ export default function AddTemplatePage() {
       form.reset();
       setImagePreview("");
       setPdfFileName("");
-
     } catch (error) {
       console.error("💥 Template submission error:", error);
       toast.error("Upload Failed", {
         id: toastId,
-        description: error instanceof Error ? error.message : "Failed to add template",
+        description:
+          error instanceof Error ? error.message : "Failed to add template",
       });
     } finally {
       setIsLoading(false);
@@ -412,31 +440,73 @@ export default function AddTemplatePage() {
               {/* Image */}
               <FormField
                 control={form.control}
-                name="image"
+                name="images"
                 render={() => (
-                  <FormItem>
-                    <FormLabel className="flex items-center gap-2">
+                  <FormItem className="space-y-4">
+                    <FormLabel className="flex items-center gap-2 text-base font-medium">
                       <ImageIcon className="w-4 h-4" />
-                      Template Preview Image
+                      Template Images
                       <span className="text-destructive">*</span>
                     </FormLabel>
-                    <Input
-                      type="file"
-                      accept=".jpg,.jpeg,.png"
-                      onChange={handleImageChange}
-                      className="bg-secondary/50 cursor-pointer"
-                    />
-                    {imagePreview && (
-                      <div className="mt-3 w-full max-w-sm">
-                        <Image
-                          src={imagePreview}
-                          alt="Preview"
-                          width={400}
-                          height={300}
-                          className="rounded-lg border object-cover"
-                        />
-                      </div>
-                    )}
+
+                    <div className="space-y-4">
+                      {imageInputs.map((input, index) => {
+                        const preview = imagePreviews[index];
+
+                        return (
+                          <div
+                            key={input.id}
+                            className="flex items-start gap-4 rounded-lg border p-4 bg-secondary/20"
+                          >
+                            {/* File Input + Preview */}
+                            <div className="flex-1 space-y-3">
+                              <Input
+                                type="file"
+                                accept=".jpg,.jpeg,.png"
+                                onChange={(e) =>
+                                  handleMultiImageChange(e, index)
+                                }
+                                className="cursor-pointer bg-secondary"
+                              />
+
+                              {preview && (
+                                <Image
+                                  src={preview}
+                                  width={200}
+                                  height={200}
+                                  alt="Preview"
+                                  className="rounded-lg border object-cover shadow-sm "
+                                />
+                              )}
+                            </div>
+
+                            {/* + button ONLY ON FIRST INPUT */}
+                            {index === 0 ? (
+                              <button
+                                type="button"
+                                onClick={addImageField}
+                                className="text-green-600 hover:text-green-700 transition text-2xl font-bold cursor-pointer"
+                                title="Add Image"
+                              >
+                                +
+                              </button>
+                            ) : (
+                              /* - button on all other inputs */
+                              <button
+                                type="button"
+                                onClick={() => removeImageField(index)}
+                                className="text-red-500 hover:text-red-600 transition text-2xl font-bold cursor-pointer"
+                                title="Remove Image"
+                              >
+                                &minus;
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <FormMessage />
                   </FormItem>
                 )}
               />

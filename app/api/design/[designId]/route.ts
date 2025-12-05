@@ -8,10 +8,11 @@ export async function POST(
 ) {
     let body;
     try {
-        body = await request.json();
+        if (request.headers.get("content-type")?.includes("application/json")) {
+            body = await request.json();
+        }
     } catch (err) {
         console.log(err);
-        
         body = {};
     }
     const { userId } = body;
@@ -35,17 +36,16 @@ export async function POST(
                 createdAt: true,
                 savedTemplates: userId
                     ? {
-                        where: { userId },
+                        where: { userId: userId, templateId: designId },
                         select: {
                             uuid: true,
                             content: true,
                             createdAt: true,
                         },
                     }
-                    : {}
+                    : undefined,
             }
         })
-
         if (!template) {
             return NextResponse.json(
                 { success: false, error: "Template not found" },
@@ -61,6 +61,7 @@ export async function POST(
                 success: true,
                 data: {
                     ...template,
+                    savedTemplate: savedTemplates[0] || null,
                     hasPurchased,
                 },
             },

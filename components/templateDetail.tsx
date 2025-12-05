@@ -8,11 +8,14 @@ import {
   Check,
   Download,
   ImageIcon,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { toast } from "sonner";
+import { motion, AnimatePresence } from "motion/react";
 
 interface Template {
   pages?: number | null;
@@ -25,7 +28,6 @@ interface Template {
   pdf: string;
   svg: string;
   image: string;
-  preview_url: string | null;
   rating: number;
   downloads: number;
   createdAt: string;
@@ -39,7 +41,8 @@ export function TemplateDetail({ templateId }: { templateId: string }) {
   const [purchasing, setPurchasing] = useState(false);
   const [tags, setTags] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [imageError, setImageError] = useState(false);
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const { isLoaded, user } = useUser();
 
   const router = useRouter();
@@ -75,6 +78,36 @@ export function TemplateDetail({ templateId }: { templateId: string }) {
           }
         } else if (Array.isArray(data.tags)) parsed = data.tags;
         setTags(parsed);
+
+        // Parse image URLs safely
+        let imageUrlsArray: string[] = [];
+        if (typeof data.image === "string") {
+          try {
+            // Try to parse as JSON
+            const parsedImages = JSON.parse(data.image);
+            if (Array.isArray(parsedImages)) {
+              // Handle array of image URLs
+              imageUrlsArray = parsedImages
+                .map((img) => {
+                  if (typeof img === "string") {
+                    return img.replace(/^["']|["']$/g, "");
+                  }
+                  return "";
+                })
+                .filter((img: string) => img);
+            } else if (typeof parsedImages === "string") {
+              // If it's a single string after parsing
+              imageUrlsArray = [parsedImages.replace(/^["']|["']$/g, "")];
+            }
+          } catch {
+            // If JSON parsing fails, treat as single URL string
+            imageUrlsArray = [data.image.replace(/^["']|["']$/g, "")];
+          }
+        } else {
+          // Fallback to empty array
+          imageUrlsArray = [];
+        }
+        setImageUrls(imageUrlsArray);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Error loading template");
       } finally {
@@ -114,10 +147,19 @@ export function TemplateDetail({ templateId }: { templateId: string }) {
   const handleEditTemplate = () => router.push(`/edit/${template?.uuid}`);
   const handleBack = () => router.push("/");
 
-  // Remove any extra quotes from the image URL
-  const imageSrc = template?.image
-    ? template.image.replace(/^["']|["']$/g, "")
-    : null;
+  const handleNextImage = () => {
+    if (imageUrls.length > 1) {
+      setCurrentImageIndex((prev) => (prev + 1) % imageUrls.length);
+    }
+  };
+
+  const handlePrevImage = () => {
+    if (imageUrls.length > 1) {
+      setCurrentImageIndex(
+        (prev) => (prev - 1 + imageUrls.length) % imageUrls.length
+      );
+    }
+  };
 
   if (loading)
     return (
@@ -161,6 +203,10 @@ export function TemplateDetail({ templateId }: { templateId: string }) {
       </div>
     );
 
+  // Determine the current image to display
+  const currentImageUrl =
+    imageUrls.length > 0 ? imageUrls[currentImageIndex] : null;
+
   return (
     <div className="min-h-screen bg-white dark:bg-black text-gray-800 dark:text-gray-200 transition-colors">
       <main className="container mx-auto px-4 sm:px-6 py-4 sm:py-8">
@@ -175,23 +221,19 @@ export function TemplateDetail({ templateId }: { templateId: string }) {
         </Button>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12">
-          {/* Preview */}
+          {/* Preview Section */}
           <div className="space-y-4">
             <div className="rounded-xl overflow-hidden shadow-lg bg-white dark:bg-[#121212] border dark:border-gray-800">
               <div className="aspect-3/4 w-full relative bg-gray-100 dark:bg-[#1a1a1a]">
                 {isPurchased ? (
                   <>
-                    {imageSrc && !imageError ? (
+                    {template.pdf ? (
                       <div className="relative w-full h-full">
                         <iframe
                           src={`/api/getPdf/${template.pdf}#toolbar=0&navpanes=0&scrollbar=0`}
                           className="w-full h-full rounded-xl"
-                          style={{
-                            border: "none",
-                          }}
+                          style={{ border: "none" }}
                           title="PDF Document"
-                          // ✅ Remove sandbox attribute as it was too restrictive
-                          // ✅ Keep basic event handlers but make them less intrusive
                           onContextMenu={(e) => e.preventDefault()}
                         />
                       </div>
@@ -208,15 +250,76 @@ export function TemplateDetail({ templateId }: { templateId: string }) {
                   </>
                 ) : (
                   <>
-                    {imageSrc && !imageError ? (
-                      <Image
-                        src={imageSrc || "/placeholder.svg"}
-                        alt={`${template.name} preview`}
-                        fill
-                        className="object-cover"
-                        priority
-                        onError={() => setImageError(true)}
-                      />
+                    {imageUrls.length > 0 ? (
+                      <div className="relative w-full h-full">
+                        {/* Single Image Display */}
+                        {imageUrls.length === 1 ? (
+                          <Image
+                            src={imageUrls[0] || "/placeholder.svg"}
+                            alt={`${template.name} preview`}
+                            fill
+                            className="object-cover"
+                            priority
+                            onError={() => setImageUrls([])}
+                          />
+                        ) : (
+                          /* Carousel for Multiple Images */
+                          <div className="relative w-full h-full overflow-hidden rounded-xl">
+                            <AnimatePresence mode="wait">
+                              <motion.div
+                                key={currentImageIndex}
+                                initial={{ opacity: 0, x: 40 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -40 }}
+                                transition={{ duration: 0.35, ease: "easeOut" }}
+                                className="absolute inset-0"
+                              >
+                                <Image
+                                  src={currentImageUrl || "/placeholder.svg"}
+                                  alt={`${template.name} preview ${
+                                    currentImageIndex + 1
+                                  }`}
+                                  fill
+                                  className="object-cover rounded-xl"
+                                  priority
+                                />
+                              </motion.div>
+                            </AnimatePresence>
+
+                            {/* Navigation Arrows */}
+                            <div className="absolute inset-0 flex items-center justify-between p-4 pointer-events-none">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="bg-black/40 hover:bg-black/60 text-white rounded-full pointer-events-auto"
+                                onClick={handlePrevImage}
+                              >
+                                <ChevronLeft className="h-4 w-4" />
+                              </Button>
+
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="bg-black/40 hover:bg-black/60 text-white rounded-full pointer-events-auto"
+                                onClick={handleNextImage}
+                              >
+                                <ChevronRight className="h-4 w-4" />
+                              </Button>
+                            </div>
+
+                            {/* Counter */}
+                            <motion.div
+                              initial={{ opacity: 0, y: 8 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              className="absolute bottom-4 left-1/2 -translate-x-1/2"
+                            >
+                              <Badge className="bg-black/70 text-white px-3 py-1">
+                                {currentImageIndex + 1} / {imageUrls.length}
+                              </Badge>
+                            </motion.div>
+                          </div>
+                        )}
+                      </div>
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <div className="text-center">
@@ -232,9 +335,28 @@ export function TemplateDetail({ templateId }: { templateId: string }) {
               </div>
             </div>
 
-            {template.preview_url && imageSrc && !imageError && (
-              <div className="text-sm text-gray-600 dark:text-gray-400 text-center">
-                Full template preview — All elements are customizable
+            {/* Image Thumbnails (for multiple images) */}
+            {imageUrls.length > 1 && !isPurchased && (
+              <div className="flex gap-2 overflow-x-auto py-2">
+                {imageUrls.map((url, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentImageIndex(index)}
+                    className={`relative w-20 h-20 shrink-0 rounded-md overflow-hidden border-2 ${
+                      currentImageIndex === index
+                        ? "border-purple-600 dark:border-purple-400"
+                        : "border-transparent"
+                    }`}
+                  >
+                    <Image
+                      src={url || "/placeholder.svg"}
+                      alt={`Thumbnail ${index + 1}`}
+                      fill
+                      className="object-cover"
+                      sizes="80px"
+                    />
+                  </button>
+                ))}
               </div>
             )}
 
@@ -255,25 +377,39 @@ export function TemplateDetail({ templateId }: { templateId: string }) {
               {[
                 {
                   label: "Pages",
-                  value: template.pages?.toFixed(1) || "N/A",
+                  value: `${imageUrls.length}+`,
+                  gradient:
+                    "bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-900/10",
+                  textColor: "text-purple-600 dark:text-purple-300",
                 },
                 {
                   label: "Downloads",
-                  value: template.downloads?.toLocaleString() || "0",
+                  value: template.downloads?.toLocaleString() || "99+",
+                  gradient:
+                    "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-900/10",
+                  textColor: "text-blue-600 dark:text-blue-300",
                 },
                 {
                   label: "Published",
                   value: new Date(template.createdAt).getFullYear() || "N/A",
+                  gradient:
+                    "bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-900/10",
+                  textColor: "text-emerald-600 dark:text-emerald-300",
                 },
               ].map((item, i) => (
                 <div
                   key={i}
-                  className="bg-white dark:bg-[#121212] rounded-lg p-3 border dark:border-gray-800 shadow-sm"
+                  className={`
+        ${item.gradient}
+        border border-gray-200 dark:border-gray-800
+        rounded-xl px-4 py-3 shadow-sm 
+        flex flex-col items-center justify-center
+      `}
                 >
-                  <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                  <div className={`text-xl font-semibold ${item.textColor}`}>
                     {item.value}
                   </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                  <div className="text-[11px] tracking-wide mt-1 text-gray-500 dark:text-gray-400">
                     {item.label}
                   </div>
                 </div>
@@ -289,14 +425,14 @@ export function TemplateDetail({ templateId }: { templateId: string }) {
                     variant="secondary"
                     className="text-xs bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300"
                   >
-                    #{tag}
+                    {tag.toUpperCase()}
                   </Badge>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Details */}
+          {/* Details Section */}
           <div className="space-y-6">
             <div>
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 mb-4">
