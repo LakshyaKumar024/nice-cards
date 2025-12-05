@@ -3,10 +3,6 @@ import { use } from "react";
 import TemplateDetail from "@/components/templateDetail";
 import type { Metadata } from "next";
 
-export const generateStaticParams = async () => {
-  return [];
-};
-
 type Props = {
   params: Promise<{ templateId: string }>;
 };
