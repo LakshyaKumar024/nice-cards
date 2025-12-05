@@ -2,20 +2,25 @@ import prisma from "@/lib/db-init";
 import { NextRequest, NextResponse } from "next/server";
 
 
+interface BodyType {
+    userId?: string;
+}
+
+
 export async function POST(
     request: NextRequest,
     context: { params: Promise<{ designId: string }> }
 ) {
-    let body;
+    let body = {};
     try {
-        if (request.headers.get("content-type")?.includes("application/json")) {
-            body = await request.json();
-        }
-    } catch (err) {
-        console.log(err);
+        const text = await request.text();
+        body = text ? JSON.parse(text) : {};
+    } catch {
         body = {};
     }
-    const { userId } = body;
+
+    const userId = (body as BodyType).userId;
+
     const { designId } = await context.params;
 
 
