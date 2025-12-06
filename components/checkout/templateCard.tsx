@@ -1,5 +1,6 @@
 import { Card } from "@/components/ui/card";
 import Image from "next/image";
+import { useEffect, useEffectEvent, useState } from "react";
 
 interface TemplateCardProps {
   template: {
@@ -13,15 +14,36 @@ interface TemplateCardProps {
 }
 
 const TemplateCard = ({ template }: TemplateCardProps) => {
+  const [image, setImage] = useState<string>("./placeholder.svg");
+
+  const setItemImage = useEffectEvent(() => {
+    if (!template.image) {
+      return;
+    }
+    try{
+      const imgArray: string[] = JSON.parse(template.image);
+      setImage(imgArray[0]);
+
+    }catch(e){      
+      console.info(e);
+      
+    setImage(template.image);
+    }
+  });
+
+  useEffect(()=>{
+    setItemImage();
+  },[])
+
   return (
     <Card className="overflow-hidden border-border">
       <div className="flex gap-4 p-4">
         {/* Template Thumbnail */}
         <div className="shrink-0">
           <Image
-          width={100}
-          height={100}
-            src={template.image}
+            width={100}
+            height={100}
+            src={image}
             alt={template.name}
             className="w-24 h-32 object-cover rounded-md shadow-sm"
           />
@@ -35,7 +57,7 @@ const TemplateCard = ({ template }: TemplateCardProps) => {
           <p className="text-sm text-muted-foreground mb-3">
             By {template.designer}
           </p>
-          
+
           {/* Pricing */}
           <div className="space-y-1">
             {template.discount > 0 && (

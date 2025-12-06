@@ -64,7 +64,6 @@ type TemplateFormValues = z.infer<typeof templateSchema>;
 
 export default function AddTemplatePage() {
   const [isLoading, setIsLoading] = useState(false);
-  const [imagePreview, setImagePreview] = useState<string>("");
   const [pdfFileName, setPdfFileName] = useState<string>("");
 
   const [imageInputs, setImageInputs] = useState([{ id: Date.now() }]);
@@ -245,7 +244,6 @@ export default function AddTemplatePage() {
 
       // Reset form and state
       form.reset();
-      setImagePreview("");
       setPdfFileName("");
     } catch (error) {
       console.error("💥 Template submission error:", error);
@@ -554,7 +552,6 @@ export default function AddTemplatePage() {
                 variant="outline"
                 onClick={() => {
                   form.reset();
-                  setImagePreview("");
                   setPdfFileName("");
                 }}
                 className="px-8 font-medium"
@@ -569,3 +566,4 @@ export default function AddTemplatePage() {
     </div>
   );
 }
+

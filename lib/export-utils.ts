@@ -187,7 +187,6 @@ async function drawTextOverlay(
 ) {
   try {
     const rawText = overlay.text || "";
-    const normalized = rawText.normalize("NFC");
 
     // ========== ADJUSTABLE POSITION OFFSET ==========
     const EXPLICIT_POSITION_ADDITION = 4; // Adjust this value as needed (positive = move up)

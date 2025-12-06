@@ -145,7 +145,7 @@ export default function PDFEditor({ pdfFName, templateId, defaultOverlays, userI
     };
 
     loadPDF();
-  }, [pdfFName, templateId]);
+  }, [pdfFName, templateId, defaultOverlays]);
 
 
   const handleAddOverlay = useCallback(
