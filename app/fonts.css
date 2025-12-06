@@ -17,7 +17,7 @@
 
 @font-face {
   font-family: "Arenski";
-  src: url("/fonts/ARENSKI.TTF") format("truetype");
+  src: url("/fonts/ARENSKI.ttf") format("truetype");
   font-weight: normal;
   font-style: normal;
   font-display: swap;

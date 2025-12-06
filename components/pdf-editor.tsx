@@ -92,7 +92,7 @@ export default function PDFEditor({ pdfFName, templateId, defaultOverlays, userI
           fetch("/fonts/KR732.TTF"),
           fetch("/fonts/NotoSansDevanagari.ttf"),
           // English/Latin Fonts
-          fetch("/fonts/ARENSKI.TTF"),
+          fetch("/fonts/ARENSKI.ttf"),
           fetch("/fonts/arial.ttf"),
           fetch("/fonts/bokr76w.ttf"),
           fetch("/fonts/DF Calligraphic Ornament Regular.otf"),

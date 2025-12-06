@@ -38,7 +38,7 @@ export default function RootLayout({
       <head>
         <link
           rel="preload"
-          href="/fonts/ARENSKI.TTF"
+          href="/fonts/ARENSKI.ttf"
           as="font"
           type="font/ttf"
           crossOrigin="anonymous"

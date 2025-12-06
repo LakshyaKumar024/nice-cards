@@ -21,7 +21,7 @@ export const customFonts: CustomFont[] = [
   },
   {
     name: "Arenski",
-    url: "/fonts/ARENSKI.TTF",
+    url: "/fonts/ARENSKI.ttf",
     fontFamily: "Arenski",
     format: "truetype",
   },
