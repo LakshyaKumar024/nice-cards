@@ -13,6 +13,11 @@ import * as fontkit from 'fontkit';
 import type { Overlay, TextOverlay, ShapeOverlay } from '@/lib/types';
 import { loadCustomFont, isCustomFont } from './custom-fonts';
 
+
+const EXPLICIT_POSITION_ADDITION = Number(process.env.NEXT_PUBLIC_EXPLICIT_POSITION_ADDITION??7); // Adjust this value as needed (positive = move up)
+const EXPLICIT_POSITION_LEFT = Number(process.env.NEXT_PUBLIC_EXPLICIT_POSITION_LEFT??2); // Adjust this value as needed (positive = move up)
+
+
 function hexToRgb(hex: string) {
   const r = parseInt(hex.slice(1, 3), 16) / 255;
   const g = parseInt(hex.slice(3, 5), 16) / 255;
@@ -176,10 +181,6 @@ export async function exportPDFWithOverlays(
 
 
 
-
-const EXPLICIT_POSITION_ADDITION = Number(process.env.NEXT_PUBLIC_EXPLICIT_POSITION_ADDITION); // Adjust this value as needed (positive = move up)
-const EXPLICIT_POSITION_LEFT = Number(process.env.NEXT_PUBLIC_EXPLICIT_POSITION_LEFT); // Adjust this value as needed (positive = move up)
-
 async function drawTextOverlay(
   page: any,
   overlay: TextOverlay,
@@ -191,6 +192,8 @@ async function drawTextOverlay(
     const rawText = overlay.text || "";
 
     // ========== ADJUSTABLE POSITION OFFSET ==========
+    console.log("ENVS --> ",EXPLICIT_POSITION_ADDITION,EXPLICIT_POSITION_LEFT);
+    
 
     // ========== PARSE HTML INTO SEGMENTS (multi-font) ==========
     const segments: Array<{ text: string; font: any }> = [];
