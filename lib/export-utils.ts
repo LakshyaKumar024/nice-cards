@@ -189,8 +189,8 @@ async function drawTextOverlay(
     const rawText = overlay.text || "";
 
     // ========== ADJUSTABLE POSITION OFFSET ==========
-    const EXPLICIT_POSITION_ADDITION = Number(process.env.EXPLICIT_POSITION_ADDITION); // Adjust this value as needed (positive = move up)
-    const EXPLICIT_POSITION_LEFT = Number(process.env.EXPLICIT_POSITION_LEFT); // Adjust this value as needed (positive = move up)
+    const EXPLICIT_POSITION_ADDITION = Number(process.env.NEXT_PUBLIC_EXPLICIT_POSITION_ADDITION); // Adjust this value as needed (positive = move up)
+    const EXPLICIT_POSITION_LEFT = Number(process.env.NEXT_PUBLIC_EXPLICIT_POSITION_LEFT); // Adjust this value as needed (positive = move up)
 
     // ========== PARSE HTML INTO SEGMENTS (multi-font) ==========
     const segments: Array<{ text: string; font: any }> = [];
