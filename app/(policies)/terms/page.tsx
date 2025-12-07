@@ -26,7 +26,7 @@ export default function TermsAndConditionsPage() {
             <section>
               <h2 className="mb-3 text-xl font-semibold">Intellectual Property</h2>
               <p className="text-sm leading-relaxed text-muted-foreground">
-                All content included on this site, such as text, graphics, logos, images, templates, SVG files, digital
+                All content included on this site, such as text, graphics, logos, images, templates, PDF files, digital
                 downloads, and software, is the property of our company or its content suppliers and is protected by
                 international copyright laws. The compilation of all content on this site is the exclusive property of
                 our company and is protected by international copyright laws.

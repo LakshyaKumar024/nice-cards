@@ -35,7 +35,7 @@ export async function POST(
                 tags: true,
                 price: true,
                 paid: true,
-                svg: true,
+                defaultDesign: true,
                 pdf: true,
                 image: true,
                 createdAt: true,

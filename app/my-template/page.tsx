@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 export default async function MyTemplatesPage() {
   const user = await currentUser();
   if (!user) redirect("/sign-up");
-  
+
   const templates = await prisma.template.findMany({
     where: { savedTemplates: { some: { userId: user.id } }, status: true },
     orderBy: { createdAt: "desc" },

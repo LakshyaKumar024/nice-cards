@@ -10,6 +10,8 @@ import {
   Type,
   Menu,
   Square,
+  Globe,
+  RotateCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -20,6 +22,12 @@ import {
   SheetTrigger,
   SheetTitle,
 } from "@/components/ui/sheet";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { PDFCanvas } from "@/components/pdf-canvas";
 import { FormattingToolbar } from "@/components/formatting-toolbar";
 import { LayersPanel } from "@/components/layers-panel";
@@ -38,6 +46,8 @@ interface PDFEditorProps {
   templateId: string;
   defaultOverlays?: Overlay[];
   userId: string;
+  isAdmin?: boolean;
+  defaultTemplateDesign?: Overlay[];
 }
 
 // Utility to convert a font family (like "Open Sans") to a class name ("open-sans")
@@ -45,7 +55,7 @@ function fontFamilyToClassName(fontFamily: string) {
   return fontFamily.replace(/\s+/g, "-").toLowerCase();
 }
 
-export default function PDFEditor({ pdfFName, templateId, defaultOverlays, userId }: PDFEditorProps) {
+export default function PDFEditor({ pdfFName, templateId, defaultOverlays, userId, isAdmin = false, defaultTemplateDesign }: PDFEditorProps) {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [pdfDocument, setPdfDocument] =
     useState<pdfjsLib.PDFDocumentProxy | null>(null);
@@ -56,6 +66,8 @@ export default function PDFEditor({ pdfFName, templateId, defaultOverlays, userI
     null
   );
   const [isExporting, setIsExporting] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [isLoadingDefault, setIsLoadingDefault] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [toolMode, setToolMode] = useState<"text" | "shape">("text");
   const applyFontToSelectionRef = useRef<((fontFamily: string) => void) | null>(null);
@@ -470,6 +482,59 @@ export default function PDFEditor({ pdfFName, templateId, defaultOverlays, userI
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pdfFile, pdfFName, overlays]);
 
+  const handlePublishDesign = useCallback(async () => {
+    if (!isAdmin) {
+      toast.error("Only admins can publish designs");
+      return;
+    }
+
+    setIsPublishing(true);
+    try {
+      const response = await fetch(`/api/design/${templateId}/saveOverlays/admin`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId,
+          overlays: overlays,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to publish design");
+      }
+
+      const data = await response.json();
+      toast.success("Design published successfully!");
+      console.log("Published design:", data);
+    } catch (error) {
+      console.error("Error publishing design:", error);
+      toast.error("Failed to publish design");
+    } finally {
+      setIsPublishing(false);
+    }
+  }, [isAdmin, templateId, userId, overlays]);
+
+  const handleLoadDefaultDesign = useCallback(() => {
+    if (!defaultTemplateDesign || defaultTemplateDesign.length === 0) {
+      toast.error("No default design available");
+      return;
+    }
+
+    setIsLoadingDefault(true);
+    try {
+      setOverlays(defaultTemplateDesign);
+      setSelectedOverlayId(null);
+      toast.success("Default design loaded!");
+    } catch (error) {
+      console.error("Error loading default design:", error);
+      toast.error("Failed to load default design");
+    } finally {
+      setIsLoadingDefault(false);
+    }
+  }, [defaultTemplateDesign]);
+
   const handlePrevPage = useCallback(() => {
     setCurrentPage((prev) => Math.max(1, prev - 1));
     setSelectedOverlayId(null);
@@ -634,59 +699,149 @@ export default function PDFEditor({ pdfFName, templateId, defaultOverlays, userI
             </span>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handlePrevPage}
-                disabled={currentPage === 1}
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </Button>
-              <span className="text-sm font-medium min-w-[100px] text-center">
-                Page {currentPage} of {numPages}
-              </span>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleNextPage}
-                disabled={currentPage === numPages}
-              >
-                <ChevronRight className="w-4 h-4" />
-              </Button>
+          <TooltipProvider>
+            <div className="flex items-center gap-3">
+              {/* Left Section: Tools */}
+              <div className="flex items-center gap-1 bg-muted/50 rounded-lg p-1">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant={toolMode === "text" ? "default" : "ghost"}
+                      size="icon"
+                      className={`h-9 w-9 ${toolMode === "text" ? "shadow-sm" : ""}`}
+                      onClick={() => setToolMode("text")}
+                    >
+                      <Type className="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p>Text Tool (T)</p>
+                  </TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant={toolMode === "shape" ? "default" : "ghost"}
+                      size="icon"
+                      className={`h-9 w-9 ${toolMode === "shape" ? "shadow-sm" : ""}`}
+                      onClick={() => setToolMode("shape")}
+                    >
+                      <Square className="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p>Shape Tool (S)</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+
+              <Separator orientation="vertical" className="h-6" />
+
+              {/* Center Section: Page Navigation */}
+              <div className="flex items-center gap-1">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={handlePrevPage}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p>Previous Page</p>
+                  </TooltipContent>
+                </Tooltip>
+
+                <div className="px-3 py-1 bg-muted/50 rounded-md">
+                  <span className="text-sm font-medium tabular-nums">
+                    {currentPage} / {numPages}
+                  </span>
+                </div>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={handleNextPage}
+                      disabled={currentPage === numPages}
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p>Next Page</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+
+              {/* Right Section: Actions */}
+              <div className="ml-auto flex items-center gap-2">
+                {defaultTemplateDesign && defaultTemplateDesign.length > 0 && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        onClick={handleLoadDefaultDesign} 
+                        disabled={isLoadingDefault} 
+                        size="sm"
+                        variant="outline"
+                        className="gap-2"
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                        {isLoadingDefault ? "Loading..." : "Reset"}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      <p>Load Default Design</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      onClick={handleExport} 
+                      disabled={isExporting} 
+                      size="sm"
+                      variant="outline"
+                      className="gap-2"
+                    >
+                      <Download className="w-4 h-4" />
+                      {isExporting ? "Exporting..." : "Export"}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p>Download PDF</p>
+                  </TooltipContent>
+                </Tooltip>
+
+                {isAdmin && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        onClick={handlePublishDesign} 
+                        disabled={isPublishing} 
+                        size="sm"
+                        className="gap-2 bg-green-600 hover:bg-green-700"
+                      >
+                        <Globe className="w-4 h-4" />
+                        {isPublishing ? "Publishing..." : "Publish"}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      <p>Publish as Public Template</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
+              </div>
             </div>
-
-            <Separator orientation="vertical" className="h-8" />
-
-            <div className="flex items-center gap-2">
-              <Button
-                variant={toolMode === "text" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setToolMode("text")}
-                title="Text Tool"
-              >
-                <Type className="w-4 h-4 mr-2" />
-                Text
-              </Button>
-              <Button
-                variant={toolMode === "shape" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setToolMode("shape")}
-                title="Square Shape Tool"
-              >
-                <Square className="w-4 h-4 mr-2" />
-                Square
-              </Button>
-            </div>
-
-            <Separator orientation="vertical" className="h-8" />
-
-            <Button onClick={handleExport} disabled={isExporting} size="sm">
-              <Download className="w-4 h-4 mr-2" />
-              {isExporting ? "Exporting..." : "Export"}
-            </Button>
-          </div>
+          </TooltipProvider>
         </div>
 
         {/* PDF Canvas Area - Scrollable */}

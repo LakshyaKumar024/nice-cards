@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
         price: true,
         status: true,
         paid: true,
-        svg: true,
+        defaultDesign: true,
         pdf: true,
         image: true,
         createdAt: true,

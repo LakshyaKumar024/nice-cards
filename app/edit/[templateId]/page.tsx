@@ -20,9 +20,13 @@ export default function EditPDFPage({ params }: EditPDFPageProps) {
   const { user, isLoaded: userLoaded } = useUser();
   const [pdfFName, setPdfFName] = useState<string | null>(null);
   const [userContent, setUserContent] = useState<Overlay[] | []>(null);
+  const [defaultTemplateDesign, setDefaultTemplateDesign] = useState<Overlay[] | []>(null);
   const [showNote, setShowNote] = useState(true);
 
   const router = useRouter();
+
+  // Check if user is admin from Clerk publicMetadata
+  const isAdmin = user?.publicMetadata?.role === "admin";
 
   useEffect(() => {
     // Wait for user to load
@@ -63,7 +67,16 @@ export default function EditPDFPage({ params }: EditPDFPageProps) {
         //its pdf filename
         setPdfFName(data.data.pdf);
         
-        setUserContent(JSON.parse(data.data.savedTemplates[0].content));
+        const userOverlays = data.data.savedTemplates[0]?.content 
+          ? JSON.parse(data.data.savedTemplates[0].content) 
+          : [];
+        const defaultOverlays = data.data.defaultDesign 
+          ? JSON.parse(data.data.defaultDesign) 
+          : [];
+        
+        setDefaultTemplateDesign(defaultOverlays);
+        setUserContent(userOverlays || defaultOverlays || []);
+
 
       } catch (error) {
         console.error("Error checking access:", error);
@@ -113,7 +126,14 @@ export default function EditPDFPage({ params }: EditPDFPageProps) {
           </div>
         )}
         <div className="flex-1 min-h-0">
-          <PDFEditor templateId={templateId} userId={user?.id} pdfFName={pdfFName} defaultOverlays={userContent} />
+          <PDFEditor
+            templateId={templateId}
+            userId={user?.id}
+            pdfFName={pdfFName}
+            defaultOverlays={userContent}
+            defaultTemplateDesign={defaultTemplateDesign}
+            isAdmin={isAdmin}
+          />
         </div>
       </div>
     </>
