@@ -26,7 +26,7 @@ interface Template {
   catogery: string;
   paid: boolean;
   pdf: string;
-  svg: string;
+  defaultDesign: string;
   image: string;
   rating: number;
   downloads: number;
