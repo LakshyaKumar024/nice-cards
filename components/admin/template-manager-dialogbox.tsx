@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useState, useEffect } from "react";
+import { Textarea } from "../ui/textarea";
 
 interface Template {
   uuid: string;
@@ -132,7 +133,7 @@ export function TemplateManagerDialogbox({
             {/* Description */}
             <div className="grid gap-2">
               <Label htmlFor="description">Description</Label>
-              <Input
+              <Textarea
                 id="description"
                 value={formData?.description ?? ""}
                 onChange={(e) =>
