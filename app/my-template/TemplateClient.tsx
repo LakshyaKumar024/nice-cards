@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
-import { FileImage, Search, Grid } from "lucide-react";
+import { FileImage, Search, Grid, Eye, Edit } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -29,6 +29,15 @@ export default function TemplatesClient({ initialTemplates }) {
       template.catogery.toLowerCase().includes(query)
     );
   });
+
+  const parceImage = (dmpImage: string): string => {
+    try {
+      const imageArray: string[] = JSON.parse(dmpImage);
+      return imageArray[0]
+    } catch (e) {
+      return dmpImage
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -67,16 +76,15 @@ export default function TemplatesClient({ initialTemplates }) {
         {filteredTemplates.length > 0 ? (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {filteredTemplates.map((template) => (
-              <Link
+              <Card 
                 key={template.uuid}
-                href={`/edit/${template.uuid}`}
-                className="group"
+                className="group h-full overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-accent"
               >
-                <Card className="h-full overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-accent">
-                  <div className="relative h-48 w-full bg-muted overflow-hidden">
-                    {template.image ? (
+                <Link href={`/design/${template.uuid}`}>
+                  <div className="relative h-48 w-full bg-muted overflow-hidden cursor-pointer">
+                    {parceImage(template.image) ? (
                       <Image
-                        src={template.image}
+                        src={parceImage(template.image)}
                         alt={template.name}
                         width={400}
                         height={300}
@@ -87,25 +95,47 @@ export default function TemplatesClient({ initialTemplates }) {
                         <FileImage className="h-12 w-12 text-muted-foreground opacity-50" />
                       </div>
                     )}
+                    
+                    {/* Overlay on hover */}
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                      <Eye className="h-8 w-8 text-white" />
+                    </div>
                   </div>
+                </Link>
 
-                  <CardHeader className="pb-3">
-                    <CardTitle className="line-clamp-2 text-lg">
-                      {template.name}
-                    </CardTitle>
+                <CardHeader className="pb-3">
+                  <CardTitle className="line-clamp-2 text-lg">
+                    {template.name}
+                  </CardTitle>
 
-                    <CardDescription className="line-clamp-2">
-                      {truncate(template.description || template.catogery, 80)}
-                    </CardDescription>
-                  </CardHeader>
+                  <CardDescription className="line-clamp-2">
+                    {truncate(template.description || template.catogery, 80)}
+                  </CardDescription>
+                </CardHeader>
 
-                  <CardContent>
-                    <Button className="w-full bg-primary hover:bg-primary/90">
-                      Edit Template
-                    </Button>
-                  </CardContent>
-                </Card>
-              </Link>
+                <CardContent className="space-y-2">
+                  <div className="flex gap-2">
+                    <Link href={`/design/${template.uuid}`} className="flex-1">
+                      <Button 
+                        variant="outline" 
+                        className="w-full group/btn hover:bg-accent hover:text-accent-foreground"
+                      >
+                        <Eye className="h-4 w-4 mr-2 group-hover/btn:scale-110 transition-transform" />
+                        View
+                      </Button>
+                    </Link>
+                    
+                    <Link href={`/edit/${template.uuid}`} className="flex-1">
+                      <Button 
+                        className="w-full group/btn bg-primary hover:bg-primary/90"
+                      >
+                        <Edit className="h-4 w-4 mr-2 group-hover/btn:scale-110 transition-transform" />
+                        Edit
+                      </Button>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         ) : (
