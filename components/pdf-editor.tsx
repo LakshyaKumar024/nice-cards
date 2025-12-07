@@ -60,7 +60,68 @@ export default function PDFEditor({ pdfFName, templateId, defaultOverlays, userI
   const [toolMode, setToolMode] = useState<"text" | "shape">("text");
   const applyFontToSelectionRef = useRef<((fontFamily: string) => void) | null>(null);
 
+  // Undo/Redo state
+  const [history, setHistory] = useState<Overlay[][]>([defaultOverlays || []]);
+  const [historyIndex, setHistoryIndex] = useState(0);
+  const isUndoRedoAction = useRef(false);
+
   const selectedOverlay = overlays?.find((o) => o.id === selectedOverlayId) || null;
+
+  // Save to history when overlays change (but not during undo/redo)
+  useEffect(() => {
+    if (!isUndoRedoAction.current && overlays.length >= 0) {
+      setHistory((prev) => {
+        // Remove any future history if we're not at the end
+        const newHistory = prev.slice(0, historyIndex + 1);
+        // Add current state
+        newHistory.push([...overlays]);
+        // Limit history to 50 states
+        if (newHistory.length > 50) {
+          newHistory.shift();
+          return newHistory;
+        }
+        return newHistory;
+      });
+      setHistoryIndex((prev) => Math.min(prev + 1, 49));
+    }
+    isUndoRedoAction.current = false;
+  }, [overlays]);
+
+  // Undo function
+  const handleUndo = useCallback(() => {
+    if (historyIndex > 0) {
+      isUndoRedoAction.current = true;
+      const newIndex = historyIndex - 1;
+      setHistoryIndex(newIndex);
+      setOverlays([...history[newIndex]]);
+    }
+  }, [historyIndex, history]);
+
+  // Redo function
+  const handleRedo = useCallback(() => {
+    if (historyIndex < history.length - 1) {
+      isUndoRedoAction.current = true;
+      const newIndex = historyIndex + 1;
+      setHistoryIndex(newIndex);
+      setOverlays([...history[newIndex]]);
+    }
+  }, [historyIndex, history]);
+
+  // Keyboard shortcuts for undo/redo
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        handleUndo();
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+        e.preventDefault();
+        handleRedo();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleUndo, handleRedo]);
 
   useEffect(() => {
     // Preload custom fonts for export
