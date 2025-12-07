@@ -40,33 +40,71 @@ interface SortableOverlayItemProps {
   onToggleVisibility: (id: string) => void;
 }
 
-function trimHTMLPreserveSpans(html: string, maxChars: number): string {
+function extractPlainText(html: string, maxChars: number = 30): string {
+  if (!html) return "Empty text";
+  
+  // Create a temporary div to parse HTML
   const div = document.createElement("div");
   div.innerHTML = html;
+  
+  // Get plain text content (strips all HTML tags)
+  const plainText = div.textContent || div.innerText || "";
+  
+  // Trim whitespace and limit length
+  const trimmed = plainText.trim();
+  
+  if (trimmed.length === 0) return "Empty text";
+  if (trimmed.length <= maxChars) return trimmed;
+  
+  // Truncate and add ellipsis
+  return trimmed.slice(0, maxChars) + "...";
+}
 
-  let remaining = maxChars;
-
-  function trimNode(node: Node) {
-    if (remaining <= 0) {
-      node.textContent = "";
-      return;
-    }
+function truncateHTMLByChars(html: string, maxChars: number = 30): string {
+  if (!html) return "";
+  
+  const div = document.createElement("div");
+  div.innerHTML = html;
+  
+  let charCount = 0;
+  let truncated = false;
+  
+  function processNode(node: Node): Node | null {
+    if (truncated) return null;
+    
     if (node.nodeType === Node.TEXT_NODE) {
       const text = node.textContent || "";
-      if (text.length > remaining) {
-        node.textContent = text.slice(0, remaining);
-        remaining = 0;
-      } else {
-        remaining -= text.length;
+      if (charCount + text.length > maxChars) {
+        const remaining = maxChars - charCount;
+        node.textContent = text.slice(0, remaining) + "...";
+        truncated = true;
       }
-    } else {
-      const children = Array.from(node.childNodes);
-      for (const child of children) trimNode(child);
+      charCount += text.length;
+      return node;
+    } else if (node.nodeType === Node.ELEMENT_NODE) {
+      const element = node.cloneNode(false) as Element;
+      for (const child of Array.from(node.childNodes)) {
+        const processed = processNode(child);
+        if (processed) {
+          element.appendChild(processed);
+        }
+        if (truncated) break;
+      }
+      return element;
     }
+    return node.cloneNode(true);
   }
-
-  trimNode(div);
-  return div.innerHTML;
+  
+  const result = document.createElement("div");
+  for (const child of Array.from(div.childNodes)) {
+    const processed = processNode(child);
+    if (processed) {
+      result.appendChild(processed);
+    }
+    if (truncated) break;
+  }
+  
+  return result.innerHTML || "Empty text";
 }
 
 function SortableOverlayItem({
@@ -145,26 +183,20 @@ function SortableOverlayItem({
           </>
         ) : (
           <>
-            <p
-              className="text-sm font-medium"
+            <div
+              className="text-sm font-medium truncate"
               style={{
                 fontFamily: overlay.fontFamily,
                 fontSize: "14px",
                 fontWeight: overlay.bold ? "bold" : "normal",
                 fontStyle: overlay.italic ? "italic" : "normal",
                 color: overlay.color,
-                wordBreak: "break-word",
-                overflowWrap: "break-word",
-                whiteSpace: "normal",
                 lineHeight: "1.4",
               }}
               dangerouslySetInnerHTML={{
-                __html:
-                  overlay.type === "text"
-                    ? trimHTMLPreserveSpans(overlay.text || "", 10)
-                    : "Empty text",
+                __html: overlay.type === "text" ? truncateHTMLByChars(overlay.text || "", 30) : "Empty text"
               }}
-            ></p>
+            />
             <div className="flex items-center gap-2 text-xs text-muted-foreground truncate">
               <span>
                 {Math.round(overlay.x * 100)}%, {Math.round(overlay.y * 100)}%
