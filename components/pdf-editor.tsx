@@ -632,7 +632,7 @@ export default function PDFEditor({ pdfFName, templateId, defaultOverlays, userI
         <div className="flex-1 overflow-auto bg-muted/30 relative">
           {/* ESC Hint - Shows when editing */}
           {selectedOverlayId && (
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 bg-primary text-primary-foreground px-4 py-2 rounded-md shadow-lg text-sm font-medium flex items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-99 bg-primary text-primary-foreground px-4 py-2 rounded-md shadow-lg text-sm font-medium flex items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
               <span>Press</span>
               <kbd className="px-2 py-1 bg-primary-foreground/20 rounded text-xs font-mono">ESC</kbd>
               <span>to exit editing mode</span>

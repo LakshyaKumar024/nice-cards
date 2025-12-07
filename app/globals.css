@@ -8,6 +8,14 @@
   -ms-user-select: none !important;
 }
 
+/* Multi-font text rendering - let inline styles work naturally */
+.multi-font-text {
+  all: initial;
+  display: inline;
+  white-space: pre;
+  line-height: 1.2;
+}
+
 .bhartiya-hindi-100 {
   font-family: "BHARTIYA HINDI_100", sans-serif !important;
 }

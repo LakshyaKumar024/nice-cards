@@ -1,13 +1,42 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import * as pdfjsLib from "pdfjs-dist";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Overlay, TextOverlay, ShapeOverlay } from "@/lib/types";
+import { createEditor, Descendant, Editor, Transforms, Text, BaseEditor, Element as SlateElement, Node } from "slate";
+import { Slate, Editable, withReact, ReactEditor, RenderLeafProps, RenderElementProps } from "slate-react";
+import { withHistory } from "slate-history";
 
 // Configure pdfjs worker
 if (typeof window !== "undefined") {
   pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+}
+
+// Slate custom types
+type CustomText = {
+  text: string;
+  bold?: boolean;
+  italic?: boolean;
+  fontFamily?: string;
+  fontSize?: number;
+  color?: string;
+};
+
+type ParagraphElement = {
+  type: "paragraph";
+  align?: "left" | "center" | "right" | "justify";
+  children: CustomText[];
+};
+
+type CustomElement = ParagraphElement;
+
+declare module "slate" {
+  interface CustomTypes {
+    Editor: BaseEditor & ReactEditor;
+    Element: CustomElement;
+    Text: CustomText;
+  }
 }
 
 interface PDFCanvasProps {
@@ -26,6 +55,157 @@ interface PDFCanvasProps {
   onApplyFontRef?: (ref: (fontFamily: string) => void) => void;
 }
 
+// Helper: Convert HTML to Slate value
+function htmlToSlate(html: string, defaultFont: string, defaultSize: number, defaultColor: string): Descendant[] {
+  if (!html || html.trim() === "") {
+    return [{ type: "paragraph", children: [{ text: "" }] }];
+  }
+
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+  const paragraphs: ParagraphElement[] = [];
+
+  function extractTextNodes(node: ChildNode | HTMLElement, currentStyles: Partial<CustomText> = {}): CustomText[] {
+    const texts: CustomText[] = [];
+
+    const children = 'childNodes' in node ? Array.from(node.childNodes) : [];
+
+    for (const child of children) {
+      if (child.nodeType === 3) {
+        // Text node
+        const text = child.textContent || "";
+        if (text) {
+          texts.push({ text, ...currentStyles });
+        }
+      } else if (child.nodeType === 1) {
+        // Element node
+        const el = child as HTMLElement;
+        const newStyles = { ...currentStyles };
+
+        // Extract font from data-font attribute or inline style
+        const dataFont = el.getAttribute("data-font");
+        if (dataFont) newStyles.fontFamily = dataFont;
+
+        const inlineFont = el.style.fontFamily;
+        if (inlineFont && !newStyles.fontFamily) {
+          newStyles.fontFamily = inlineFont.replace(/['"]/g, "").split(",")[0].trim();
+        }
+
+        // Extract other styles
+        if (el.style.fontSize) {
+          newStyles.fontSize = parseInt(el.style.fontSize);
+        }
+        if (el.style.color) {
+          newStyles.color = el.style.color;
+        }
+        if (el.tagName === "STRONG" || el.tagName === "B" || el.style.fontWeight === "bold") {
+          newStyles.bold = true;
+        }
+        if (el.tagName === "EM" || el.tagName === "I" || el.style.fontStyle === "italic") {
+          newStyles.italic = true;
+        }
+
+        // Handle BR and block elements
+        if (el.tagName === "BR") {
+          texts.push({ text: "\n", ...currentStyles });
+        } else if (["DIV", "P"].includes(el.tagName)) {
+          const childTexts = extractTextNodes(el, newStyles);
+          texts.push(...childTexts);
+          if (child.nextSibling) {
+            texts.push({ text: "\n", ...currentStyles });
+          }
+        } else {
+          texts.push(...extractTextNodes(el, newStyles));
+        }
+      }
+    }
+
+    return texts;
+  }
+
+  const bodyTexts = extractTextNodes(doc.body);
+  
+  // Split by newlines to create paragraphs
+  let currentParagraph: CustomText[] = [];
+  
+  for (const textNode of bodyTexts) {
+    if (textNode.text.includes("\n")) {
+      const parts = textNode.text.split("\n");
+      for (let i = 0; i < parts.length; i++) {
+        if (parts[i]) {
+          currentParagraph.push({ ...textNode, text: parts[i] });
+        }
+        if (i < parts.length - 1) {
+          if (currentParagraph.length > 0) {
+            paragraphs.push({ type: "paragraph", children: currentParagraph });
+            currentParagraph = [];
+          } else {
+            paragraphs.push({ type: "paragraph", children: [{ text: "" }] });
+          }
+        }
+      }
+    } else {
+      currentParagraph.push(textNode);
+    }
+  }
+
+  if (currentParagraph.length > 0) {
+    paragraphs.push({ type: "paragraph", children: currentParagraph });
+  }
+
+  return paragraphs.length > 0 ? paragraphs : [{ type: "paragraph", children: [{ text: "" }] }];
+}
+
+// Helper: Convert Slate value to clean HTML
+function slateToHtml(value: Descendant[], defaultFont: string, defaultSize: number, defaultColor: string): string {
+  const lines: string[] = [];
+
+  for (const node of value) {
+    if (SlateElement.isElement(node) && node.type === "paragraph") {
+      const textParts: string[] = [];
+      
+      for (const child of node.children) {
+        if (Text.isText(child)) {
+          let text = child.text || "";
+          
+          // Build span with inline styles
+          const styles: string[] = [];
+          const attrs: string[] = [];
+          
+          if (child.fontFamily) {
+            styles.push(`font-family: '${child.fontFamily}', sans-serif`);
+            attrs.push(`data-font="${child.fontFamily}"`);
+          }
+          if (child.fontSize) {
+            styles.push(`font-size: ${child.fontSize}px`);
+          }
+          if (child.color) {
+            styles.push(`color: ${child.color}`);
+          }
+          if (child.bold) {
+            styles.push(`font-weight: bold`);
+          }
+          if (child.italic) {
+            styles.push(`font-style: italic`);
+          }
+
+          if (styles.length > 0 || attrs.length > 0) {
+            const styleAttr = styles.length > 0 ? ` style="${styles.join("; ")}"` : "";
+            const dataAttrs = attrs.length > 0 ? ` ${attrs.join(" ")}` : "";
+            text = `<span${styleAttr}${dataAttrs}>${text}</span>`;
+          }
+          
+          textParts.push(text);
+        }
+      }
+      
+      lines.push(textParts.join(""));
+    }
+  }
+
+  return lines.join("<br>");
+}
+
 export function PDFCanvas({
   pdfDocument,
   pageNumber,
@@ -40,24 +220,19 @@ export function PDFCanvas({
 }: PDFCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const editableDivRef = useRef<HTMLDivElement>(null);
 
   const [pageDimensions, setPageDimensions] = useState({ width: 0, height: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editingOverlayId, setEditingOverlayId] = useState<string | null>(null);
-  const [draggingOverlayId, setDraggingOverlayId] = useState<string | null>(
-    null
-  );
+  const [draggingOverlayId, setDraggingOverlayId] = useState<string | null>(null);
   const [isResizing, setIsResizing] = useState(false);
   const renderTaskRef = useRef<pdfjsLib.RenderTask | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [fontsLoaded, setFontsLoaded] = useState(false);
-  // Use a persistent DOM marker to represent the user's selection so it
-  // survives focus changes (toolbars, portals) which collapse native Ranges.
-  const savedMarkerRef = useRef<HTMLElement | null>(null);
-  // Track if we're intentionally exiting edit mode (e.g., via Escape)
-  const isExitingEditMode = useRef(false);
+
+  // Slate editor instances - one per text overlay
+  const [slateEditors] = useState<Map<string, ReactEditor & BaseEditor>>(new Map());
+  const [slateValues, setSlateValues] = useState<Map<string, Descendant[]>>(new Map());
 
   // Wait for fonts to load
   useEffect(() => {
@@ -70,195 +245,159 @@ export function PDFCanvas({
     }
   }, []);
 
+  // Create or get Slate editor for an overlay
+  const getEditorForOverlay = useCallback((overlayId: string) => {
+    if (!slateEditors.has(overlayId)) {
+      const editor = withHistory(withReact(createEditor()));
+      slateEditors.set(overlayId, editor);
+    }
+    return slateEditors.get(overlayId)!;
+  }, [slateEditors]);
+
+  // Initialize Slate value for overlay
   useEffect(() => {
-    if (editingOverlayId && editableDivRef.current) {
-      const el = editableDivRef.current;
-      const overlay = overlays.find((o) => o.id === editingOverlayId);
-
-      if (!overlay || overlay.type !== "text") return;
-
-      // Reset height and width first
-      el.style.height = "auto";
-      el.style.width = "auto";
-
-      // Calculate the required width based on text content
-      const canvas = document.createElement("canvas");
-      const context = canvas.getContext("2d");
-      const innerText = el.innerText || overlay.text || "";
-      if (context) {
-        context.font = `${overlay.bold ? "bold " : ""}${
-          overlay.italic ? "italic " : ""
-        }${overlay.fontSize}px ${overlay.fontFamily}`;
-        const textWidth = context.measureText(innerText || "M").width;
-
-        // Set width with some padding
-        const newWidth = Math.max(50, textWidth + 10);
-        el.style.width = `${newWidth}px`;
+    const textOverlays = overlays.filter((o) => o.type === "text") as TextOverlay[];
+    
+    for (const overlay of textOverlays) {
+      if (!slateValues.has(overlay.id)) {
+        const initialValue = htmlToSlate(
+          overlay.text,
+          overlay.fontFamily,
+          overlay.fontSize,
+          overlay.color
+        );
+        // Apply overlay's textAlign to all paragraphs
+        const valueWithAlign = initialValue.map(node => {
+          if (SlateElement.isElement(node) && node.type === "paragraph") {
+            return { ...node, align: overlay.textAlign };
+          }
+          return node;
+        });
+        setSlateValues((prev) => new Map(prev).set(overlay.id, valueWithAlign));
       }
-
-      // Calculate the required height based on text content
-      const lineHeight = overlay.fontSize * 1.2;
-      const textLines = (el.innerText || overlay.text || "").split("\n");
-      const numLines = Math.max(1, textLines.length);
-      const newHeight = Math.max(
-        overlay.fontSize + 4,
-        numLines * lineHeight + 4
-      );
-      el.style.height = `${newHeight}px`;
-
-      // Focus and place cursor at the end
-      el.focus();
-      const range = document.createRange();
-      range.selectNodeContents(el);
-      range.collapse(false);
-      const sel = window.getSelection();
-      sel?.removeAllRanges();
-      sel?.addRange(range);
     }
-  }, [editingOverlayId, overlays]);
+  }, [overlays, slateValues]);
 
-  // Helper function to highlight a range with background color and return
-  // the created marker element. Returning a DOM element lets callers keep
-  // a persistent reference to the selection even after the editor loses focus.
-  const highlightRange = useCallback((range: Range) => {
-    // Remove previous highlights
-    if (editableDivRef.current) {
-      const marks = editableDivRef.current.querySelectorAll(
-        "mark[data-selection]"
-      );
-      marks.forEach((mark) => {
-        const parent = mark.parentNode;
-        while (mark.firstChild) {
-          parent?.insertBefore(mark.firstChild, mark);
+  // Update alignment when overlay textAlign changes
+  useEffect(() => {
+    if (editingOverlayId) {
+      const overlay = overlays.find(o => o.id === editingOverlayId && o.type === "text") as TextOverlay | undefined;
+      if (overlay) {
+        const editor = getEditorForOverlay(editingOverlayId);
+        const currentValue = slateValues.get(editingOverlayId);
+        
+        if (currentValue) {
+          // Update all paragraphs with the new alignment
+          const updatedValue = currentValue.map(node => {
+            if (SlateElement.isElement(node) && node.type === "paragraph") {
+              return { ...node, align: overlay.textAlign };
+            }
+            return node;
+          });
+          
+          // Only update if alignment actually changed
+          const needsUpdate = currentValue.some((node, idx) => {
+            if (SlateElement.isElement(node) && node.type === "paragraph") {
+              return node.align !== overlay.textAlign;
+            }
+            return false;
+          });
+          
+          if (needsUpdate) {
+            editor.children = updatedValue;
+            editor.onChange();
+            setSlateValues((prev) => new Map(prev).set(editingOverlayId, updatedValue));
+          }
         }
-        parent?.removeChild(mark);
-      });
+      }
     }
+  }, [editingOverlayId, overlays, slateValues, getEditorForOverlay]);
 
-    // Create mark element for highlighting
-    const mark = document.createElement("mark");
-    mark.setAttribute("data-selection", "true");
-    mark.style.backgroundColor = "#FFFF00";
-    mark.style.opacity = "0.4";
+  // Track last overlay properties to detect changes
+  const lastOverlayPropsRef = useRef<Map<string, { fontSize: number; fontFamily: string; color: string; bold: boolean; italic: boolean }>>(new Map());
 
-    try {
-      range.surroundContents(mark);
-    } catch {
-      // If surroundContents fails (range spans multiple elements), use a different approach
-      const contents = range.extractContents();
-      mark.appendChild(contents);
-      range.insertNode(mark);
+  // Regenerate HTML when overlay-level properties change (for non-editing display)
+  useEffect(() => {
+    const textOverlays = overlays.filter((o) => o.type === "text") as TextOverlay[];
+    
+    for (const overlay of textOverlays) {
+      const currentValue = slateValues.get(overlay.id);
+      if (currentValue && overlay.id !== editingOverlayId) {
+        const lastProps = lastOverlayPropsRef.current.get(overlay.id);
+        const currentProps = {
+          fontSize: overlay.fontSize,
+          fontFamily: overlay.fontFamily,
+          color: overlay.color,
+          bold: overlay.bold,
+          italic: overlay.italic,
+        };
+        
+        // Check if properties changed
+        const propsChanged = !lastProps ||
+          lastProps.fontSize !== currentProps.fontSize ||
+          lastProps.fontFamily !== currentProps.fontFamily ||
+          lastProps.color !== currentProps.color ||
+          lastProps.bold !== currentProps.bold ||
+          lastProps.italic !== currentProps.italic;
+        
+        if (propsChanged) {
+          // Regenerate HTML with current overlay properties
+          const newHtml = slateToHtml(currentValue, overlay.fontFamily, overlay.fontSize, overlay.color);
+          
+          // Update the overlay
+          onUpdateOverlay(overlay.id, { text: newHtml });
+          
+          // Save current props
+          lastOverlayPropsRef.current.set(overlay.id, currentProps);
+        }
+      }
     }
+  }, [overlays, slateValues, editingOverlayId, onUpdateOverlay]);
 
-    return mark;
-  }, []);
-
-  // Apply selected font to current persistent marker selection inside contentEditable
-  const applyFontToSelection = useCallback(
-    (fontFamily: string) => {
-      console.log("=== applyFontToSelection called ===");
-      console.log("fontFamily:", fontFamily);
-      console.log("savedMarkerRef.current:", savedMarkerRef.current);
-      console.log("editingOverlayId:", editingOverlayId);
-
-      const marker = savedMarkerRef.current;
-      if (!marker) {
-        console.log("EARLY RETURN: No saved marker for selection");
+  // Apply formatting to selection in Slate editor
+  const applyFormattingToSelection = useCallback(
+    (format: Partial<CustomText>) => {
+      if (!editingOverlayId) {
         return;
       }
-      try {
-        // --------------------------------------------
-        // STEP 1 — REMOVE ALL FONT SPANS (ancestors + inner)
-        // --------------------------------------------
 
-        // 1️⃣ remove ancestor spans above the marker
-        let parent = marker.parentElement;
-        while (parent && parent !== editableDivRef.current) {
-          if (parent.hasAttribute("data-font")) {
-            const outer = parent;
-            const grand = outer.parentElement;
-
-            // unwrap the span
-            while (outer.firstChild) {
-              grand?.insertBefore(outer.firstChild, outer);
-            }
-            grand?.removeChild(outer);
-          }
-          parent = parent.parentElement;
-        }
-
-        // 2️⃣ remove any spans inside the marker
-        const innerSpans = marker.querySelectorAll("span[data-font]");
-        innerSpans.forEach((s) => {
-          const p = s.parentNode;
-          while (s.firstChild) p?.insertBefore(s.firstChild, s);
-          p?.removeChild(s);
-        });
-
-        // --------------------------------------------
-        // STEP 2 — CREATE NEW FONT SPAN WITH INLINE STYLE
-        // --------------------------------------------
-
-        const span = document.createElement("span");
-
-        // build CSS class name
-        const className = fontFamily
-          .replace(/\s+/g, "-")
-          .replace(/[^a-zA-Z0-9\-]/g, "")
-          .toLowerCase();
-
-        span.setAttribute("data-font", fontFamily);
-        span.setAttribute("data-font-class", className);
-        span.className = className;
-
-        // IMPORTANT: set inline font-family so font actually renders
-        span.style.fontFamily = `"${fontFamily}", sans-serif`;
-
-        // move highlighted text inside new span
-        while (marker.firstChild) {
-          span.appendChild(marker.firstChild);
-        }
-
-        // replace marker with this new span
-        marker.parentNode?.replaceChild(span, marker);
-
-        // clear saved marker
-        savedMarkerRef.current = null;
-
-        // remove remaining <mark> elements from DOM
-        if (editableDivRef.current) {
-          const marks = editableDivRef.current.querySelectorAll(
-            "mark[data-selection]"
-          );
-          marks.forEach((m) => {
-            const parent = m.parentNode;
-            while (m.firstChild) parent?.insertBefore(m.firstChild, m);
-            parent?.removeChild(m);
-          });
-        }
-
-        // update overlay HTML
-        if (editingOverlayId) {
-          const html = editableDivRef.current?.innerHTML || "";
-          onUpdateOverlay(editingOverlayId, { text: html });
-        }
-      } catch (error) {
-        console.error("Error in applyFontToSelection:", error);
+      const editor = getEditorForOverlay(editingOverlayId);
+      
+      if (editor.selection) {
+        // Apply formatting to selected text
+        Transforms.setNodes(
+          editor,
+          format,
+          { match: Text.isText, split: true }
+        );
+      } else {
+        // No selection - apply to entire overlay
+        Transforms.setNodes(
+          editor,
+          format,
+          { at: [], match: Text.isText }
+        );
       }
     },
-    [editingOverlayId, onUpdateOverlay]
+    [editingOverlayId, getEditorForOverlay]
   );
 
-  // Pass applyFontToSelection function to parent so toolbar can call it directly
+  // Apply font to selection in Slate editor (for toolbar compatibility)
+  const applyFontToSelection = useCallback(
+    (fontFamily: string) => {
+      applyFormattingToSelection({ fontFamily });
+    },
+    [applyFormattingToSelection]
+  );
+
+  // Pass applyFontToSelection to parent
   useEffect(() => {
-    console.log("Setting applyFontToSelection ref");
     if (onApplyFontRef) {
       onApplyFontRef(applyFontToSelection);
-      console.log("Ref set!");
     }
   }, [applyFontToSelection, onApplyFontRef]);
 
-  // Handle keyboard for editing only
+  // Handle keyboard for editing
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Enter" && selectedOverlayId && !editingOverlayId) {
@@ -266,32 +405,15 @@ export function PDFCanvas({
         setEditingOverlayId(selectedOverlayId);
       }
       if (event.key === "Escape") {
-        console.log("🔑 Escape key pressed - global handler", { editingOverlayId, selectedOverlayId });
         event.preventDefault();
-        // If editing, clear highlight and exit edit mode
         if (editingOverlayId) {
-          if (editableDivRef.current) {
-            const marks = editableDivRef.current.querySelectorAll(
-              "mark[data-selection]"
-            );
-            marks.forEach((mark) => {
-              const parent = mark.parentNode;
-              while (mark.firstChild) {
-                parent?.insertBefore(mark.firstChild, mark);
-              }
-              parent?.removeChild(mark);
-            });
-          }
-          savedMarkerRef.current = null;
           setEditingOverlayId(null);
         }
-        // Always deselect overlay on ESC (whether editing or just selected)
         onSelectOverlay(null);
       }
     };
 
     document.addEventListener("keydown", handleKeyDown);
-
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
     };
@@ -358,28 +480,6 @@ export function PDFCanvas({
     };
   }, [pdfDocument, pageNumber]);
 
-  useEffect(() => {
-    const el = editableDivRef.current;
-    if (!el) return;
-
-    const handleSelection = () => {
-      const sel = window.getSelection();
-      if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
-        const range = sel.getRangeAt(0);
-        const marker = highlightRange(range);
-        savedMarkerRef.current = marker;
-      }
-    };
-
-    el.addEventListener("mouseup", handleSelection);
-    el.addEventListener("keyup", handleSelection);
-
-    return () => {
-      el.removeEventListener("mouseup", handleSelection);
-      el.removeEventListener("keyup", handleSelection);
-    };
-  }, [highlightRange]);
-
   // Handle double-click to add new text or shape
   const handleCanvasDoubleClick = useCallback(
     (event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -410,7 +510,7 @@ export function PDFCanvas({
           page: pageNumber,
           visible: true,
           zIndex: overlays.length,
-          rotation: 0, // Initialize with 0 rotation
+          rotation: 0,
           textAlign: "left",
         };
 
@@ -439,10 +539,8 @@ export function PDFCanvas({
       const x = event.clientX - rect.left;
       const y = event.clientY - rect.top;
 
-      // Check if clicking on a shape or text overlay
       let clickedOverlay = null;
 
-      // Check shapes first (they might be behind other overlays)
       for (const overlay of overlays) {
         if (overlay.page !== pageNumber) continue;
 
@@ -452,11 +550,9 @@ export function PDFCanvas({
           const shapeW = overlay.width * pageDimensions.width;
           const shapeH = overlay.height * pageDimensions.height;
 
-          // Account for the translate(-50%, -50%) transform
           const adjustedShapeX = shapeX;
           const adjustedShapeY = shapeY;
 
-          // Check if click is inside the shape bounds
           const isInside =
             x >= adjustedShapeX - shapeW / 2 &&
             x <= adjustedShapeX + shapeW / 2 &&
@@ -468,12 +564,10 @@ export function PDFCanvas({
             break;
           }
         } else {
-          // Text overlay check
           const textX = overlay.x * pageDimensions.width;
           const textY = overlay.y * pageDimensions.height;
           const clickRadius = 30;
 
-          // Account for the translate(-50%, 0%) transform for text
           const adjustedTextX = textX;
           const adjustedTextY = textY;
 
@@ -490,27 +584,10 @@ export function PDFCanvas({
 
       if (clickedOverlay) {
         onSelectOverlay(clickedOverlay.id);
-        // Exit edit mode if clicking on a different overlay
         if (editingOverlayId && clickedOverlay.id !== editingOverlayId) {
-          // Clear highlight before exiting
-          if (editableDivRef.current) {
-            const marks = editableDivRef.current.querySelectorAll(
-              "mark[data-selection]"
-            );
-            marks.forEach((mark) => {
-              const parent = mark.parentNode;
-              while (mark.firstChild) {
-                parent?.insertBefore(mark.firstChild, mark);
-              }
-              parent?.removeChild(mark);
-            });
-          }
-          savedMarkerRef.current = null;
           setEditingOverlayId(null);
         }
       } else {
-        // Clicked outside any overlay - keep edit mode active (like Canva)
-        // Only deselect if not currently editing
         if (!editingOverlayId) {
           onSelectOverlay(null);
         }
@@ -528,18 +605,16 @@ export function PDFCanvas({
 
   const handleDragStart = useCallback(
     (event: React.MouseEvent<HTMLDivElement>, overlayId: string) => {
-      // Don't start drag if we're resizing
       if (isResizing) return;
 
       event.stopPropagation();
-      event.preventDefault(); // Add this to prevent text selection
+      event.preventDefault();
       const overlay = overlays.find((o) => o.id === overlayId);
       if (!overlay) return;
 
       onSelectOverlay(overlayId);
       setEditingOverlayId(null);
 
-      // Add dragging class to body
       document.body.classList.add("dragging");
 
       const startX = event.clientX;
@@ -591,7 +666,6 @@ export function PDFCanvas({
       };
 
       const handleMouseUp = () => {
-        // Remove dragging class from body
         document.body.classList.remove("dragging");
         setDraggingOverlayId(null);
         document.removeEventListener("mousemove", handleMouseMove);
@@ -641,7 +715,6 @@ export function PDFCanvas({
         let newX = startXPos;
         let newY = startYPos;
 
-        // Resize logic based on handle
         if (handle === "e") {
           newWidth = Math.max(0.01, startWidth + deltaX);
           newX = startXPos + deltaX / 2;
@@ -692,18 +765,6 @@ export function PDFCanvas({
     [overlays, pageDimensions, onSelectOverlay, onUpdateOverlay]
   );
 
-  // Handle inline text editing
-  const handleTextChange = useCallback(
-    (id: string, newText: string) => {
-      onUpdateOverlay(id, { text: newText });
-    },
-    [onUpdateOverlay]
-  );
-
-  const handleTextBlur = useCallback(() => {
-    setEditingOverlayId(null);
-  }, []);
-
   // Start editing when a new text overlay is selected
   useEffect(() => {
     if (selectedOverlayId && !editingOverlayId) {
@@ -714,21 +775,48 @@ export function PDFCanvas({
     }
   }, [selectedOverlayId, editingOverlayId, overlays]);
 
-  // Auto focus contentEditable and move cursor to end
-  useEffect(() => {
-    if (editingOverlayId && editableDivRef.current) {
-      const el = editableDivRef.current;
-      el.focus();
-
-      // Move cursor to end of text
-      const range = document.createRange();
-      range.selectNodeContents(el);
-      range.collapse(false);
-      const sel = window.getSelection();
-      sel?.removeAllRanges();
-      sel?.addRange(range);
+  // Slate render functions
+  const renderLeaf = useCallback((props: RenderLeafProps): React.ReactElement => {
+    const { attributes, children, leaf } = props;
+    
+    let style: React.CSSProperties = {};
+    
+    if (leaf.fontFamily) {
+      style.fontFamily = `"${leaf.fontFamily}", sans-serif`;
     }
-  }, [editingOverlayId]);
+    if (leaf.fontSize) {
+      style.fontSize = `${leaf.fontSize}px`;
+    }
+    if (leaf.color) {
+      style.color = leaf.color;
+    }
+    if (leaf.bold) {
+      style.fontWeight = "bold";
+    }
+    if (leaf.italic) {
+      style.fontStyle = "italic";
+    }
+
+    return (
+      <span {...attributes} style={style}>
+        {children}
+      </span>
+    );
+  }, []);
+
+  const renderElement = useCallback((props: RenderElementProps): React.ReactElement => {
+    const { attributes, children, element } = props;
+    
+    if (element.type === "paragraph") {
+      return (
+        <div {...attributes} style={{ textAlign: element.align || "left" }}>
+          {children}
+        </div>
+      );
+    }
+    
+    return <div {...attributes}>{children}</div>;
+  }, []);
 
   const currentPageOverlays = overlays
     .filter((overlay) => overlay.page === pageNumber)
@@ -785,7 +873,6 @@ export function PDFCanvas({
                     transform: `translate(-50%, -50%) rotate(${overlay.rotation}deg)`,
                   }}
                   onClick={(e) => {
-                    // Don't select if we were resizing or dragging
                     if (isResizing || isDragging) {
                       e.stopPropagation();
                       return;
@@ -806,10 +893,9 @@ export function PDFCanvas({
                       opacity: isDragging ? 0.7 : 1,
                       transition: isDragging ? "none" : "all 0.2s",
                       borderRadius: "2px",
-                      transformOrigin: "center center", // Ensure rotation around center
+                      transformOrigin: "center center",
                     }}
                     onMouseDown={(e) => {
-                      // Don't start drag if clicking on a resize handle
                       if (
                         (e.target as HTMLElement).closest(
                           "[data-resize-handle]"
@@ -836,7 +922,7 @@ export function PDFCanvas({
                           e.preventDefault();
                           handleResizeStart(e, overlay.id, "nw");
                         }}
-                        onClick={(e) => e.stopPropagation()} // ADD THIS
+                        onClick={(e) => e.stopPropagation()}
                       />
                       <div
                         data-resize-handle
@@ -847,7 +933,7 @@ export function PDFCanvas({
                           e.preventDefault();
                           handleResizeStart(e, overlay.id, "ne");
                         }}
-                        onClick={(e) => e.stopPropagation()} // ADD THIS
+                        onClick={(e) => e.stopPropagation()}
                       />
                       <div
                         data-resize-handle
@@ -858,7 +944,7 @@ export function PDFCanvas({
                           e.preventDefault();
                           handleResizeStart(e, overlay.id, "sw");
                         }}
-                        onClick={(e) => e.stopPropagation()} // ADD THIS
+                        onClick={(e) => e.stopPropagation()}
                       />
                       <div
                         data-resize-handle
@@ -869,7 +955,7 @@ export function PDFCanvas({
                           e.preventDefault();
                           handleResizeStart(e, overlay.id, "se");
                         }}
-                        onClick={(e) => e.stopPropagation()} // ADD THIS
+                        onClick={(e) => e.stopPropagation()}
                       />
 
                       {/* Side resize handles */}
@@ -887,7 +973,7 @@ export function PDFCanvas({
                           e.preventDefault();
                           handleResizeStart(e, overlay.id, "n");
                         }}
-                        onClick={(e) => e.stopPropagation()} // ADD THIS
+                        onClick={(e) => e.stopPropagation()}
                       />
                       <div
                         data-resize-handle
@@ -903,7 +989,7 @@ export function PDFCanvas({
                           e.preventDefault();
                           handleResizeStart(e, overlay.id, "s");
                         }}
-                        onClick={(e) => e.stopPropagation()} // ADD THIS
+                        onClick={(e) => e.stopPropagation()}
                       />
                       <div
                         data-resize-handle
@@ -919,7 +1005,7 @@ export function PDFCanvas({
                           e.preventDefault();
                           handleResizeStart(e, overlay.id, "e");
                         }}
-                        onClick={(e) => e.stopPropagation()} // ADD THIS
+                        onClick={(e) => e.stopPropagation()}
                       />
                       <div
                         data-resize-handle
@@ -935,24 +1021,24 @@ export function PDFCanvas({
                           e.preventDefault();
                           handleResizeStart(e, overlay.id, "w");
                         }}
-                        onClick={(e) => e.stopPropagation()} // ADD THIS
+                        onClick={(e) => e.stopPropagation()}
                       />
                     </>
                   )}
                 </div>
               );
             } else {
-              // Text overlay rendering with rotation
+              // Text overlay rendering with Slate
               const textX = overlay.x * pageDimensions.width;
               const textY = overlay.y * pageDimensions.height;
               const isSelected = selectedOverlayId === overlay.id;
               const isDragging = draggingOverlayId === overlay.id;
+              const isEditing = editingOverlayId === overlay.id;
 
               return (
                 <div
                   key={overlay.id}
                   className={`absolute cursor-move select-none ${
-                    // Add select-none here
                     isSelected
                       ? "ring-2 ring-blue-500 bg-blue-50 bg-opacity-50 rounded"
                       : "border border-dashed border-transparent hover:border-gray-400"
@@ -969,154 +1055,73 @@ export function PDFCanvas({
                     backgroundColor: "transparent",
                     transition: isDragging ? "none" : "all 0.2s",
                     transformOrigin: "center center",
-                    // Add CSS to prevent text selection
-                    userSelect: "none",
-                    WebkitUserSelect: "none",
-                    MozUserSelect: "none",
-                    msUserSelect: "none",
+                    userSelect: isEditing ? "text" : "none",
+                    WebkitUserSelect: isEditing ? "text" : "none",
                   }}
                   onMouseDown={(e) => {
-                    // Prevent text selection when starting drag
-                    e.preventDefault();
-                    handleDragStart(e, overlay.id);
+                    if (!isEditing) {
+                      e.preventDefault();
+                      handleDragStart(e, overlay.id);
+                    }
                   }}
                   onClick={(e) => {
                     e.stopPropagation();
-                    onSelectOverlay(overlay.id);
+                    if (!isEditing) {
+                      onSelectOverlay(overlay.id);
+                    }
+                  }}
+                  onDoubleClick={(e) => {
+                    e.stopPropagation();
+                    setEditingOverlayId(overlay.id);
                   }}
                 >
-                  {editingOverlayId === overlay.id ? (
-                    <div
-                      className="relative"
-                      onDoubleClick={(e) => e.stopPropagation()}
-                      onMouseDown={(e) => e.stopPropagation()}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <div
-                        ref={editableDivRef}
-                        contentEditable
-                        suppressContentEditableWarning
-                        onInput={(e) => {
-                          const html = (e.target as HTMLDivElement).innerHTML;
-                          handleTextChange(overlay.id, html);
-                        }}
-                        onMouseUp={() => {
-                          // Save selection on mouse up
-                          const sel = window.getSelection();
-                          if (sel && sel.rangeCount > 0 && !sel.isCollapsed) {
-                            const range = sel.getRangeAt(0);
-                            // Create a persistent marker element for the selection so
-                            // it survives focus/blur when interacting with toolbar UI.
-                            const marker = highlightRange(range.cloneRange());
-                            savedMarkerRef.current = marker;
-                          }
-                        }}
-                        onBlur={() => {
-                          // Don't refocus if we're intentionally exiting edit mode
-                          if (isExitingEditMode.current) {
-                            isExitingEditMode.current = false;
-                            return;
-                          }
-                          
-                          // Always refocus the editor while in editing mode
-                          // This keeps it focused even when clicking toolbar or outside
-                          setTimeout(() => {
-                            if (editableDivRef.current && editingOverlayId) {
-                              editableDivRef.current.focus();
-                            }
-                          }, 0);
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === "Escape") {
-                            console.log("🔑 Escape key pressed - contentEditable handler");
-                            e.preventDefault();
-                            e.stopPropagation();
-                            
-                            // Set flag to prevent onBlur from refocusing
-                            isExitingEditMode.current = true;
-                            
-                            // Clear highlight on escape and exit edit mode
-                            if (editableDivRef.current) {
-                              const marks =
-                                editableDivRef.current.querySelectorAll(
-                                  "mark[data-selection]"
-                                );
-                              marks.forEach((mark) => {
-                                const parent = mark.parentNode;
-                                while (mark.firstChild) {
-                                  parent?.insertBefore(mark.firstChild, mark);
-                                }
-                                parent?.removeChild(mark);
-                              });
-                              // Blur the editor to exit edit mode
-                              editableDivRef.current.blur();
-                            }
-                            savedMarkerRef.current = null;
-                            handleTextBlur();
-                            onSelectOverlay(null); // Deselect overlay to remove blue ring
-                          }
-                        }}
-                        className="outline-none bg-transparent border-none overflow-hidden"
-                        style={{
-                          fontFamily: `"${overlay.fontFamily}", sans-serif`,
-                          fontSize: `${overlay.fontSize}px`,
-                          fontWeight: overlay.bold ? "bold" : "normal",
-                          fontStyle: overlay.italic ? "italic" : "normal",
-                          color: overlay.color,
-                          textAlign: overlay.textAlign,
-                          lineHeight: "1.2",
-                          padding: "2px",
-                          minWidth: "50px",
-                          minHeight: `${overlay.fontSize + 4}px`,
-                          width: "auto",
-                          height: "auto",
-                          maxWidth: `${pageDimensions.width * 0.8}px`,
-                          marginTop: `${overlay.fontSize / 2}px`,
-                          display: "block",
-                          direction: "ltr",
-                          whiteSpace: "pre-wrap",
-                          overflow: "hidden",
-                        }}
-                        dangerouslySetInnerHTML={{ __html: overlay.text || "" }}
-                      />
-                    </div>
+                  {isEditing ? (
+                    <SlateEditor
+                      overlay={overlay}
+                      editor={getEditorForOverlay(overlay.id)}
+                      value={slateValues.get(overlay.id) || [{ type: "paragraph", children: [{ text: "" }] }]}
+                      onChange={(newValue) => {
+                        setSlateValues((prev) => new Map(prev).set(overlay.id, newValue));
+                        const html = slateToHtml(newValue, overlay.fontFamily, overlay.fontSize, overlay.color);
+                        onUpdateOverlay(overlay.id, { text: html });
+                      }}
+                      renderLeaf={renderLeaf}
+                      renderElement={renderElement}
+                      pageDimensions={pageDimensions}
+                    />
                   ) : (
                     <div
-                      onDoubleClick={(e) => {
-                        e.stopPropagation();
-                        setEditingOverlayId(overlay.id);
-                      }}
-                      className={`whitespace-pre-wrap select-none ${
-                        overlay.fontFamilyClassName || ""
-                      }`}
-                      data-font-family={overlay.fontFamily}
-                      data-font-class={overlay.fontFamilyClassName}
+                      className="select-none"
                       style={{
                         textAlign: overlay.textAlign,
-                        fontFamily: `"${overlay.fontFamily}", sans-serif`,
-                        fontSize: `${overlay.fontSize}px`,
-                        fontWeight: overlay.bold ? "bold" : "normal",
-                        fontStyle: overlay.italic ? "italic" : "normal",
-                        color: overlay.color,
                         lineHeight: "1.2",
                         padding: "2px",
                         minWidth: "1px",
                         direction: "ltr",
-                        // Prevent text selection
                         userSelect: "none",
                         WebkitUserSelect: "none",
-                        MozUserSelect: "none",
-                        msUserSelect: "none",
-                        // Prevent text cursor
                         cursor: "move",
+                        whiteSpace: "pre",
+                        fontSize: `${overlay.fontSize}px`,
+                        fontFamily: `"${overlay.fontFamily}", sans-serif`,
+                        fontWeight: overlay.bold ? "bold" : "normal",
+                        fontStyle: overlay.italic ? "italic" : "normal",
+                        color: overlay.color,
                       }}
                     >
                       {overlay.text ? (
-                        <div
-                          dangerouslySetInnerHTML={{ __html: overlay.text }}
-                        />
+                        <div dangerouslySetInnerHTML={{ __html: overlay.text }} />
                       ) : (
-                        <span className="text-gray-500 italic">
+                        <span 
+                          className="text-gray-500 italic"
+                          style={{
+                            fontFamily: `"${overlay.fontFamily}", sans-serif`,
+                            fontSize: `${overlay.fontSize}px`,
+                            fontWeight: overlay.bold ? "bold" : "normal",
+                            fontStyle: overlay.italic ? "italic" : "normal",
+                            color: overlay.color,
+                          }}
+                        >
                           Double-click to edit
                         </span>
                       )}
@@ -1127,6 +1132,105 @@ export function PDFCanvas({
             }
           })}
       </div>
+    </div>
+  );
+}
+
+// Separate Slate Editor Component
+interface SlateEditorProps {
+  overlay: TextOverlay;
+  editor: ReactEditor & BaseEditor;
+  value: Descendant[];
+  onChange: (value: Descendant[]) => void;
+  renderLeaf: (props: RenderLeafProps) => React.ReactElement;
+  renderElement: (props: RenderElementProps) => React.ReactElement;
+  pageDimensions: { width: number; height: number };
+}
+
+function SlateEditor({
+  overlay,
+  editor,
+  value,
+  onChange,
+  renderLeaf,
+  renderElement,
+  pageDimensions,
+}: SlateEditorProps) {
+  const editableRef = useRef<HTMLDivElement>(null);
+  const [isFocused, setIsFocused] = useState(false);
+
+  // Sync editor content when value changes externally
+  useEffect(() => {
+    const isAstChange = editor.operations.some(
+      (op) => op.type !== 'set_selection'
+    );
+    if (!isAstChange) {
+      // Reset editor content
+      editor.children = value;
+      editor.onChange();
+    }
+  }, [value, editor]);
+
+  // Auto-focus on mount
+  useEffect(() => {
+    if (!isFocused) {
+      setTimeout(() => {
+        try {
+          ReactEditor.focus(editor);
+          // Move cursor to end
+          Transforms.select(editor, Editor.end(editor, []));
+          setIsFocused(true);
+        } catch (e) {
+          // Ignore focus errors
+        }
+      }, 0);
+    }
+  }, [editor, isFocused]);
+
+  return (
+    <div
+      ref={editableRef}
+      className="relative editingOverlay"
+      onMouseDown={(e) => e.stopPropagation()}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <Slate editor={editor} initialValue={value} onChange={onChange}>
+        <Editable
+          renderLeaf={renderLeaf}
+          renderElement={renderElement}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              event.preventDefault();
+              event.stopPropagation();
+              ReactEditor.blur(editor);
+            }
+          }}
+          style={{
+            fontFamily: `"${overlay.fontFamily}", sans-serif`,
+            fontSize: `${overlay.fontSize}px`,
+            fontWeight: overlay.bold ? "bold" : "normal",
+            fontStyle: overlay.italic ? "italic" : "normal",
+            color: overlay.color,
+            textAlign: overlay.textAlign,
+            lineHeight: "1.2",
+            padding: "2px",
+            minWidth: "50px",
+            minHeight: `${overlay.fontSize + 4}px`,
+            width: "auto",
+            height: "auto",
+            maxWidth: `${pageDimensions.width * 0.8}px`,
+            marginTop: `${overlay.fontSize / 2}px`,
+            display: "block",
+            direction: "ltr",
+            whiteSpace: "pre",
+            overflowX: "auto",
+            overflowY: "hidden",
+            outline: "none",
+            backgroundColor: "transparent",
+            border: "none",
+          }}
+        />
+      </Slate>
     </div>
   );
 }

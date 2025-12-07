@@ -195,15 +195,37 @@ async function drawTextOverlay(
     console.log("ENVS --> ",EXPLICIT_POSITION_ADDITION,EXPLICIT_POSITION_LEFT);
     
 
-    // ========== PARSE HTML INTO SEGMENTS (multi-font) ==========
-    const segments: Array<{ text: string; font: any }> = [];
+    // ========== PARSE HTML INTO SEGMENTS (multi-font, multi-style) ==========
+    const segments: Array<{ 
+      text: string; 
+      font: any; 
+      fontSize?: number;
+      color?: string;
+      bold?: boolean;
+      italic?: boolean;
+    }> = [];
     const parser = new DOMParser();
     const doc = parser.parseFromString(rawText, "text/html");
 
-    function walk(node: any, currentFontFamily: string | null, isBlockElement: boolean = false) {
+    function walk(
+      node: any, 
+      currentFontFamily: string | null, 
+      currentBold: boolean = false,
+      currentItalic: boolean = false,
+      currentFontSize: number | null = null,
+      currentColor: string | null = null,
+      isBlockElement: boolean = false
+    ) {
       // If this is a block element and we have previous content, add a newline
       if (isBlockElement && segments.length > 0 && segments[segments.length - 1].text !== "\n") {
-        segments.push({ text: "\n", font: resolveFont(currentFontFamily) });
+        segments.push({ 
+          text: "\n", 
+          font: resolveFont(currentFontFamily, currentBold, currentItalic),
+          fontSize: currentFontSize || undefined,
+          color: currentColor || undefined,
+          bold: currentBold,
+          italic: currentItalic
+        });
       }
 
       for (const child of node.childNodes) {
@@ -212,42 +234,94 @@ async function drawTextOverlay(
           if (text.trim() !== "") {
             segments.push({
               text: text,
-              font: resolveFont(currentFontFamily),
+              font: resolveFont(currentFontFamily, currentBold, currentItalic),
+              fontSize: currentFontSize || undefined,
+              color: currentColor || undefined,
+              bold: currentBold,
+              italic: currentItalic
             });
           }
         } else if (child.nodeType === 1) { // ELEMENT_NODE
           const el = child as HTMLElement;
-          const chosenFont = el.getAttribute("data-font") || currentFontFamily;
+          
+          // Extract font family from data-font or inline style
+          let chosenFont = el.getAttribute("data-font") || currentFontFamily;
+          if (!chosenFont && el.style.fontFamily) {
+            chosenFont = el.style.fontFamily.replace(/['"]/g, "").split(",")[0].trim();
+          }
+
+          // Extract bold from inline style or tag
+          let isBold = currentBold;
+          if (el.style.fontWeight === "bold" || el.style.fontWeight === "700" || 
+              el.tagName === "STRONG" || el.tagName === "B") {
+            isBold = true;
+          }
+
+          // Extract italic from inline style or tag
+          let isItalic = currentItalic;
+          if (el.style.fontStyle === "italic" || 
+              el.tagName === "EM" || el.tagName === "I") {
+            isItalic = true;
+          }
+
+          // Extract font size from inline style
+          let fontSize = currentFontSize;
+          if (el.style.fontSize) {
+            const sizeMatch = el.style.fontSize.match(/(\d+)/);
+            if (sizeMatch) {
+              fontSize = parseInt(sizeMatch[1]);
+            }
+          }
+
+          // Extract color from inline style
+          let color = currentColor;
+          if (el.style.color) {
+            color = el.style.color;
+          }
 
           // Check if this is a block-level element that should create a new line
           const isBlock = ["DIV", "P", "H1", "H2", "H3", "H4", "H5", "H6", "UL", "OL", "LI", "SECTION", "ARTICLE"].includes(el.tagName);
 
           // Handle BR elements
           if (el.tagName === "BR") {
-            segments.push({ text: "\n", font: resolveFont(chosenFont) });
+            segments.push({ 
+              text: "\n", 
+              font: resolveFont(chosenFont, isBold, isItalic),
+              fontSize: fontSize || undefined,
+              color: color || undefined,
+              bold: isBold,
+              italic: isItalic
+            });
           } else {
-            // Process children of other elements
-            walk(el, chosenFont, isBlock);
+            // Process children of other elements with inherited styles
+            walk(el, chosenFont, isBold, isItalic, fontSize, color, isBlock);
           }
 
           // Add newline after block elements (except for the last one)
           if (isBlock && child.nextSibling) {
-            segments.push({ text: "\n", font: resolveFont(chosenFont) });
+            segments.push({ 
+              text: "\n", 
+              font: resolveFont(chosenFont, isBold, isItalic),
+              fontSize: fontSize || undefined,
+              color: color || undefined,
+              bold: isBold,
+              italic: isItalic
+            });
           }
         }
       }
     }
 
-    walk(doc.body, overlay.fontFamily, false);
+    walk(doc.body, overlay.fontFamily, overlay.bold, overlay.italic, null, null, false);
 
     // ========== HELPER: SELECT FONT FROM CACHE ==========
-    function resolveFont(fontFamily: string | null) {
+    function resolveFont(fontFamily: string | null, isBold: boolean, isItalic: boolean) {
       if (!fontFamily) return [...fontCache.values()][0];
       let key = fontFamily;
 
-      if (overlay.bold && overlay.italic) key += "-bolditalic";
-      else if (overlay.bold) key += "-bold";
-      else if (overlay.italic) key += "-italic";
+      if (isBold && isItalic) key += "-bolditalic";
+      else if (isBold) key += "-bold";
+      else if (isItalic) key += "-italic";
 
       return (
         fontCache.get(key) ||
@@ -258,11 +332,23 @@ async function drawTextOverlay(
     }
 
     // ========== MULTILINE SPLIT ==========
-    const lines: Array<Array<{ text: string; font: any; width: number }>> = [];
-    let currentLine: Array<{ text: string; font: any; width: number }> = [];
+    const lines: Array<Array<{ 
+      text: string; 
+      font: any; 
+      width: number;
+      fontSize?: number;
+      color?: string;
+    }>> = [];
+    let currentLine: Array<{ 
+      text: string; 
+      font: any; 
+      width: number;
+      fontSize?: number;
+      color?: string;
+    }> = [];
 
     const CANVAS_SCALE = 1.5;
-    const fontSize = overlay.fontSize / CANVAS_SCALE;
+    const defaultFontSize = overlay.fontSize / CANVAS_SCALE;
 
     for (const seg of segments) {
       if (seg.text === "\n") {
@@ -277,11 +363,14 @@ async function drawTextOverlay(
         for (let i = 0; i < parts.length; i++) {
           const part = parts[i];
           if (part.trim() !== "") {
-            const width = seg.font.widthOfTextAtSize(part, fontSize);
+            const segFontSize = seg.fontSize ? seg.fontSize / CANVAS_SCALE : defaultFontSize;
+            const width = seg.font.widthOfTextAtSize(part, segFontSize);
             currentLine.push({
               text: part,
               font: seg.font,
               width: width,
+              fontSize: segFontSize,
+              color: seg.color,
             });
           }
           // If this is not the last part, start a new line
@@ -294,11 +383,14 @@ async function drawTextOverlay(
         }
       } else {
         // Normal text segment
-        const width = seg.font.widthOfTextAtSize(seg.text, fontSize);
+        const segFontSize = seg.fontSize ? seg.fontSize / CANVAS_SCALE : defaultFontSize;
+        const width = seg.font.widthOfTextAtSize(seg.text, segFontSize);
         currentLine.push({
           text: seg.text,
           font: seg.font,
           width: width,
+          fontSize: segFontSize,
+          color: seg.color,
         });
       }
     }
@@ -318,7 +410,7 @@ async function drawTextOverlay(
     const centerX = overlay.x * pageWidth;
     const centerY = pageHeight - overlay.y * pageHeight; // Convert to PDF coords (Y down)
 
-    const lineHeight = fontSize * 1.25;
+    const lineHeight = defaultFontSize * 1.25;
 
     // Calculate line widths for alignment
     const lineWidths = lines.map(line =>
@@ -367,12 +459,16 @@ async function drawTextOverlay(
         for (const seg of cleaned) {
           // Only draw if there's actual text (not just whitespace)
           if (seg.text.trim() !== "" || seg.text === " ") {
+            // Use per-segment fontSize and color if available, otherwise use overlay defaults
+            const segSize = seg.fontSize || defaultFontSize;
+            const segColor = seg.color || overlay.color;
+            
             page.drawText(seg.text, {
               x: cursorX,
               y,
               font: seg.font,
-              size: fontSize,
-              color: hexToRgb(overlay.color),
+              size: segSize,
+              color: hexToRgb(segColor),
             });
           }
           cursorX += seg.width;
