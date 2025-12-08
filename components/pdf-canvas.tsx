@@ -779,6 +779,7 @@ export function PDFCanvas({
   const renderLeaf = useCallback((props: RenderLeafProps): React.ReactElement => {
     const { attributes, children, leaf } = props;
     
+    // eslint-disable-next-line prefer-const
     let style: React.CSSProperties = {};
     
     if (leaf.fontFamily) {
@@ -1166,6 +1167,7 @@ function SlateEditor({
     );
     if (!isAstChange) {
       // Reset editor content
+      // eslint-disable-next-line react-hooks/immutability
       editor.children = value;
       editor.onChange();
     }
