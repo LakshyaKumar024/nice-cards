@@ -35,6 +35,7 @@ export default function TemplatesClient({ initialTemplates }) {
       const imageArray: string[] = JSON.parse(dmpImage);
       return imageArray[0]
     } catch (e) {
+      console.log("Error parsing image JSON:", e);
       return dmpImage
     }
   }

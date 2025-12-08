@@ -1,11 +1,26 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import * as pdfjsLib from "pdfjs-dist";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Overlay, TextOverlay, ShapeOverlay } from "@/lib/types";
-import { createEditor, Descendant, Editor, Transforms, Text, BaseEditor, Element as SlateElement, Node } from "slate";
-import { Slate, Editable, withReact, ReactEditor, RenderLeafProps, RenderElementProps } from "slate-react";
+import {
+  createEditor,
+  Descendant,
+  Editor,
+  Transforms,
+  Text,
+  BaseEditor,
+  Element as SlateElement,
+} from "slate";
+import {
+  Slate,
+  Editable,
+  withReact,
+  ReactEditor,
+  RenderLeafProps,
+  RenderElementProps,
+} from "slate-react";
 import { withHistory } from "slate-history";
 
 // Configure pdfjs worker
@@ -56,7 +71,15 @@ interface PDFCanvasProps {
 }
 
 // Helper: Convert HTML to Slate value
-function htmlToSlate(html: string, defaultFont: string, defaultSize: number, defaultColor: string): Descendant[] {
+function htmlToSlate(
+  html: string,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  defaultFont: string,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  defaultSize: number,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  defaultColor: string
+): Descendant[] {
   if (!html || html.trim() === "") {
     return [{ type: "paragraph", children: [{ text: "" }] }];
   }
@@ -65,10 +88,13 @@ function htmlToSlate(html: string, defaultFont: string, defaultSize: number, def
   const doc = parser.parseFromString(html, "text/html");
   const paragraphs: ParagraphElement[] = [];
 
-  function extractTextNodes(node: ChildNode | HTMLElement, currentStyles: Partial<CustomText> = {}): CustomText[] {
+  function extractTextNodes(
+    node: ChildNode | HTMLElement,
+    currentStyles: Partial<CustomText> = {}
+  ): CustomText[] {
     const texts: CustomText[] = [];
 
-    const children = 'childNodes' in node ? Array.from(node.childNodes) : [];
+    const children = "childNodes" in node ? Array.from(node.childNodes) : [];
 
     for (const child of children) {
       if (child.nodeType === 3) {
@@ -88,7 +114,10 @@ function htmlToSlate(html: string, defaultFont: string, defaultSize: number, def
 
         const inlineFont = el.style.fontFamily;
         if (inlineFont && !newStyles.fontFamily) {
-          newStyles.fontFamily = inlineFont.replace(/['"]/g, "").split(",")[0].trim();
+          newStyles.fontFamily = inlineFont
+            .replace(/['"]/g, "")
+            .split(",")[0]
+            .trim();
         }
 
         // Extract other styles
@@ -98,10 +127,18 @@ function htmlToSlate(html: string, defaultFont: string, defaultSize: number, def
         if (el.style.color) {
           newStyles.color = el.style.color;
         }
-        if (el.tagName === "STRONG" || el.tagName === "B" || el.style.fontWeight === "bold") {
+        if (
+          el.tagName === "STRONG" ||
+          el.tagName === "B" ||
+          el.style.fontWeight === "bold"
+        ) {
           newStyles.bold = true;
         }
-        if (el.tagName === "EM" || el.tagName === "I" || el.style.fontStyle === "italic") {
+        if (
+          el.tagName === "EM" ||
+          el.tagName === "I" ||
+          el.style.fontStyle === "italic"
+        ) {
           newStyles.italic = true;
         }
 
@@ -124,10 +161,10 @@ function htmlToSlate(html: string, defaultFont: string, defaultSize: number, def
   }
 
   const bodyTexts = extractTextNodes(doc.body);
-  
+
   // Split by newlines to create paragraphs
   let currentParagraph: CustomText[] = [];
-  
+
   for (const textNode of bodyTexts) {
     if (textNode.text.includes("\n")) {
       const parts = textNode.text.split("\n");
@@ -153,25 +190,35 @@ function htmlToSlate(html: string, defaultFont: string, defaultSize: number, def
     paragraphs.push({ type: "paragraph", children: currentParagraph });
   }
 
-  return paragraphs.length > 0 ? paragraphs : [{ type: "paragraph", children: [{ text: "" }] }];
+  return paragraphs.length > 0
+    ? paragraphs
+    : [{ type: "paragraph", children: [{ text: "" }] }];
 }
 
 // Helper: Convert Slate value to clean HTML
-function slateToHtml(value: Descendant[], defaultFont: string, defaultSize: number, defaultColor: string): string {
+function slateToHtml(
+  value: Descendant[],
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  defaultFont: string,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  defaultSize: number,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  defaultColor: string
+): string {
   const lines: string[] = [];
 
   for (const node of value) {
     if (SlateElement.isElement(node) && node.type === "paragraph") {
       const textParts: string[] = [];
-      
+
       for (const child of node.children) {
         if (Text.isText(child)) {
           let text = child.text || "";
-          
+
           // Build span with inline styles
           const styles: string[] = [];
           const attrs: string[] = [];
-          
+
           if (child.fontFamily) {
             styles.push(`font-family: '${child.fontFamily}', sans-serif`);
             attrs.push(`data-font="${child.fontFamily}"`);
@@ -190,15 +237,16 @@ function slateToHtml(value: Descendant[], defaultFont: string, defaultSize: numb
           }
 
           if (styles.length > 0 || attrs.length > 0) {
-            const styleAttr = styles.length > 0 ? ` style="${styles.join("; ")}"` : "";
+            const styleAttr =
+              styles.length > 0 ? ` style="${styles.join("; ")}"` : "";
             const dataAttrs = attrs.length > 0 ? ` ${attrs.join(" ")}` : "";
             text = `<span${styleAttr}${dataAttrs}>${text}</span>`;
           }
-          
+
           textParts.push(text);
         }
       }
-      
+
       lines.push(textParts.join(""));
     }
   }
@@ -225,39 +273,38 @@ export function PDFCanvas({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editingOverlayId, setEditingOverlayId] = useState<string | null>(null);
-  const [draggingOverlayId, setDraggingOverlayId] = useState<string | null>(null);
+  const [draggingOverlayId, setDraggingOverlayId] = useState<string | null>(
+    null
+  );
   const [isResizing, setIsResizing] = useState(false);
   const renderTaskRef = useRef<pdfjsLib.RenderTask | null>(null);
-  const [fontsLoaded, setFontsLoaded] = useState(false);
 
   // Slate editor instances - one per text overlay
-  const [slateEditors] = useState<Map<string, ReactEditor & BaseEditor>>(new Map());
-  const [slateValues, setSlateValues] = useState<Map<string, Descendant[]>>(new Map());
-
-  // Wait for fonts to load
-  useEffect(() => {
-    if (typeof window !== "undefined" && "fonts" in document) {
-      document.fonts.ready.then(() => {
-        setFontsLoaded(true);
-      });
-    } else {
-      setFontsLoaded(true);
-    }
-  }, []);
+  const [slateEditors] = useState<Map<string, ReactEditor & BaseEditor>>(
+    new Map()
+  );
+  const [slateValues, setSlateValues] = useState<Map<string, Descendant[]>>(
+    new Map()
+  );
 
   // Create or get Slate editor for an overlay
-  const getEditorForOverlay = useCallback((overlayId: string) => {
-    if (!slateEditors.has(overlayId)) {
-      const editor = withHistory(withReact(createEditor()));
-      slateEditors.set(overlayId, editor);
-    }
-    return slateEditors.get(overlayId)!;
-  }, [slateEditors]);
+  const getEditorForOverlay = useCallback(
+    (overlayId: string) => {
+      if (!slateEditors.has(overlayId)) {
+        const editor = withHistory(withReact(createEditor()));
+        slateEditors.set(overlayId, editor);
+      }
+      return slateEditors.get(overlayId)!;
+    },
+    [slateEditors]
+  );
 
   // Initialize Slate value for overlay
   useEffect(() => {
-    const textOverlays = overlays.filter((o) => o.type === "text") as TextOverlay[];
-    
+    const textOverlays = overlays.filter(
+      (o) => o.type === "text"
+    ) as TextOverlay[];
+
     for (const overlay of textOverlays) {
       if (!slateValues.has(overlay.id)) {
         const initialValue = htmlToSlate(
@@ -267,7 +314,7 @@ export function PDFCanvas({
           overlay.color
         );
         // Apply overlay's textAlign to all paragraphs
-        const valueWithAlign = initialValue.map(node => {
+        const valueWithAlign = initialValue.map((node) => {
           if (SlateElement.isElement(node) && node.type === "paragraph") {
             return { ...node, align: overlay.textAlign };
           }
@@ -281,32 +328,37 @@ export function PDFCanvas({
   // Update alignment when overlay textAlign changes
   useEffect(() => {
     if (editingOverlayId) {
-      const overlay = overlays.find(o => o.id === editingOverlayId && o.type === "text") as TextOverlay | undefined;
+      const overlay = overlays.find(
+        (o) => o.id === editingOverlayId && o.type === "text"
+      ) as TextOverlay | undefined;
       if (overlay) {
         const editor = getEditorForOverlay(editingOverlayId);
         const currentValue = slateValues.get(editingOverlayId);
-        
+
         if (currentValue) {
           // Update all paragraphs with the new alignment
-          const updatedValue = currentValue.map(node => {
+          const updatedValue = currentValue.map((node) => {
             if (SlateElement.isElement(node) && node.type === "paragraph") {
               return { ...node, align: overlay.textAlign };
             }
             return node;
           });
-          
+
           // Only update if alignment actually changed
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const needsUpdate = currentValue.some((node, idx) => {
             if (SlateElement.isElement(node) && node.type === "paragraph") {
               return node.align !== overlay.textAlign;
             }
             return false;
           });
-          
+
           if (needsUpdate) {
             editor.children = updatedValue;
             editor.onChange();
-            setSlateValues((prev) => new Map(prev).set(editingOverlayId, updatedValue));
+            setSlateValues((prev) =>
+              new Map(prev).set(editingOverlayId, updatedValue)
+            );
           }
         }
       }
@@ -314,12 +366,25 @@ export function PDFCanvas({
   }, [editingOverlayId, overlays, slateValues, getEditorForOverlay]);
 
   // Track last overlay properties to detect changes
-  const lastOverlayPropsRef = useRef<Map<string, { fontSize: number; fontFamily: string; color: string; bold: boolean; italic: boolean }>>(new Map());
+  const lastOverlayPropsRef = useRef<
+    Map<
+      string,
+      {
+        fontSize: number;
+        fontFamily: string;
+        color: string;
+        bold: boolean;
+        italic: boolean;
+      }
+    >
+  >(new Map());
 
   // Regenerate HTML when overlay-level properties change (for non-editing display)
   useEffect(() => {
-    const textOverlays = overlays.filter((o) => o.type === "text") as TextOverlay[];
-    
+    const textOverlays = overlays.filter(
+      (o) => o.type === "text"
+    ) as TextOverlay[];
+
     for (const overlay of textOverlays) {
       const currentValue = slateValues.get(overlay.id);
       if (currentValue && overlay.id !== editingOverlayId) {
@@ -331,22 +396,28 @@ export function PDFCanvas({
           bold: overlay.bold,
           italic: overlay.italic,
         };
-        
+
         // Check if properties changed
-        const propsChanged = !lastProps ||
+        const propsChanged =
+          !lastProps ||
           lastProps.fontSize !== currentProps.fontSize ||
           lastProps.fontFamily !== currentProps.fontFamily ||
           lastProps.color !== currentProps.color ||
           lastProps.bold !== currentProps.bold ||
           lastProps.italic !== currentProps.italic;
-        
+
         if (propsChanged) {
           // Regenerate HTML with current overlay properties
-          const newHtml = slateToHtml(currentValue, overlay.fontFamily, overlay.fontSize, overlay.color);
-          
+          const newHtml = slateToHtml(
+            currentValue,
+            overlay.fontFamily,
+            overlay.fontSize,
+            overlay.color
+          );
+
           // Update the overlay
           onUpdateOverlay(overlay.id, { text: newHtml });
-          
+
           // Save current props
           lastOverlayPropsRef.current.set(overlay.id, currentProps);
         }
@@ -362,21 +433,16 @@ export function PDFCanvas({
       }
 
       const editor = getEditorForOverlay(editingOverlayId);
-      
+
       if (editor.selection) {
         // Apply formatting to selected text
-        Transforms.setNodes(
-          editor,
-          format,
-          { match: Text.isText, split: true }
-        );
+        Transforms.setNodes(editor, format, {
+          match: Text.isText,
+          split: true,
+        });
       } else {
         // No selection - apply to entire overlay
-        Transforms.setNodes(
-          editor,
-          format,
-          { at: [], match: Text.isText }
-        );
+        Transforms.setNodes(editor, format, { at: [], match: Text.isText });
       }
     },
     [editingOverlayId, getEditorForOverlay]
@@ -776,48 +842,54 @@ export function PDFCanvas({
   }, [selectedOverlayId, editingOverlayId, overlays]);
 
   // Slate render functions
-  const renderLeaf = useCallback((props: RenderLeafProps): React.ReactElement => {
-    const { attributes, children, leaf } = props;
-    
-    // eslint-disable-next-line prefer-const
-    let style: React.CSSProperties = {};
-    
-    if (leaf.fontFamily) {
-      style.fontFamily = `"${leaf.fontFamily}", sans-serif`;
-    }
-    if (leaf.fontSize) {
-      style.fontSize = `${leaf.fontSize}px`;
-    }
-    if (leaf.color) {
-      style.color = leaf.color;
-    }
-    if (leaf.bold) {
-      style.fontWeight = "bold";
-    }
-    if (leaf.italic) {
-      style.fontStyle = "italic";
-    }
+  const renderLeaf = useCallback(
+    (props: RenderLeafProps): React.ReactElement => {
+      const { attributes, children, leaf } = props;
 
-    return (
-      <span {...attributes} style={style}>
-        {children}
-      </span>
-    );
-  }, []);
+      // eslint-disable-next-line prefer-const
+      let style: React.CSSProperties = {};
 
-  const renderElement = useCallback((props: RenderElementProps): React.ReactElement => {
-    const { attributes, children, element } = props;
-    
-    if (element.type === "paragraph") {
+      if (leaf.fontFamily) {
+        style.fontFamily = `"${leaf.fontFamily}", sans-serif`;
+      }
+      if (leaf.fontSize) {
+        style.fontSize = `${leaf.fontSize}px`;
+      }
+      if (leaf.color) {
+        style.color = leaf.color;
+      }
+      if (leaf.bold) {
+        style.fontWeight = "bold";
+      }
+      if (leaf.italic) {
+        style.fontStyle = "italic";
+      }
+
       return (
-        <div {...attributes} style={{ textAlign: element.align || "left" }}>
+        <span {...attributes} style={style}>
           {children}
-        </div>
+        </span>
       );
-    }
-    
-    return <div {...attributes}>{children}</div>;
-  }, []);
+    },
+    []
+  );
+
+  const renderElement = useCallback(
+    (props: RenderElementProps): React.ReactElement => {
+      const { attributes, children, element } = props;
+
+      if (element.type === "paragraph") {
+        return (
+          <div {...attributes} style={{ textAlign: element.align || "left" }}>
+            {children}
+          </div>
+        );
+      }
+
+      return <div {...attributes}>{children}</div>;
+    },
+    []
+  );
 
   const currentPageOverlays = overlays
     .filter((overlay) => overlay.page === pageNumber)
@@ -1080,10 +1152,21 @@ export function PDFCanvas({
                     <SlateEditor
                       overlay={overlay}
                       editor={getEditorForOverlay(overlay.id)}
-                      value={slateValues.get(overlay.id) || [{ type: "paragraph", children: [{ text: "" }] }]}
+                      value={
+                        slateValues.get(overlay.id) || [
+                          { type: "paragraph", children: [{ text: "" }] },
+                        ]
+                      }
                       onChange={(newValue) => {
-                        setSlateValues((prev) => new Map(prev).set(overlay.id, newValue));
-                        const html = slateToHtml(newValue, overlay.fontFamily, overlay.fontSize, overlay.color);
+                        setSlateValues((prev) =>
+                          new Map(prev).set(overlay.id, newValue)
+                        );
+                        const html = slateToHtml(
+                          newValue,
+                          overlay.fontFamily,
+                          overlay.fontSize,
+                          overlay.color
+                        );
                         onUpdateOverlay(overlay.id, { text: html });
                       }}
                       renderLeaf={renderLeaf}
@@ -1111,9 +1194,11 @@ export function PDFCanvas({
                       }}
                     >
                       {overlay.text ? (
-                        <div dangerouslySetInnerHTML={{ __html: overlay.text }} />
+                        <div
+                          dangerouslySetInnerHTML={{ __html: overlay.text }}
+                        />
                       ) : (
-                        <span 
+                        <span
                           className="text-gray-500 italic"
                           style={{
                             fontFamily: `"${overlay.fontFamily}", sans-serif`,
@@ -1163,7 +1248,7 @@ function SlateEditor({
   // Sync editor content when value changes externally
   useEffect(() => {
     const isAstChange = editor.operations.some(
-      (op) => op.type !== 'set_selection'
+      (op) => op.type !== "set_selection"
     );
     if (!isAstChange) {
       // Reset editor content
@@ -1184,6 +1269,7 @@ function SlateEditor({
           setIsFocused(true);
         } catch (e) {
           // Ignore focus errors
+          console.log(e);
         }
       }, 0);
     }

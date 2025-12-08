@@ -42,36 +42,36 @@ interface SortableOverlayItemProps {
 
 function extractPlainText(html: string, maxChars: number = 30): string {
   if (!html) return "Empty text";
-  
+
   // Create a temporary div to parse HTML
   const div = document.createElement("div");
   div.innerHTML = html;
-  
+
   // Get plain text content (strips all HTML tags)
   const plainText = div.textContent || div.innerText || "";
-  
+
   // Trim whitespace and limit length
   const trimmed = plainText.trim();
-  
+
   if (trimmed.length === 0) return "Empty text";
   if (trimmed.length <= maxChars) return trimmed;
-  
+
   // Truncate and add ellipsis
   return trimmed.slice(0, maxChars) + "...";
 }
 
-function truncateHTMLByChars(html: string, maxChars: number = 30): string {
+function truncateHTMLByChars(html: string, maxChars: number = 20): string {
   if (!html) return "";
-  
+
   const div = document.createElement("div");
   div.innerHTML = html;
-  
+
   let charCount = 0;
   let truncated = false;
-  
+
   function processNode(node: Node): Node | null {
     if (truncated) return null;
-    
+
     if (node.nodeType === Node.TEXT_NODE) {
       const text = node.textContent || "";
       if (charCount + text.length > maxChars) {
@@ -94,7 +94,7 @@ function truncateHTMLByChars(html: string, maxChars: number = 30): string {
     }
     return node.cloneNode(true);
   }
-  
+
   const result = document.createElement("div");
   for (const child of Array.from(div.childNodes)) {
     const processed = processNode(child);
@@ -103,7 +103,7 @@ function truncateHTMLByChars(html: string, maxChars: number = 30): string {
     }
     if (truncated) break;
   }
-  
+
   return result.innerHTML || "Empty text";
 }
 
@@ -132,11 +132,15 @@ function SortableOverlayItem({
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-center gap-2 p-2 rounded-lg border transition-colors ${
-        selectedOverlayId === overlay.id
-          ? "bg-blue-50 border-blue-200"
-          : "bg-white border-gray-200 hover:bg-gray-50"
-      } ${isDragging ? "opacity-50" : ""}`}
+      className={`
+  flex items-center gap-2 p-2 rounded-lg border transition-colors
+  ${
+    selectedOverlayId === overlay.id
+      ? "bg-blue-50 dark:bg-blue-200 border-blue-200 dark:border-blue-300"
+      : "bg-white dark:bg-gray-100 border-gray-200 dark:border-gray-200 hover:bg-gray-50 dark:hover:bg-gray-200"
+  }
+  ${isDragging ? "opacity-50" : ""}
+`}
     >
       <Button
         variant="ghost"
@@ -145,11 +149,11 @@ function SortableOverlayItem({
         {...attributes}
         {...listeners}
       >
-        <GripVertical className="w-4 h-4" />
+        <GripVertical className="w-4 h-4" style={{ color: "010101" }} />
       </Button>
 
       <div
-        className="flex-1 cursor-pointer overflow-hidden"
+        className="flex-1 cursor-pointer overflow-hidden min-w-0"
         onClick={() => onSelectOverlay(overlay.id)}
       >
         {overlay.type === "shape" ? (
@@ -157,9 +161,11 @@ function SortableOverlayItem({
             <div className="flex items-center gap-2">
               <Square
                 className="w-4 h-4 shrink-0"
-                style={{ color: overlay.color }}
+                style={{ fill: overlay.color, color: overlay.color }}
               />
-              <p className="text-sm font-medium truncate">Square Shape</p>
+              <p className="text-sm font-medium truncate text-stone-950">
+                Square Shape
+              </p>
             </div>
             <div className="flex items-center gap-2 text-xs text-muted-foreground truncate">
               <span>
@@ -184,7 +190,7 @@ function SortableOverlayItem({
         ) : (
           <>
             <div
-              className="text-sm font-medium truncate"
+              className="text-sm font-medium truncate min-w-0"
               style={{
                 fontFamily: overlay.fontFamily,
                 fontSize: "14px",
@@ -194,7 +200,10 @@ function SortableOverlayItem({
                 lineHeight: "1.4",
               }}
               dangerouslySetInnerHTML={{
-                __html: overlay.type === "text" ? truncateHTMLByChars(overlay.text || "", 30) : "Empty text"
+                __html:
+                  overlay.type === "text"
+                    ? truncateHTMLByChars(overlay.text || "", 20)
+                    : "Empty text",
               }}
             />
             <div className="flex items-center gap-2 text-xs text-muted-foreground truncate">
@@ -223,9 +232,9 @@ function SortableOverlayItem({
           className="w-6 h-6"
         >
           {overlay.visible ? (
-            <Eye className="w-4 h-4" />
+            <Eye className="w-4 h-4" style={{ color: "010101" }} />
           ) : (
-            <EyeOff className="w-4 h-4" />
+            <EyeOff className="w-4 h-4" style={{ color: "010101" }} />
           )}
         </Button>
 

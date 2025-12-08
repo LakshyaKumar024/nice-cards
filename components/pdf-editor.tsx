@@ -55,7 +55,14 @@ function fontFamilyToClassName(fontFamily: string) {
   return fontFamily.replace(/\s+/g, "-").toLowerCase();
 }
 
-export default function PDFEditor({ pdfFName, templateId, defaultOverlays, userId, isAdmin = false, defaultTemplateDesign }: PDFEditorProps) {
+export default function PDFEditor({
+  pdfFName,
+  templateId,
+  defaultOverlays,
+  userId,
+  isAdmin = false,
+  defaultTemplateDesign,
+}: PDFEditorProps) {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [pdfDocument, setPdfDocument] =
     useState<pdfjsLib.PDFDocumentProxy | null>(null);
@@ -70,14 +77,17 @@ export default function PDFEditor({ pdfFName, templateId, defaultOverlays, userI
   const [isLoadingDefault, setIsLoadingDefault] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [toolMode, setToolMode] = useState<"text" | "shape">("text");
-  const applyFontToSelectionRef = useRef<((fontFamily: string) => void) | null>(null);
+  const applyFontToSelectionRef = useRef<((fontFamily: string) => void) | null>(
+    null
+  );
 
   // Undo/Redo state
   const [history, setHistory] = useState<Overlay[][]>([defaultOverlays || []]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const isUndoRedoAction = useRef(false);
 
-  const selectedOverlay = overlays?.find((o) => o.id === selectedOverlayId) || null;
+  const selectedOverlay =
+    overlays?.find((o) => o.id === selectedOverlayId) || null;
 
   // Save to history when overlays change (but not during undo/redo)
   useEffect(() => {
@@ -97,7 +107,7 @@ export default function PDFEditor({ pdfFName, templateId, defaultOverlays, userI
       setHistoryIndex((prev) => Math.min(prev + 1, 49));
     }
     isUndoRedoAction.current = false;
-  }, [overlays]);
+  }, [historyIndex, overlays]);
 
   // Undo function
   const handleUndo = useCallback(() => {
@@ -122,17 +132,20 @@ export default function PDFEditor({ pdfFName, templateId, defaultOverlays, userI
   // Keyboard shortcuts for undo/redo
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+      if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
         e.preventDefault();
         handleUndo();
-      } else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+      } else if (
+        (e.ctrlKey || e.metaKey) &&
+        (e.key === "y" || (e.key === "z" && e.shiftKey))
+      ) {
         e.preventDefault();
         handleRedo();
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleUndo, handleRedo]);
 
   useEffect(() => {
@@ -220,7 +233,6 @@ export default function PDFEditor({ pdfFName, templateId, defaultOverlays, userI
     loadPDF();
   }, [pdfFName, templateId, defaultOverlays]);
 
-
   const handleAddOverlay = useCallback(
     (overlay: Omit<TextOverlay, "id"> | Omit<ShapeOverlay, "id">) => {
       // Add fontFamilyClassName for text overlays on creation
@@ -233,8 +245,8 @@ export default function PDFEditor({ pdfFName, templateId, defaultOverlays, userI
         const fontClassMap: { [key: string]: string } = {
           "BHARTIYA HINDI_100": "bhartiya-hindi-100",
           "AMS Aasmi": "ams-aasmi",
-          "Arenski": "arenski",
-          "Arial": "arial",
+          Arenski: "arenski",
+          Arial: "arial",
           "A-SuperHindi-3 Bold": "a-superhindi-3-bold",
           "A-SuperHindi-8 Normal": "a-superhindi-8-normal",
           "BHARTIYA HINDI_089": "bhartiya-hindi-089",
@@ -242,7 +254,7 @@ export default function PDFEditor({ pdfFName, templateId, defaultOverlays, userI
           "BHARTIYA HINDI_142": "bhartiya-hindi-142",
           "ITC Bookman Demi Italic": "itc-bookman-demi-italic",
           "ISFOC-TTBorder-1 Normal": "isfoc-ttborder-1-normal",
-          "DFCalligraphicOrnament": "df-calligraphic-ornament",
+          DFCalligraphicOrnament: "df-calligraphic-ornament",
           "Embassy BT": "embassy-bt",
           "Kruti Dev 010": "kruti-dev-010",
           "Kruti Dev 012": "kruti-dev-012",
@@ -259,7 +271,7 @@ export default function PDFEditor({ pdfFName, templateId, defaultOverlays, userI
           "Kruti Dev 714": "kruti-dev-714",
           "Kruti Dev 732": "kruti-dev-732",
           "Martel Bold": "martel-bold",
-          "Martel": "martel",
+          Martel: "martel",
           "Monotype Corsiva Regular Italic": "monotype-corsiva-regular-italic",
           "Noto Sans Devanagari Regular": "noto-sans-devanagari-regular",
           "Rozha One Regular": "rozha-one-regular",
@@ -332,8 +344,8 @@ export default function PDFEditor({ pdfFName, templateId, defaultOverlays, userI
             const fontClassMap: { [key: string]: string } = {
               "BHARTIYA HINDI_100": "bhartiya-hindi-100",
               "AMS Aasmi": "ams-aasmi",
-              "Arenski": "arenski",
-              "Arial": "arial",
+              Arenski: "arenski",
+              Arial: "arial",
               "A-SuperHindi-3 Bold": "a-superhindi-3-bold",
               "A-SuperHindi-8 Normal": "a-superhindi-8-normal",
               "BHARTIYA HINDI_089": "bhartiya-hindi-089",
@@ -341,7 +353,7 @@ export default function PDFEditor({ pdfFName, templateId, defaultOverlays, userI
               "BHARTIYA HINDI_142": "bhartiya-hindi-142",
               "ITC Bookman Demi Italic": "itc-bookman-demi-italic",
               "ISFOC-TTBorder-1 Normal": "isfoc-ttborder-1-normal",
-              "DFCalligraphicOrnament": "df-calligraphic-ornament",
+              DFCalligraphicOrnament: "df-calligraphic-ornament",
               "Embassy BT": "embassy-bt",
               "Kruti Dev 010": "kruti-dev-010",
               "Kruti Dev 012": "kruti-dev-012",
@@ -358,8 +370,9 @@ export default function PDFEditor({ pdfFName, templateId, defaultOverlays, userI
               "Kruti Dev 714": "kruti-dev-714",
               "Kruti Dev 732": "kruti-dev-732",
               "Martel Bold": "martel-bold",
-              "Martel": "martel",
-              "Monotype Corsiva Regular Italic": "monotype-corsiva-regular-italic",
+              Martel: "martel",
+              "Monotype Corsiva Regular Italic":
+                "monotype-corsiva-regular-italic",
               "Noto Sans Devanagari Regular": "noto-sans-devanagari-regular",
               "Rozha One Regular": "rozha-one-regular",
               "Teko Bold": "teko-bold",
@@ -458,21 +471,28 @@ export default function PDFEditor({ pdfFName, templateId, defaultOverlays, userI
 
       URL.revokeObjectURL(url);
 
-      const saveOverlays = await fetch(`/api/design/${templateId}/saveOverlays`, {
-        method: "POST",
-        body: JSON.stringify({
-          userId: userId,
-          overlays: JSON.stringify(overlays),
-        }),
-        headers: {
-          "Content-Type": "application/json",
+      const saveOverlays = await fetch(
+        `/api/design/${templateId}/saveOverlays`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            userId: userId,
+            overlays: JSON.stringify(overlays),
+          }),
+          headers: {
+            "Content-Type": "application/json",
+          },
         }
-      })
+      );
       if (saveOverlays.ok) {
-        toast.success("Saved Current Design", { description: "Your edits are saved and will be preloded next time." })
-      }
-      else {
-        toast.info("Current Design is not saved", { description: "Your edits are'nt saved and will not be preloded next time." })
+        toast.success("Saved Current Design", {
+          description: "Your edits are saved and will be preloded next time.",
+        });
+      } else {
+        toast.info("Current Design is not saved", {
+          description:
+            "Your edits are'nt saved and will not be preloded next time.",
+        });
       }
     } catch (error) {
       console.error("Error exporting PDF:", error);
@@ -490,16 +510,19 @@ export default function PDFEditor({ pdfFName, templateId, defaultOverlays, userI
 
     setIsPublishing(true);
     try {
-      const response = await fetch(`/api/design/${templateId}/saveOverlays/admin`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          userId,
-          overlays: overlays,
-        }),
-      });
+      const response = await fetch(
+        `/api/design/${templateId}/saveOverlays/admin`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            userId,
+            overlays: overlays,
+          }),
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Failed to publish design");
@@ -614,13 +637,18 @@ export default function PDFEditor({ pdfFName, templateId, defaultOverlays, userI
               }
               onApplyFontToSelection={(fontFamily) => {
                 // Call the canvas function directly to apply font to selection
-                console.log('onApplyFontToSelection called with:', fontFamily);
-                console.log('applyFontToSelectionRef.current:', applyFontToSelectionRef.current);
+                console.log("onApplyFontToSelection called with:", fontFamily);
+                console.log(
+                  "applyFontToSelectionRef.current:",
+                  applyFontToSelectionRef.current
+                );
                 if (applyFontToSelectionRef.current) {
-                  console.log('Calling applyFontToSelection...');
+                  console.log("Calling applyFontToSelection...");
                   applyFontToSelectionRef.current(fontFamily);
                 } else {
-                  console.log('ERROR: applyFontToSelectionRef.current is null!');
+                  console.log(
+                    "ERROR: applyFontToSelectionRef.current is null!"
+                  );
                 }
               }}
             />
@@ -708,7 +736,9 @@ export default function PDFEditor({ pdfFName, templateId, defaultOverlays, userI
                     <Button
                       variant={toolMode === "text" ? "default" : "ghost"}
                       size="icon"
-                      className={`h-9 w-9 ${toolMode === "text" ? "shadow-sm" : ""}`}
+                      className={`h-9 w-9 ${
+                        toolMode === "text" ? "shadow-sm" : ""
+                      }`}
                       onClick={() => setToolMode("text")}
                     >
                       <Type className="w-4 h-4" />
@@ -724,7 +754,9 @@ export default function PDFEditor({ pdfFName, templateId, defaultOverlays, userI
                     <Button
                       variant={toolMode === "shape" ? "default" : "ghost"}
                       size="icon"
-                      className={`h-9 w-9 ${toolMode === "shape" ? "shadow-sm" : ""}`}
+                      className={`h-9 w-9 ${
+                        toolMode === "shape" ? "shadow-sm" : ""
+                      }`}
                       onClick={() => setToolMode("shape")}
                     >
                       <Square className="w-4 h-4" />
@@ -786,9 +818,9 @@ export default function PDFEditor({ pdfFName, templateId, defaultOverlays, userI
                 {defaultTemplateDesign && defaultTemplateDesign.length > 0 && (
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button 
-                        onClick={handleLoadDefaultDesign} 
-                        disabled={isLoadingDefault} 
+                      <Button
+                        onClick={handleLoadDefaultDesign}
+                        disabled={isLoadingDefault}
                         size="sm"
                         variant="outline"
                         className="gap-2"
@@ -805,9 +837,9 @@ export default function PDFEditor({ pdfFName, templateId, defaultOverlays, userI
 
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button 
-                      onClick={handleExport} 
-                      disabled={isExporting} 
+                    <Button
+                      onClick={handleExport}
+                      disabled={isExporting}
                       size="sm"
                       variant="outline"
                       className="gap-2"
@@ -824,9 +856,9 @@ export default function PDFEditor({ pdfFName, templateId, defaultOverlays, userI
                 {isAdmin && (
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button 
-                        onClick={handlePublishDesign} 
-                        disabled={isPublishing} 
+                      <Button
+                        onClick={handlePublishDesign}
+                        disabled={isPublishing}
                         size="sm"
                         className="gap-2 bg-green-600 hover:bg-green-700"
                       >
@@ -848,9 +880,21 @@ export default function PDFEditor({ pdfFName, templateId, defaultOverlays, userI
         <div className="flex-1 overflow-auto bg-muted/30 relative">
           {/* ESC Hint - Shows when editing */}
           {selectedOverlayId && (
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-99 bg-primary text-primary-foreground px-4 py-2 rounded-md shadow-lg text-sm font-medium flex items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
+            <div
+              className="
+  fixed 
+  top-21 left-1/2 -translate-x-1/2 
+  z-9999
+  bg-primary text-primary-foreground 
+  px-4 py-2 rounded-md shadow-lg text-sm font-medium 
+  flex items-center gap-2 
+  animate-in fade-in slide-in-from-top-2 duration-300
+"
+            >
               <span>Press</span>
-              <kbd className="px-2 py-1 bg-primary-foreground/20 rounded text-xs font-mono">ESC</kbd>
+              <kbd className="px-2 py-1 bg-primary-foreground/20 rounded text-xs font-mono">
+                ESC
+              </kbd>
               <span>to exit editing mode</span>
             </div>
           )}
