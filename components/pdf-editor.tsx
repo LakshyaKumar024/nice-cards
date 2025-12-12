@@ -58,6 +58,7 @@ interface PDFEditorProps {
   userId: string;
   isAdmin?: boolean;
   defaultTemplateDesign?: Overlay[];
+  savedTemplateUUID: string | null;
 }
 
 // Utility to convert a font family (like "Open Sans") to a class name ("open-sans")
@@ -72,6 +73,7 @@ export default function PDFEditor({
   userId,
   isAdmin = false,
   defaultTemplateDesign,
+  savedTemplateUUID,
 }: PDFEditorProps) {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [pdfDocument, setPdfDocument] =
@@ -540,6 +542,7 @@ export default function PDFEditor({
         {
           method: "POST",
           body: JSON.stringify({
+            userSavedTemplateId: savedTemplateUUID,
             userId: userId,
             overlays: JSON.stringify(overlays),
           }),

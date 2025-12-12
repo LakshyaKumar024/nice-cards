@@ -14,18 +14,20 @@ export async function POST(
 
         body = {};
     }
-    const { overlays, userId } = body;
+    const { userSavedTemplateId, overlays, userId } = body;
     const { designId } = await context.params;
 
 
     try {
-        const updatedTemplate = await prisma.savedTemplate.updateMany({
+        const updatedTemplate = await prisma.savedTemplate.update({
             where: {
+                uuid: userSavedTemplateId,
                 userId: userId,
                 templateId: designId
             },
             data: {
-                content: overlays
+                content: overlays,
+                createdAt: new Date(),
             }
 
         })

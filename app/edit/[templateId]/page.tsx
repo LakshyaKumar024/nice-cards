@@ -20,9 +20,8 @@ export default function EditPDFPage({ params }: EditPDFPageProps) {
   const { user, isLoaded: userLoaded } = useUser();
   const [pdfFName, setPdfFName] = useState<string | null>(null);
   const [userContent, setUserContent] = useState<Overlay[] | []>(null);
-  const [defaultTemplateDesign, setDefaultTemplateDesign] = useState<
-    Overlay[] | []
-  >(null);
+  const [defaultTemplateDesign, setDefaultTemplateDesign] = useState<Overlay[] | []>(null);
+  const [savedTemplateUUID, setSavedTemplateUUID] = useState<string | null>(null);
   const [showNote, setShowNote] = useState(true);
 
   const router = useRouter();
@@ -72,8 +71,10 @@ export default function EditPDFPage({ params }: EditPDFPageProps) {
           router.push("/404");
           return;
         }
-        //its pdf filename
+
+        // its pdf filename
         setPdfFName(data.data.pdf);
+        setSavedTemplateUUID(data.data.savedTemplates[0]?.uuid);
 
         const userOverlays = data.data.savedTemplates[0]?.content
           ? JSON.parse(data.data.savedTemplates[0].content)
@@ -81,9 +82,6 @@ export default function EditPDFPage({ params }: EditPDFPageProps) {
         const defaultOverlays = data.data.defaultDesign
           ? JSON.parse(data.data.defaultDesign)
           : null;
-          
-        console.log("UDT", userOverlays);
-        console.log("DDT", defaultOverlays);
 
         setDefaultTemplateDesign(defaultOverlays);
         setUserContent(userOverlays || defaultOverlays || []);
@@ -128,6 +126,7 @@ export default function EditPDFPage({ params }: EditPDFPageProps) {
             defaultOverlays={userContent}
             defaultTemplateDesign={defaultTemplateDesign}
             isAdmin={isAdmin}
+            savedTemplateUUID={savedTemplateUUID}
           />
         </div>
       </div>
