@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
@@ -35,6 +34,17 @@ import { loadPDFDocument } from "@/lib/pdf-utils";
 import { exportPDFWithOverlays } from "@/lib/export-utils";
 import { Overlay, ShapeOverlay, TextOverlay } from "@/lib/types";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "./ui/alert-dialog";
 
 // Configure pdfjs worker
 if (typeof window !== "undefined") {
@@ -81,6 +91,11 @@ export default function PDFEditor({
     null
   );
 
+  const [showPublishConfirm, setShowPublishConfirm] = useState(false);
+
+  // copy and paste
+  const [copiedOverlay, setCopiedOverlay] = useState<Overlay | null>(null);
+
   // Undo/Redo state
   const [history, setHistory] = useState<Overlay[][]>([defaultOverlays || []]);
   const [historyIndex, setHistoryIndex] = useState(0);
@@ -108,6 +123,43 @@ export default function PDFEditor({
     }
     isUndoRedoAction.current = false;
   }, [historyIndex, overlays]);
+
+  const handleCopy = useCallback(() => {
+    if (selectedOverlayId) {
+      const overlayToCopy = overlays.find((o) => o.id === selectedOverlayId);
+      if (overlayToCopy) {
+        // Create a deep copy without the id
+        const overlayCopy = JSON.parse(JSON.stringify(overlayToCopy));
+        delete overlayCopy.id;
+        setCopiedOverlay(overlayCopy);
+      }
+    } else {
+      toast.error("No overlay selected to copy");
+    }
+  }, [selectedOverlayId, overlays]);
+
+  // Paste function
+  const handlePaste = useCallback(() => {
+    console.log("Paste triggered!"); // Add this line
+    if (!copiedOverlay) {
+      toast.error("No overlay copied to clipboard");
+      return;
+    }
+
+    // Create a new overlay with the copied properties but new ID
+    const newOverlay = {
+      ...copiedOverlay,
+      id: `overlay-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      page: currentPage,
+      // Slightly offset the position for visibility
+      x: copiedOverlay.x ? copiedOverlay.x + 0.02 : 0.1,
+      y: copiedOverlay.y ? copiedOverlay.y + 0.02 : 0.1,
+      zIndex: overlays.length,
+    };
+
+    setOverlays((prev) => [...prev, newOverlay]);
+    setSelectedOverlayId(newOverlay.id);
+  }, [copiedOverlay, currentPage, overlays.length]);
 
   // Undo function
   const handleUndo = useCallback(() => {
@@ -141,12 +193,24 @@ export default function PDFEditor({
       ) {
         e.preventDefault();
         handleRedo();
+      } else if (
+        (e.ctrlKey || e.metaKey) &&
+        (e.key === "c" || (e.key === "c" && e.shiftKey))
+      ) {
+        e.preventDefault();
+        handleCopy();
+      } else if (
+        (e.ctrlKey || e.metaKey) &&
+        (e.key === "v" || (e.key === "v" && e.shiftKey))
+      ) {
+        e.preventDefault();
+        handlePaste();
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleUndo, handleRedo]);
+  }, [handleUndo, handleRedo, handleCopy, handlePaste]);
 
   useEffect(() => {
     // Preload custom fonts for export
@@ -156,7 +220,6 @@ export default function PDFEditor({
           // Hindi/Devanagari Fonts
           fetch("/fonts/A0047636.TTF"),
           fetch("/fonts/AMS Aasmi.ttf"),
-          fetch("/fonts/ASUPER_1.TTF"),
           fetch("/fonts/asuper_8.ttf"),
           fetch("/fonts/bf089hin.ttf"),
           fetch("/fonts/bf112hin.ttf"),
@@ -164,8 +227,6 @@ export default function PDFEditor({
           fetch("/fonts/BR010NTT.TTF"),
           fetch("/fonts/K010.TTF"),
           fetch("/fonts/K012.TTF"),
-          fetch("/fonts/K021.TTF"),
-          fetch("/fonts/K11.TTF"),
           fetch("/fonts/K240.TTF"),
           fetch("/fonts/K500.TTF"),
           fetch("/fonts/K501.TTF"),
@@ -190,6 +251,13 @@ export default function PDFEditor({
           fetch("/fonts/Teko-Bold.ttf"),
           fetch("/fonts/Teko-Medium.ttf"),
           fetch("/fonts/Teko-Regular.ttf"),
+          fetch("/fonts/FLAMENN.TTF"), // For FlamencoD
+          fetch("/fonts/COMSCRTN.TTF"), // For Commercial Script BT
+          fetch("/fonts/BORD1013.TTF"), // For BORDER1013
+          fetch("/fonts/ASUPER_1_NEW.TTF"), // For A-SuperHindi-3
+          fetch("/fonts/RAJ 07_4.ttf"), // For RAJ 07
+          fetch("/fonts/RAJ 100_2.ttf"), // For RAJ 100
+          fetch("/fonts/RAJ 16_2.ttf"), // For RAJ 16
         ]);
       } catch (error) {
         console.error("Failed to preload custom fonts:", error);
@@ -237,7 +305,7 @@ export default function PDFEditor({
     (overlay: Omit<TextOverlay, "id"> | Omit<ShapeOverlay, "id">) => {
       // Add fontFamilyClassName for text overlays on creation
       let newOverlay: Overlay;
-      if ((overlay as any).type === "text") {
+      if (overlay.type === "text") {
         const textOverlay = overlay as Omit<TextOverlay, "id">;
         const fontFamily = textOverlay.fontFamily || "";
 
@@ -258,8 +326,6 @@ export default function PDFEditor({
           "Embassy BT": "embassy-bt",
           "Kruti Dev 010": "kruti-dev-010",
           "Kruti Dev 012": "kruti-dev-012",
-          "Kruti Dev 021": "kruti-dev-021",
-          "Kruti Dev 011": "kruti-dev-011",
           "Kruti Dev 240": "kruti-dev-240",
           "Kruti Dev 500": "kruti-dev-500",
           "Kruti Dev 501": "kruti-dev-501",
@@ -357,8 +423,6 @@ export default function PDFEditor({
               "Embassy BT": "embassy-bt",
               "Kruti Dev 010": "kruti-dev-010",
               "Kruti Dev 012": "kruti-dev-012",
-              "Kruti Dev 021": "kruti-dev-021",
-              "Kruti Dev 011": "kruti-dev-011",
               "Kruti Dev 240": "kruti-dev-240",
               "Kruti Dev 500": "kruti-dev-500",
               "Kruti Dev 501": "kruti-dev-501",
@@ -502,7 +566,7 @@ export default function PDFEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pdfFile, pdfFName, overlays]);
 
-  const handlePublishDesign = useCallback(async () => {
+  const confirmPublishDesign = useCallback(async () => {
     if (!isAdmin) {
       toast.error("Only admins can publish designs");
       return;
@@ -536,6 +600,7 @@ export default function PDFEditor({
       toast.error("Failed to publish design");
     } finally {
       setIsPublishing(false);
+      setShowPublishConfirm(false); // Close dialog after publishing
     }
   }, [isAdmin, templateId, userId, overlays]);
 
@@ -854,10 +919,12 @@ export default function PDFEditor({
                 </Tooltip>
 
                 {isAdmin && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
+                  <AlertDialog
+                    open={showPublishConfirm}
+                    onOpenChange={setShowPublishConfirm}
+                  >
+                    <AlertDialogTrigger asChild>
                       <Button
-                        onClick={handlePublishDesign}
                         disabled={isPublishing}
                         size="sm"
                         className="gap-2 bg-green-600 hover:bg-green-700"
@@ -865,11 +932,45 @@ export default function PDFEditor({
                         <Globe className="w-4 h-4" />
                         {isPublishing ? "Publishing..." : "Publish"}
                       </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom">
-                      <p>Publish as Public Template</p>
-                    </TooltipContent>
-                  </Tooltip>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>
+                          Publish as Public Template
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will make this design available to all users as a
+                          default template.
+                          <div className="mt-2 space-y-1 text-sm">
+                            <p className="font-medium">⚠️ Important:</p>
+                            <ul className="list-disc pl-4 space-y-1">
+                              <li>This action cannot be undone</li>
+                              <li>
+                                All users will see this as the default design
+                              </li>
+                              <li>
+                                Existing users saved designs will not be
+                                affected
+                              </li>
+                              <li>New users will start with this template</li>
+                            </ul>
+                          </div>
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isPublishing}>
+                          Cancel
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={confirmPublishDesign}
+                          disabled={isPublishing}
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          {isPublishing ? "Publishing..." : "Yes, Publish"}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 )}
               </div>
             </div>

@@ -20,13 +20,21 @@ export default function EditPDFPage({ params }: EditPDFPageProps) {
   const { user, isLoaded: userLoaded } = useUser();
   const [pdfFName, setPdfFName] = useState<string | null>(null);
   const [userContent, setUserContent] = useState<Overlay[] | []>(null);
-  const [defaultTemplateDesign, setDefaultTemplateDesign] = useState<Overlay[] | []>(null);
+  const [defaultTemplateDesign, setDefaultTemplateDesign] = useState<
+    Overlay[] | []
+  >(null);
   const [showNote, setShowNote] = useState(true);
 
   const router = useRouter();
 
   // Check if user is admin from Clerk publicMetadata
   const isAdmin = user?.publicMetadata?.role === "admin";
+
+  useEffect(() => {
+    new Promise((resolve) => setTimeout(resolve, 5000)).then(() => {
+      setShowNote(false);
+    });
+  }, []);
 
   useEffect(() => {
     // Wait for user to load
@@ -66,18 +74,19 @@ export default function EditPDFPage({ params }: EditPDFPageProps) {
         }
         //its pdf filename
         setPdfFName(data.data.pdf);
-        
-        const userOverlays = data.data.savedTemplates[0]?.content 
-          ? JSON.parse(data.data.savedTemplates[0].content) 
-          : [];
-        const defaultOverlays = data.data.defaultDesign 
-          ? JSON.parse(data.data.defaultDesign) 
-          : [];
-        
+
+        const userOverlays = data.data.savedTemplates[0]?.content
+          ? JSON.parse(data.data.savedTemplates[0].content)
+          : null;
+        const defaultOverlays = data.data.defaultDesign
+          ? JSON.parse(data.data.defaultDesign)
+          : null;
+          
+        console.log("UDT", userOverlays);
+        console.log("DDT", defaultOverlays);
+
         setDefaultTemplateDesign(defaultOverlays);
         setUserContent(userOverlays || defaultOverlays || []);
-
-
       } catch (error) {
         console.error("Error checking access:", error);
         toast.error("An error occurred while checking access.");
@@ -92,16 +101,7 @@ export default function EditPDFPage({ params }: EditPDFPageProps) {
     <>
       <div className="h-screen flex flex-col">
         {showNote && (
-          <div
-            className="
-    border 
-    border-teal-200 
-    bg-teal-50 
-    dark:border-zinc-700 
-    dark:bg-zinc-900 
-    m-1 rounded-md px-3 py-2
-  "
-          >
+          <div className="border border-teal-200 bg-teal-50 dark:border-zinc-700 dark:bg-zinc-900 m-1 rounded-md px-3 py-2">
             <div className="flex items-center gap-2 w-full">
               <Info className="h-3 w-3 text-teal-600 shrink-0 dark:text-primary" />
 
@@ -112,12 +112,7 @@ export default function EditPDFPage({ params }: EditPDFPageProps) {
               </p>
 
               <button
-                className="
-        h-4 w-4 p-0 
-        text-teal-700 dark:text-zinc-300 
-        hover:text-teal-800 dark:hover:text-white 
-        shrink-0 flex items-center justify-center cursor-pointer
-      "
+                className="h-4 w-4 p-0 text-teal-700 dark:text-zinc-300 hover:text-teal-800 dark:hover:text-white shrink-0 flex items-center justify-center cursor-pointer"
                 onClick={() => setShowNote(false)}
               >
                 <X className="h-3 w-3" />

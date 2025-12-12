@@ -299,31 +299,58 @@ export function PDFCanvas({
     [slateEditors]
   );
 
-  // Initialize Slate value for overlay
+  const prevOverlaysRef = useRef<Overlay[]>([]);
+
   useEffect(() => {
     const textOverlays = overlays.filter(
       (o) => o.type === "text"
     ) as TextOverlay[];
 
-    for (const overlay of textOverlays) {
-      if (!slateValues.has(overlay.id)) {
+    // Check if overlays actually changed
+    const prevTextOverlays = prevOverlaysRef.current.filter(
+      (o) => o.type === "text"
+    ) as TextOverlay[];
+
+    const hasChanged =
+      textOverlays.length !== prevTextOverlays.length ||
+      textOverlays.some((overlay, index) => {
+        if (index >= prevTextOverlays.length) return true;
+        const prevOverlay = prevTextOverlays[index];
+        return (
+          overlay.id !== prevOverlay.id ||
+          overlay.text !== prevOverlay.text ||
+          overlay.fontFamily !== prevOverlay.fontFamily ||
+          overlay.fontSize !== prevOverlay.fontSize ||
+          overlay.color !== prevOverlay.color ||
+          overlay.textAlign !== prevOverlay.textAlign
+        );
+      });
+
+    if (hasChanged) {
+      const newSlateValues = new Map<string, Descendant[]>();
+
+      for (const overlay of textOverlays) {
         const initialValue = htmlToSlate(
           overlay.text,
           overlay.fontFamily,
           overlay.fontSize,
           overlay.color
         );
-        // Apply overlay's textAlign to all paragraphs
+
         const valueWithAlign = initialValue.map((node) => {
           if (SlateElement.isElement(node) && node.type === "paragraph") {
             return { ...node, align: overlay.textAlign };
           }
           return node;
         });
-        setSlateValues((prev) => new Map(prev).set(overlay.id, valueWithAlign));
+
+        newSlateValues.set(overlay.id, valueWithAlign);
       }
+
+      setSlateValues(newSlateValues);
+      prevOverlaysRef.current = [...overlays]; // Update ref
     }
-  }, [overlays, slateValues]);
+  }, [overlays]);
 
   // Update alignment when overlay textAlign changes
   useEffect(() => {

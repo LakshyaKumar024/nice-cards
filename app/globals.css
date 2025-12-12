@@ -16,6 +16,32 @@
   line-height: 1.2;
 }
 
+
+.df-calligraphic-ornament {
+  font-family: "DFCalligraphicOrnament", sans-serif !important;
+}
+.border1013 {
+  font-family: "BORDER1013", sans-serif !important;
+}
+.commercial-script-bt {
+  font-family: "Commercial Script BT", sans-serif !important;
+}
+.flamencod {
+  font-family: "FlamencoD", sans-serif !important;
+}
+
+.raj-100 {
+  font-family: "RAJ 100", sans-serif !important;
+}
+
+.raj-07 {
+  font-family: "RAJ 07", sans-serif !important;
+}
+
+.raj-16 {
+  font-family: "RAJ 16", sans-serif !important;
+}
+
 .bhartiya-hindi-100 {
   font-family: "BHARTIYA HINDI_100", sans-serif !important;
 }
@@ -72,13 +98,6 @@
   font-family: "Kruti Dev 012", sans-serif !important;
 }
 
-.kruti-dev-021 {
-  font-family: "Kruti Dev 021", sans-serif !important;
-}
-
-.kruti-dev-011 {
-  font-family: "Kruti Dev 011", sans-serif !important;
-}
 
 .kruti-dev-240 {
   font-family: "Kruti Dev 240", sans-serif !important;
@@ -295,8 +314,4 @@ svg tspan,
 .svg-fonts-loaded svg text,
 .svg-fonts-loaded svg tspan {
   font-family: inherit;
-}
-
-.df-calligraphic-ornament {
-  font-family: "DFCalligraphicOrnament", sans-serif !important;
 }

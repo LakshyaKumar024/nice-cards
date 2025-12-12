@@ -1,4 +1,3 @@
-
 @font-face {
   font-family: "BHARTIYA HINDI_100";
   src: url("/fonts/A0047636.TTF") format("truetype");
@@ -33,7 +32,7 @@
 
 @font-face {
   font-family: "A-SuperHindi-3 Bold";
-  src: url("/fonts/ASUPER_1.TTF") format("truetype");
+  src: url("/fonts/ASUPER_1_NEW.TTF") format("truetype");
   font-weight: normal;
   font-style: normal;
   font-display: swap;
@@ -80,8 +79,24 @@
 }
 
 @font-face {
+  font-family: "BORDER1013";
+  src: url("/fonts/BORD1013.TTF") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
   font-family: "ISFOC-TTBorder-1 Normal";
   src: url("/fonts/BR010NTT.TTF") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Commercial Script BT";
+  src: url("/fonts/COMSCRTN.TTF") format("truetype");
   font-weight: normal;
   font-style: normal;
   font-display: swap;
@@ -104,6 +119,14 @@
 }
 
 @font-face {
+  font-family: "FlamencoD";
+  src: url("/fonts/FLAMENN.TTF") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
   font-family: "Kruti Dev 010";
   src: url("/fonts/K010.TTF") format("truetype");
   font-weight: normal;
@@ -114,22 +137,6 @@
 @font-face {
   font-family: "Kruti Dev 012";
   src: url("/fonts/K012.TTF") format("truetype");
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Kruti Dev 021";
-  src: url("/fonts/K021.TTF") format("truetype");
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Kruti Dev 011";
-  src: url("/fonts/K11.TTF") format("truetype");
   font-weight: normal;
   font-style: normal;
   font-display: swap;
@@ -242,6 +249,30 @@
 @font-face {
   font-family: "Noto Sans Devanagari Regular";
   src: url("/fonts/NotoSansDevanagari.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "RAJ 07";
+  src: url("/fonts/RAJ 07_4.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "RAJ 100";
+  src: url("/fonts/RAJ 100_2.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "RAJ 16";
+  src: url("/fonts/RAJ 16_2.ttf") format("truetype");
   font-weight: normal;
   font-style: normal;
   font-display: swap;

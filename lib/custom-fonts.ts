@@ -27,7 +27,7 @@ export const customFonts: CustomFont[] = [
   },
   {
     name: "A-SuperHindi-3 Bold",
-    url: "/fonts/ASUPER_1.TTF",
+    url: "/fonts/ASUPER_1_NEW.TTF",
     fontFamily: "A-SuperHindi-3 Bold",
     format: "truetype",
   },
@@ -89,18 +89,6 @@ export const customFonts: CustomFont[] = [
     name: "Kruti Dev 012",
     url: "/fonts/K012.TTF",
     fontFamily: "Kruti Dev 012",
-    format: "truetype",
-  },
-  {
-    name: "Kruti Dev 021",
-    url: "/fonts/K021.TTF",
-    fontFamily: "Kruti Dev 021",
-    format: "truetype",
-  },
-  {
-    name: "Kruti Dev 011",
-    url: "/fonts/K11.TTF",
-    fontFamily: "Kruti Dev 011",
     format: "truetype",
   },
   {
@@ -215,6 +203,42 @@ export const customFonts: CustomFont[] = [
     name: "Teko Regular",
     url: "/fonts/Teko-Regular.ttf",
     fontFamily: "Teko Regular",
+    format: "truetype",
+  },
+  {
+    name: "FlamencoD",
+    url: "/fonts/FLAMENN.TTF",
+    fontFamily: "FlamencoD",
+    format: "truetype",
+  },
+  {
+    name: "Commercial Script BT",
+    url: "/fonts/COMSCRTN.TTF",
+    fontFamily: "Commercial Script BT",
+    format: "truetype",
+  },
+  {
+    name: "BORDER1013",
+    url: "/fonts/BORD1013.TTF",
+    fontFamily: "BORDER1013",
+    format: "truetype",
+  },
+  {
+    name: "RAJ 07",
+    url: "/fonts/RAJ 07_4.ttf",
+    fontFamily: "RAJ 07",
+    format: "truetype",
+  },
+  {
+    name: "RAJ 100",
+    url: "/fonts/RAJ 100_2.ttf",
+    fontFamily: "RAJ 100",
+    format: "truetype",
+  },
+  {
+    name: "RAJ 16",
+    url: "/fonts/RAJ 16_2.ttf",
+    fontFamily: "RAJ 16",
     format: "truetype",
   }
 ];
