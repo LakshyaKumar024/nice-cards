@@ -1272,19 +1272,6 @@ function SlateEditor({
   const editableRef = useRef<HTMLDivElement>(null);
   const [isFocused, setIsFocused] = useState(false);
 
-  // Sync editor content when value changes externally
-  useEffect(() => {
-    const isAstChange = editor.operations.some(
-      (op) => op.type !== "set_selection"
-    );
-    if (!isAstChange) {
-      // Reset editor content
-      // eslint-disable-next-line react-hooks/immutability
-      editor.children = value;
-      editor.onChange();
-    }
-  }, [value, editor]);
-
   // Auto-focus on mount
   useEffect(() => {
     if (!isFocused) {
