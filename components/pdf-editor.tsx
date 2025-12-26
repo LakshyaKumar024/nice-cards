@@ -260,6 +260,12 @@ export default function PDFEditor({
           fetch("/fonts/RAJ 07_4.ttf"), // For RAJ 07
           fetch("/fonts/RAJ 100_2.ttf"), // For RAJ 100
           fetch("/fonts/RAJ 16_2.ttf"), // For RAJ 16
+          fetch("/fonts/RAJ 107.ttf"), // For RAJ 107
+          fetch("/fonts/RAJ 13.TTF"), // For RAJ 13
+          fetch("/fonts/RAJ 69.ttf"), // For RAJ 69
+          fetch("/fonts/RAJ ANANDA.ttf"), // For RAJANANDA-Bold
+          fetch("/fonts/RAJ PRAKASH_Normal.ttf"), // For RAJ PRAKASH
+          fetch("/fonts/CEATS Wedding symbol.ttf"), // For CEATS Wedding Symbol
         ]);
       } catch (error) {
         console.error("Failed to preload custom fonts:", error);
@@ -346,6 +352,12 @@ export default function PDFEditor({
           "Teko Bold": "teko-bold",
           "Teko Medium": "teko-medium",
           "Teko Regular": "teko-regular",
+          "CEATS Wedding Symbol": "ceats-wedding-symbol",
+          "RAJ 107 Bold": "raj-107-bold",
+          "RAJ 13": "raj-13",
+          "RAJ 69 Normal": "raj-69-normal",
+          "RAJANANDA-Bold": "rajananda-bold",
+          "RAJ PRAKASH": "raj-prakash",
         };
 
         newOverlay = {
@@ -444,6 +456,12 @@ export default function PDFEditor({
               "Teko Bold": "teko-bold",
               "Teko Medium": "teko-medium",
               "Teko Regular": "teko-regular",
+              "CEATS Wedding Symbol": "ceats-wedding-symbol",
+              "RAJ 107 Bold": "raj-107-bold",
+              "RAJ 13": "raj-13",
+              "RAJ 69 Normal": "raj-69-normal",
+              "RAJANANDA-Bold": "rajananda-bold",
+              "RAJ PRAKASH": "raj-prakash",
             };
 
             return {

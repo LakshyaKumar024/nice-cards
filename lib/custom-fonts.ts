@@ -240,7 +240,43 @@ export const customFonts: CustomFont[] = [
     url: "/fonts/RAJ 16_2.ttf",
     fontFamily: "RAJ 16",
     format: "truetype",
-  }
+  },
+  {
+    name: "RAJ 107 Bold",
+    url: "/fonts/RAJ 107.ttf",
+    fontFamily: "RAJ 107 Bold",
+    format: "truetype",
+  },
+  {
+    name: "RAJ 13",
+    url: "/fonts/RAJ 13.TTF",
+    fontFamily: "RAJ 13",
+    format: "truetype",
+  },
+  {
+    name: "RAJ 69 Normal",
+    url: "/fonts/RAJ 69.ttf",
+    fontFamily: "RAJ 69 Normal",
+    format: "truetype",
+  },
+  {
+    name: "RAJANANDA-Bold",
+    url: "/fonts/RAJ ANANDA.ttf",
+    fontFamily: "RAJANANDA-Bold",
+    format: "truetype",
+  },
+  {
+    name: "RAJ PRAKASH",
+    url: "/fonts/RAJ PRAKASH_Normal.ttf",
+    fontFamily: "RAJ PRAKASH",
+    format: "truetype",
+  },
+  {
+    name: "CEATS Wedding Symbol",
+    url: "/fonts/CEATS Wedding symbol.ttf",
+    fontFamily: "CEATS Wedding Symbol",
+    format: "truetype",
+  },
 ];
 
 

@@ -16,7 +16,6 @@
   line-height: 1.2;
 }
 
-
 .df-calligraphic-ornament {
   font-family: "DFCalligraphicOrnament", sans-serif !important;
 }
@@ -98,7 +97,6 @@
   font-family: "Kruti Dev 012", sans-serif !important;
 }
 
-
 .kruti-dev-240 {
   font-family: "Kruti Dev 240", sans-serif !important;
 }
@@ -169,6 +167,30 @@
 
 .teko-regular {
   font-family: "Teko Regular", sans-serif !important;
+}
+
+.ceats-wedding-symbol {
+  font-family: "CEATS Wedding Symbol", sans-serif !important;
+}
+
+.raj-107-bold {
+  font-family: "RAJ 107 Bold", sans-serif !important;
+}
+
+.raj-13 {
+  font-family: "RAJ 13", sans-serif !important;
+}
+
+.raj-69-normal {
+  font-family: "RAJ 69 Normal", sans-serif !important;
+}
+
+.rajananda-bold {
+  font-family: "RAJANANDA-Bold", sans-serif !important;
+}
+
+.raj-prakash {
+  font-family: "RAJ PRAKASH", sans-serif !important;
 }
 
 @custom-variant dark (&:is(.dark *));

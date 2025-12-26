@@ -46,7 +46,6 @@ interface FormattingToolbarProps {
   onTextAlignChange?: (align: "left" | "center" | "right" | "justify") => void;
   onApplyFontToSelection?: (fontFamily: string) => void; // NEW: apply font to selected text
 }
-
 // Organized font groups
 const fontGroups = {
   standard: [
@@ -91,6 +90,11 @@ const fontGroups = {
     "RAJ 07",
     "RAJ 100",
     "RAJ 16",
+    "RAJ 107 Bold",
+    "RAJ 13",
+    "RAJ 69 Normal",
+    "RAJANANDA-Bold",
+    "RAJ PRAKASH",
   ],
   decorative: [
     "Arenski",
@@ -101,9 +105,9 @@ const fontGroups = {
     "ISFOC-TTBorder-1 Normal",
     "Commercial Script BT",
     "BORDER1013",
+    "CEATS Wedding Symbol",
   ],
 };
-
 export function FormattingToolbar({
   fontSize,
   fontFamily,

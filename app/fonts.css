@@ -309,3 +309,53 @@
   font-style: normal;
   font-display: swap;
 }
+
+
+@font-face {
+  font-family: "CEATS Wedding Symbol";
+  src: url("/fonts/CEATS Wedding symbol.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+
+@font-face {
+  font-family: "RAJ 107 Bold";
+  src: url("/fonts/RAJ 107.ttf") format("truetype");
+  font-weight: normal;
+  /* font-style: normal; */
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "RAJ 13";
+  src: url("/fonts/RAJ 13.TTF") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "RAJ 69 Normal";
+  src: url("/fonts/RAJ 69.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "RAJANANDA-Bold";
+  src: url("/fonts/RAJ ANANDA.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "RAJ PRAKASH";
+  src: url("/fonts/RAJ PRAKASH_Normal.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
