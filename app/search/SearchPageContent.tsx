@@ -141,7 +141,7 @@ export default function SearchPageContent() {
                 description={template.description || ""}
                 price={template.price}
                 category={template.catogery}
-                imageUrl={template.image}
+                imageUrl={JSON.parse(template.image)[0] || ""}
                 isPurchased={template.isPurchased}
                 onPurchase={handlePurchase}
               />
