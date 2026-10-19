@@ -1,4 +1,4 @@
-# 💳 Nice Card – PDF Template Editor & E-commerce Platform
+# 💳 Nice Card – Editor & E-commerce Platform
 
 **Nice Card** is a secure, full-stack web application for creating, editing, and selling customizable PDF invitation templates. Built using **Next.js (App Router)**, **Bun**, **Clerk authentication**, **ShadCN/UI**, **Prisma**, and **Razorpay** for payments.  
 This project is **private** and proprietary — not intended for open-source distribution.
