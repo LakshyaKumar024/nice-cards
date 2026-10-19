@@ -389,8 +389,6 @@ bunx prisma db push
 
 **Project Name:** Nice Card  
 **Version:** 1.0.0  
-**Maintained By:** DeepVoidLab  
 **Client:** Nice-Card  
 **Last Updated:** November 2025
-
 ---
