@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build --webpack",
+    "vercel-build": "prisma generate && next build --webpack",
     "start": "next start",
     "lint": "eslint",
     "generate:fonts": "bun run scripts/auto-generate-fonts.ts",

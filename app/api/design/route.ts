@@ -9,8 +9,14 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(request.nextUrl.searchParams.get('limit') || '10');
 
 
-    // Get the current user from Clerk
-    const { userId } = await auth();
+    // Get the current user from Clerk (safe check: homepage is public)
+    let userId: string | null = null;
+    try {
+      const authData = await auth();
+      userId = authData.userId;
+    } catch (authError) {
+      console.warn("Clerk auth check failed in /api/design:", authError);
+    }
 
     const templates = await prisma.template.findMany({
       where: {

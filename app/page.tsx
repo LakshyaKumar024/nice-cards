@@ -59,11 +59,19 @@ export default function Home() {
     fetch(`/api/design?page=1&limit=${PAGINATION_LIMIT}`)
       .then((res) => res.json())
       .then((data) => {
-        setTemplates(data.data);
-        setHasMore(data.data.length === PAGINATION_LIMIT);
+        if (data?.success && Array.isArray(data?.data)) {
+          setTemplates(data.data);
+          setHasMore(data.data.length === PAGINATION_LIMIT);
+        } else {
+          setTemplates([]);
+          setHasMore(false);
+          console.error("Failed to load templates:", data?.error || data);
+        }
       })
       .catch((error) => {
         console.error("Error fetching templates:", error);
+        setTemplates([]);
+        setHasMore(false);
       })
       .finally(() => {
         setIsInitialLoading(false);
@@ -91,8 +99,12 @@ export default function Home() {
       );
 
       const data = await nextChunk.json();
-      setTemplates((prev) => [...prev, ...data.data]);
-      setHasMore(data.data.length === PAGINATION_LIMIT);
+      if (data?.success && Array.isArray(data?.data)) {
+        setTemplates((prev) => [...prev, ...data.data]);
+        setHasMore(data.data.length === PAGINATION_LIMIT);
+      }
+    } catch (err) {
+      console.error("Error loading next chunk:", err);
     } finally {
       setIsLoading(false);
     }
