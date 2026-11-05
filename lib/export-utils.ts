@@ -10,7 +10,7 @@ import {
   translate,
 } from 'pdf-lib';
 import * as fontkit from 'fontkit';
-import type { Overlay, TextOverlay, ShapeOverlay } from '@/lib/types';
+import type { Overlay, TextOverlay, ShapeOverlay, ImageOverlay } from '@/lib/types';
 import { loadCustomFont, isCustomFont } from './custom-fonts';
 
 
@@ -155,9 +155,11 @@ export async function exportPDFWithOverlays(
       const { width, height } = page.getSize();
 
       if (overlay.type === 'text' && (overlay.text || "").trim()) {
-        await drawTextOverlay(page, overlay, width, height, fontCache);
+        await drawTextOverlay(page, overlay, width, height, fontCache, pdfDoc);
       } else if (overlay.type === 'shape' && overlay.shapeType === 'square') {
         await drawShapeOverlay(page, overlay, width, height);
+      } else if (overlay.type === 'image') {
+        await drawImageOverlay(page, overlay, width, height, pdfDoc);
       }
     }
 
@@ -186,133 +188,21 @@ async function drawTextOverlay(
   overlay: TextOverlay,
   pageWidth: number,
   pageHeight: number,
-  fontCache: Map<string, any>
+  fontCache: Map<string, any>,
+  pdfDoc?: PDFDocument
 ) {
   try {
     const rawText = overlay.text || "";
+    const CANVAS_SCALE = 1.5;
+    const defaultFontSize = overlay.fontSize / CANVAS_SCALE;
+    const lineHeight = defaultFontSize * 1.25;
 
-    // ========== ADJUSTABLE POSITION OFFSET ==========
-    console.log("ENVS --> ",EXPLICIT_POSITION_ADDITION,EXPLICIT_POSITION_LEFT);
-    
+    // canvas anchor is CENTER of the text box with translate(-50%, -50%)
+    const centerX = overlay.x * pageWidth;
+    const centerY = pageHeight - overlay.y * pageHeight;
 
-    // ========== PARSE HTML INTO SEGMENTS (multi-font, multi-style) ==========
-    const segments: Array<{ 
-      text: string; 
-      font: any; 
-      fontSize?: number;
-      color?: string;
-      bold?: boolean;
-      italic?: boolean;
-    }> = [];
     const parser = new DOMParser();
     const doc = parser.parseFromString(rawText, "text/html");
-
-    function walk(
-      node: any, 
-      currentFontFamily: string | null, 
-      currentBold: boolean = false,
-      currentItalic: boolean = false,
-      currentFontSize: number | null = null,
-      currentColor: string | null = null,
-      isBlockElement: boolean = false
-    ) {
-      // If this is a block element and we have previous content, add a newline
-      if (isBlockElement && segments.length > 0 && segments[segments.length - 1].text !== "\n") {
-        segments.push({ 
-          text: "\n", 
-          font: resolveFont(currentFontFamily, currentBold, currentItalic),
-          fontSize: currentFontSize || undefined,
-          color: currentColor || undefined,
-          bold: currentBold,
-          italic: currentItalic
-        });
-      }
-
-      for (const child of node.childNodes) {
-        if (child.nodeType === 3) { // TEXT_NODE
-          const text = child.textContent || "";
-          if (text.trim() !== "") {
-            segments.push({
-              text: text,
-              font: resolveFont(currentFontFamily, currentBold, currentItalic),
-              fontSize: currentFontSize || undefined,
-              color: currentColor || undefined,
-              bold: currentBold,
-              italic: currentItalic
-            });
-          }
-        } else if (child.nodeType === 1) { // ELEMENT_NODE
-          const el = child as HTMLElement;
-          
-          // Extract font family from data-font or inline style
-          let chosenFont = el.getAttribute("data-font") || currentFontFamily;
-          if (!chosenFont && el.style.fontFamily) {
-            chosenFont = el.style.fontFamily.replace(/['"]/g, "").split(",")[0].trim();
-          }
-
-          // Extract bold from inline style or tag
-          let isBold = currentBold;
-          if (el.style.fontWeight === "bold" || el.style.fontWeight === "700" || 
-              el.tagName === "STRONG" || el.tagName === "B") {
-            isBold = true;
-          }
-
-          // Extract italic from inline style or tag
-          let isItalic = currentItalic;
-          if (el.style.fontStyle === "italic" || 
-              el.tagName === "EM" || el.tagName === "I") {
-            isItalic = true;
-          }
-
-          // Extract font size from inline style
-          let fontSize = currentFontSize;
-          if (el.style.fontSize) {
-            const sizeMatch = el.style.fontSize.match(/(\d+)/);
-            if (sizeMatch) {
-              fontSize = parseInt(sizeMatch[1]);
-            }
-          }
-
-          // Extract color from inline style
-          let color = currentColor;
-          if (el.style.color) {
-            color = el.style.color;
-          }
-
-          // Check if this is a block-level element that should create a new line
-          const isBlock = ["DIV", "P", "H1", "H2", "H3", "H4", "H5", "H6", "UL", "OL", "LI", "SECTION", "ARTICLE"].includes(el.tagName);
-
-          // Handle BR elements
-          if (el.tagName === "BR") {
-            segments.push({ 
-              text: "\n", 
-              font: resolveFont(chosenFont, isBold, isItalic),
-              fontSize: fontSize || undefined,
-              color: color || undefined,
-              bold: isBold,
-              italic: isItalic
-            });
-          } else {
-            // Process children of other elements with inherited styles
-            walk(el, chosenFont, isBold, isItalic, fontSize, color, isBlock);
-          }
-
-          // Add newline after block elements (except for the last one)
-          if (isBlock && child.nextSibling) {
-            segments.push({ 
-              text: "\n", 
-              font: resolveFont(chosenFont, isBold, isItalic),
-              fontSize: fontSize || undefined,
-              color: color || undefined,
-              bold: isBold,
-              italic: isItalic
-            });
-          }
-        }
-      }
-    }
-
-    walk(doc.body, overlay.fontFamily, overlay.bold, overlay.italic, null, null, false);
 
     // ========== HELPER: SELECT FONT FROM CACHE ==========
     function resolveFont(fontFamily: string | null, isBold: boolean, isItalic: boolean) {
@@ -331,147 +221,345 @@ async function drawTextOverlay(
       );
     }
 
-    // ========== MULTILINE SPLIT ==========
-    const lines: Array<Array<{ 
-      text: string; 
-      font: any; 
-      width: number;
-      fontSize?: number;
-      color?: string;
-    }>> = [];
-    let currentLine: Array<{ 
-      text: string; 
-      font: any; 
-      width: number;
-      fontSize?: number;
-      color?: string;
-    }> = [];
+    // ========== PRE-LOAD & EMBED IMAGES (preserve exact aspect & dimensions) ==========
+    const imgMap = new Map<string, { image: any; width: number; height: number }>();
+    if (pdfDoc) {
+      const imgElements = Array.from(doc.querySelectorAll("img"));
+      for (const imgEl of imgElements) {
+        const src = imgEl.getAttribute("src");
+        if (!src || imgMap.has(src)) continue;
 
-    const CANVAS_SCALE = 1.5;
-    const defaultFontSize = overlay.fontSize / CANVAS_SCALE;
+        try {
+          let bytes: Uint8Array | null = null;
+          let isPng = false;
 
-    for (const seg of segments) {
-      if (seg.text === "\n") {
-        // BR tag or explicit newline - start a new line
-        if (currentLine.length > 0) {
-          lines.push([...currentLine]);
-        }
-        currentLine = [];
-      } else if (seg.text.includes("\n")) {
-        // Text contains newlines - split it
-        const parts = seg.text.split("\n");
-        for (let i = 0; i < parts.length; i++) {
-          const part = parts[i];
-          if (part.trim() !== "") {
-            const segFontSize = seg.fontSize ? seg.fontSize / CANVAS_SCALE : defaultFontSize;
-            const width = seg.font.widthOfTextAtSize(part, segFontSize);
-            currentLine.push({
-              text: part,
-              font: seg.font,
-              width: width,
-              fontSize: segFontSize,
-              color: seg.color,
+          if (src.startsWith("data:")) {
+            const parts = src.split(",");
+            isPng = parts[0].includes("image/png");
+            const base64Data = parts[1];
+            if (base64Data) {
+              const bin = atob(base64Data);
+              bytes = new Uint8Array(bin.length);
+              for (let i = 0; i < bin.length; i++) {
+                bytes[i] = bin.charCodeAt(i);
+              }
+            }
+          } else {
+            const resp = await fetch(src);
+            const arrayBuf = await resp.arrayBuffer();
+            bytes = new Uint8Array(arrayBuf);
+            const contentType = resp.headers.get("content-type") || "";
+            isPng = contentType.includes("png") || src.toLowerCase().includes(".png");
+          }
+
+          if (bytes) {
+            if (
+              !isPng &&
+              bytes.length > 8 &&
+              bytes[0] === 0x89 &&
+              bytes[1] === 0x50 &&
+              bytes[2] === 0x4e &&
+              bytes[3] === 0x47
+            ) {
+              isPng = true;
+            }
+
+            const embedded = isPng
+              ? await pdfDoc.embedPng(bytes)
+              : await pdfDoc.embedJpg(bytes);
+
+            // Container constraint: on canvas max width is 80% page width, max height in Slate is 260px
+            const maxContainerWidth = pageWidth * 0.8;
+            const maxContainerHeight = 260 / CANVAS_SCALE;
+            const imgAspect = embedded.width / embedded.height;
+
+            let specifiedW = 0;
+            let specifiedH = 0;
+            if (imgEl.style.width && !imgEl.style.width.includes("%")) {
+              specifiedW = parseFloat(imgEl.style.width) / CANVAS_SCALE;
+            } else if (imgEl.getAttribute("width")) {
+              specifiedW = parseFloat(imgEl.getAttribute("width")!) / CANVAS_SCALE;
+            }
+
+            if (imgEl.style.height && !imgEl.style.height.includes("%")) {
+              specifiedH = parseFloat(imgEl.style.height) / CANVAS_SCALE;
+            } else if (imgEl.getAttribute("height")) {
+              specifiedH = parseFloat(imgEl.getAttribute("height")!) / CANVAS_SCALE;
+            }
+
+            let drawW = specifiedW || embedded.width;
+            let drawH = specifiedH || embedded.height;
+
+            if (!specifiedW && !specifiedH) {
+              if (drawW > maxContainerWidth) {
+                drawW = maxContainerWidth;
+                drawH = drawW / imgAspect;
+              }
+              if (drawH > maxContainerHeight) {
+                drawH = maxContainerHeight;
+                drawW = drawH * imgAspect;
+              }
+            } else if (specifiedW && !specifiedH) {
+              drawH = specifiedW / imgAspect;
+            } else if (!specifiedW && specifiedH) {
+              drawW = specifiedH * imgAspect;
+            }
+
+            imgMap.set(src, {
+              image: embedded,
+              width: drawW,
+              height: drawH,
             });
           }
-          // If this is not the last part, start a new line
-          if (i < parts.length - 1) {
-            if (currentLine.length > 0) {
-              lines.push([...currentLine]);
+        } catch (imgErr) {
+          console.error("Failed to embed image into PDF for printing:", imgErr);
+        }
+      }
+    }
+
+    // ========== PARSE HTML INTO ORDERED FLOW ITEMS (text lines & images) ==========
+    type FlowItem =
+      | {
+          type: "line";
+          segments: Array<{
+            text: string;
+            font: any;
+            width: number;
+            fontSize: number;
+            color: string;
+          }>;
+          width: number;
+          height: number;
+        }
+      | {
+          type: "image";
+          image: any;
+          width: number;
+          height: number;
+        };
+
+    const flowItems: FlowItem[] = [];
+    let currentLine: Array<{
+      text: string;
+      font: any;
+      width: number;
+      fontSize: number;
+      color: string;
+    }> = [];
+
+    const flushCurrentLine = () => {
+      if (currentLine.length > 0) {
+        const cleaned = currentLine.filter((s) => s.text.trim() !== "" || s.text === " ");
+        const lineWidth = cleaned.reduce((total, seg) => total + seg.width, 0);
+        flowItems.push({
+          type: "line",
+          segments: [...currentLine],
+          width: lineWidth,
+          height: lineHeight,
+        });
+        currentLine = [];
+      }
+    };
+
+    function walk(
+      node: any,
+      currentFontFamily: string | null,
+      currentBold: boolean = false,
+      currentItalic: boolean = false,
+      currentFontSize: number | null = null,
+      currentColor: string | null = null,
+      isBlockElement: boolean = false
+    ) {
+      if (isBlockElement) {
+        flushCurrentLine();
+      }
+
+      for (const child of node.childNodes) {
+        if (child.nodeType === 3) {
+          // TEXT_NODE
+          const text = child.textContent || "";
+          if (text) {
+            const segFontSize = currentFontSize ? currentFontSize / CANVAS_SCALE : defaultFontSize;
+            const font = resolveFont(currentFontFamily, currentBold, currentItalic);
+
+            if (text.includes("\n")) {
+              const parts = text.split("\n");
+              for (let i = 0; i < parts.length; i++) {
+                const part = parts[i];
+                if (part) {
+                  currentLine.push({
+                    text: part,
+                    font,
+                    width: font.widthOfTextAtSize(part, segFontSize),
+                    fontSize: segFontSize,
+                    color: currentColor || overlay.color,
+                  });
+                }
+                if (i < parts.length - 1) {
+                  flushCurrentLine();
+                }
+              }
+            } else {
+              currentLine.push({
+                text,
+                font,
+                width: font.widthOfTextAtSize(text, segFontSize),
+                fontSize: segFontSize,
+                color: currentColor || overlay.color,
+              });
             }
-            currentLine = [];
+          }
+        } else if (child.nodeType === 1) {
+          // ELEMENT_NODE
+          const el = child as HTMLElement;
+
+          if (el.tagName === "IMG") {
+            flushCurrentLine();
+            const src = el.getAttribute("src");
+            if (src && imgMap.has(src)) {
+              const imgData = imgMap.get(src)!;
+              flowItems.push({
+                type: "image",
+                image: imgData.image,
+                width: imgData.width,
+                height: imgData.height,
+              });
+            }
+            continue;
+          }
+
+          let chosenFont = el.getAttribute("data-font") || currentFontFamily;
+          if (!chosenFont && el.style.fontFamily) {
+            chosenFont = el.style.fontFamily.replace(/['"]/g, "").split(",")[0].trim();
+          }
+
+          let isBold = currentBold;
+          if (
+            el.style.fontWeight === "bold" ||
+            el.style.fontWeight === "700" ||
+            el.tagName === "STRONG" ||
+            el.tagName === "B"
+          ) {
+            isBold = true;
+          }
+
+          let isItalic = currentItalic;
+          if (
+            el.style.fontStyle === "italic" ||
+            el.tagName === "EM" ||
+            el.tagName === "I"
+          ) {
+            isItalic = true;
+          }
+
+          let fontSize = currentFontSize;
+          if (el.style.fontSize) {
+            const sizeMatch = el.style.fontSize.match(/(\d+)/);
+            if (sizeMatch) {
+              fontSize = parseInt(sizeMatch[1]);
+            }
+          }
+
+          let color = currentColor;
+          if (el.style.color) {
+            color = el.style.color;
+          }
+
+          const isBlock = [
+            "DIV",
+            "P",
+            "H1",
+            "H2",
+            "H3",
+            "H4",
+            "H5",
+            "H6",
+            "UL",
+            "OL",
+            "LI",
+            "SECTION",
+            "ARTICLE",
+          ].includes(el.tagName);
+
+          if (el.tagName === "BR") {
+            flushCurrentLine();
+          } else {
+            walk(el, chosenFont, isBold, isItalic, fontSize, color, isBlock);
+          }
+
+          if (isBlock) {
+            flushCurrentLine();
           }
         }
-      } else {
-        // Normal text segment
-        const segFontSize = seg.fontSize ? seg.fontSize / CANVAS_SCALE : defaultFontSize;
-        const width = seg.font.widthOfTextAtSize(seg.text, segFontSize);
-        currentLine.push({
-          text: seg.text,
-          font: seg.font,
-          width: width,
-          fontSize: segFontSize,
-          color: seg.color,
-        });
       }
     }
 
-    // Add the last line if it has content
-    if (currentLine.length > 0) {
-      lines.push([...currentLine]);
-    }
+    walk(doc.body, overlay.fontFamily, overlay.bold, overlay.italic, null, null, false);
+    flushCurrentLine();
 
-    // Handle empty lines (if we have consecutive newlines)
-    if (lines.length === 0 && segments.some(s => s.text === "\n")) {
-      lines.push([]); // Add an empty line
-    }
-
-    // ========== POSITIONING ==========
-    // canvas: anchor is CENTER of the text box with translate(-50%, -50%)
-    const centerX = overlay.x * pageWidth;
-    const centerY = pageHeight - overlay.y * pageHeight; // Convert to PDF coords (Y down)
-
-    const lineHeight = defaultFontSize * 1.25;
-
-    // Calculate line widths for alignment
-    const lineWidths = lines.map(line =>
-      line.reduce((total, seg) => total + seg.width, 0)
+    // ========== POSITIONING & BOUNDING BOX ==========
+    const maxContentWidth = Math.max(
+      ...flowItems.map((item) => item.width),
+      0
     );
-    const maxLineWidth = Math.max(...lineWidths, 0); // Handle empty lines
-    const totalHeight = lines.length * lineHeight;
 
-    // canvas uses: translate(-50%, -50%) for centering
-    // So the text box is centered at (centerX, centerY)
-    // In PDF: boxY is the BOTTOM of the text box (Y increases upward)
-    // Apply the explicit position adjustment here
-    const boxX = centerX - maxLineWidth / 2 - EXPLICIT_POSITION_LEFT;  // Left edge of bounding box
-    const boxY = centerY - totalHeight / 2 + EXPLICIT_POSITION_ADDITION;   // Bottom edge with adjustment
-
-    // ========== ALIGNMENT INSIDE THE BOX ==========
-    function getAlignedX(lineWidth: number) {
-      if (overlay.textAlign === "center") {
-        return boxX + (maxLineWidth - lineWidth) / 2;
-      } else if (overlay.textAlign === "right") {
-        return boxX + (maxLineWidth - lineWidth);
-      } else {
-        return boxX; // left align
+    let totalHeight = 0;
+    flowItems.forEach((item) => {
+      if (item.type === "line") {
+        totalHeight += item.height;
+      } else if (item.type === "image") {
+        totalHeight += item.height + 6; // 6pt vertical spacing
       }
+    });
+
+    const boxX = centerX - maxContentWidth / 2 - EXPLICIT_POSITION_LEFT;
+    const boxBottomY = centerY - totalHeight / 2 + EXPLICIT_POSITION_ADDITION;
+    const boxTopY = boxBottomY + totalHeight;
+
+    function getAlignedX(itemWidth: number) {
+      if (overlay.textAlign === "center") {
+        return boxX + (maxContentWidth - itemWidth) / 2;
+      } else if (overlay.textAlign === "right") {
+        return boxX + (maxContentWidth - itemWidth);
+      }
+      return boxX;
     }
 
     // ========== DRAW FUNCTION ==========
     const drawEverything = () => {
-      lines.forEach((line, idx) => {
-        // Filter out empty segments but keep spaces
-        const cleaned = line.filter(s => s.text.trim() !== "" || s.text === " ");
-        const lineWidth = cleaned.reduce((total, seg) => total + seg.width, 0);
+      let currentY = boxTopY;
 
-        // Get X position based on alignment
-        const x = getAlignedX(lineWidth);
+      flowItems.forEach((item) => {
+        if (item.type === "line") {
+          currentY -= item.height;
+          const x = getAlignedX(item.width);
 
-        // Y position: 
-        // In PDF, Y increases upward, so we need to calculate from bottom up
-        // First line (index 0) should be at the TOP in canvas view, but
-        // in PDF, that's actually the highest Y value
-        // So: boxY is the bottom, we add lineHeight for each line
-        const y = boxY + (lines.length - idx - 1) * lineHeight;
-
-        let cursorX = x;
-
-        for (const seg of cleaned) {
-          // Only draw if there's actual text (not just whitespace)
-          if (seg.text.trim() !== "" || seg.text === " ") {
-            // Use per-segment fontSize and color if available, otherwise use overlay defaults
-            const segSize = seg.fontSize || defaultFontSize;
-            const segColor = seg.color || overlay.color;
-            
-            page.drawText(seg.text, {
-              x: cursorX,
-              y,
-              font: seg.font,
-              size: segSize,
-              color: hexToRgb(segColor),
-            });
+          let cursorX = x;
+          for (const seg of item.segments) {
+            if (seg.text.trim() !== "" || seg.text === " ") {
+              page.drawText(seg.text, {
+                x: cursorX,
+                y: currentY,
+                font: seg.font,
+                size: seg.fontSize,
+                color: hexToRgb(seg.color),
+              });
+            }
+            cursorX += seg.width;
           }
-          cursorX += seg.width;
+        } else if (item.type === "image") {
+          currentY -= 3;
+          currentY -= item.height;
+          const imgX = getAlignedX(item.width);
+
+          page.drawImage(item.image, {
+            x: imgX,
+            y: currentY,
+            width: item.width,
+            height: item.height,
+          });
+
+          currentY -= 3;
         }
       });
     };
@@ -559,5 +647,114 @@ async function drawShapeOverlay(
 
   } catch (err) {
     console.error("Error drawing shape overlay:", err);
+  }
+}
+
+async function drawImageOverlay(
+  page: any,
+  overlay: ImageOverlay,
+  pageWidth: number,
+  pageHeight: number,
+  pdfDoc: PDFDocument
+) {
+  try {
+    const boxWidth = overlay.width * pageWidth;
+    const boxHeight = overlay.height * pageHeight;
+
+    // In canvas, overlays are centered at (overlay.x * pageWidth, overlay.y * pageHeight)
+    // with translate(-50%, -50%) and rotate(overlay.rotation deg)
+    const centerX = overlay.x * pageWidth;
+    const centerY = pageHeight - overlay.y * pageHeight;
+
+    let imageBytes: Uint8Array;
+    let isPng = false;
+
+    if (overlay.imageUrl.startsWith("data:")) {
+      const parts = overlay.imageUrl.split(",");
+      const mime = parts[0];
+      isPng = mime.includes("image/png");
+      const base64Data = parts[1];
+      const binaryString = atob(base64Data);
+      imageBytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        imageBytes[i] = binaryString.charCodeAt(i);
+      }
+    } else {
+      const response = await fetch(overlay.imageUrl);
+      const arrayBuffer = await response.arrayBuffer();
+      imageBytes = new Uint8Array(arrayBuffer);
+      const contentType = response.headers.get("content-type") || "";
+      isPng =
+        contentType.includes("png") ||
+        overlay.imageUrl.toLowerCase().includes(".png");
+    }
+
+    // Check PNG magic bytes: 0x89, 0x50, 0x4E, 0x47
+    if (
+      imageBytes.length >= 4 &&
+      imageBytes[0] === 0x89 &&
+      imageBytes[1] === 0x50 &&
+      imageBytes[2] === 0x4e &&
+      imageBytes[3] === 0x47
+    ) {
+      isPng = true;
+    }
+
+    let embeddedImage;
+    if (isPng) {
+      // pdf-lib's embedPng natively preserves PNG transparency / alpha channel (SMask)
+      embeddedImage = await pdfDoc.embedPng(imageBytes);
+    } else {
+      try {
+        embeddedImage = await pdfDoc.embedJpg(imageBytes);
+      } catch {
+        embeddedImage = await pdfDoc.embedPng(imageBytes);
+      }
+    }
+
+    // Preserve exact aspect ratio matching CSS object-fit: contain on canvas
+    const imgAspect = embeddedImage.width / embeddedImage.height;
+    const boxAspect = boxWidth / boxHeight;
+
+    let drawWidth = boxWidth;
+    let drawHeight = boxHeight;
+
+    if (boxAspect > imgAspect) {
+      drawHeight = boxHeight;
+      drawWidth = boxHeight * imgAspect;
+    } else {
+      drawWidth = boxWidth;
+      drawHeight = boxWidth / imgAspect;
+    }
+
+    const drawX = centerX - drawWidth / 2;
+    const drawY = centerY - drawHeight / 2;
+
+    if (overlay.rotation !== 0) {
+      const radians = -(overlay.rotation * Math.PI) / 180;
+
+      page.pushOperators(pushGraphicsState());
+      page.pushOperators(translate(centerX, centerY));
+      page.pushOperators(rotateRadians(radians));
+      page.pushOperators(translate(-centerX, -centerY));
+
+      page.drawImage(embeddedImage, {
+        x: drawX,
+        y: drawY,
+        width: drawWidth,
+        height: drawHeight,
+      });
+
+      page.pushOperators(popGraphicsState());
+    } else {
+      page.drawImage(embeddedImage, {
+        x: drawX,
+        y: drawY,
+        width: drawWidth,
+        height: drawHeight,
+      });
+    }
+  } catch (err) {
+    console.error("Error drawing image overlay in PDF export:", err);
   }
 }

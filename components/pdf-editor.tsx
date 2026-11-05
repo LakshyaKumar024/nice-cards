@@ -11,7 +11,9 @@ import {
   Square,
   Globe,
   RotateCcw,
+  Image as ImageIcon,
 } from "lucide-react";
+import { uploadDirectToCloudinary } from "@/lib/cloudinary-client";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -32,7 +34,7 @@ import { FormattingToolbar } from "@/components/formatting-toolbar";
 import { LayersPanel } from "@/components/layers-panel";
 import { loadPDFDocument } from "@/lib/pdf-utils";
 import { exportPDFWithOverlays } from "@/lib/export-utils";
-import { Overlay, ShapeOverlay, TextOverlay } from "@/lib/types";
+import { ImageOverlay, Overlay, ShapeOverlay, TextOverlay } from "@/lib/types";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -92,6 +94,7 @@ export default function PDFEditor({
   const applyFontToSelectionRef = useRef<((fontFamily: string) => void) | null>(
     null
   );
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   const [showPublishConfirm, setShowPublishConfirm] = useState(false);
 
@@ -325,7 +328,12 @@ export default function PDFEditor({
   }, [pdfFName, templateId, defaultOverlays]);
 
   const handleAddOverlay = useCallback(
-    (overlay: Omit<TextOverlay, "id"> | Omit<ShapeOverlay, "id">) => {
+    (
+      overlay:
+        | Omit<TextOverlay, "id">
+        | Omit<ShapeOverlay, "id">
+        | Omit<ImageOverlay, "id">
+    ) => {
       // Add fontFamilyClassName for text overlays on creation
       let newOverlay: Overlay;
       if (overlay.type === "text") {
@@ -422,7 +430,13 @@ export default function PDFEditor({
 
   // Extended: When updating fontFamily, also set fontFamilyClassName
   const handleUpdateOverlay = useCallback(
-    (id: string, updates: Partial<TextOverlay> | Partial<ShapeOverlay>) => {
+    (
+      id: string,
+      updates:
+        | Partial<TextOverlay>
+        | Partial<ShapeOverlay>
+        | Partial<ImageOverlay>
+    ) => {
       setOverlays((prev) =>
         prev.map((overlay) => {
           if (overlay.id !== id) return overlay as Overlay;
@@ -510,6 +524,107 @@ export default function PDFEditor({
       )
     );
   }, []);
+
+  const handleProcessImage = useCallback(
+    async (file: File, dropCoords?: { x: number; y: number }) => {
+      // 1. Validate image format (PNG or JPG/JPEG)
+      const isPng =
+        file.type === "image/png" || file.name.toLowerCase().endsWith(".png");
+      const isJpg =
+        file.type === "image/jpeg" ||
+        file.type === "image/jpg" ||
+        /\.(jpe?g)$/i.test(file.name);
+
+      if (!isPng && !isJpg) {
+        toast.error("Only PNG and JPG/JPEG images are supported");
+        return;
+      }
+
+      // 2. Validate max size (10MB)
+      const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
+      if (file.size > MAX_IMAGE_SIZE) {
+        toast.error(
+          `Image size must be less than 10MB (file is ${(file.size / (1024 * 1024)).toFixed(1)}MB)`
+        );
+        return;
+      }
+
+      // 3. Read data URL (instant fallback & preserves transparency)
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const dataUrl = reader.result as string;
+        const toastId = toast.loading("Adding image...");
+        let finalUrl = dataUrl;
+
+        try {
+          const uploadRes = await uploadDirectToCloudinary(file, "image");
+          if (uploadRes?.secureUrl) {
+            finalUrl = uploadRes.secureUrl;
+          }
+        } catch (uploadErr) {
+          console.warn("Direct Cloudinary upload fallback to Base64:", uploadErr);
+        }
+
+        const img = new Image();
+        img.onload = () => {
+          const naturalW = img.naturalWidth || 300;
+          const naturalH = img.naturalHeight || 300;
+          const aspect = naturalW / naturalH;
+
+          // Default initial width 25% of page width, proportional height
+          const defaultWidth = 0.25;
+          const defaultHeight = Math.min(
+            0.6,
+            Math.max(0.05, defaultWidth / (aspect || 1))
+          );
+
+          const x = dropCoords ? dropCoords.x : 0.5;
+          const y = dropCoords ? dropCoords.y : 0.5;
+
+          const newOverlay: Omit<ImageOverlay, "id"> = {
+            type: "image",
+            imageUrl: finalUrl,
+            x,
+            y,
+            width: Number(defaultWidth.toFixed(4)),
+            height: Number(defaultHeight.toFixed(4)),
+            page: currentPage,
+            visible: true,
+            zIndex: overlays.length,
+            rotation: 0,
+          };
+
+          handleAddOverlay(newOverlay);
+          toast.success("Image added!", { id: toastId });
+        };
+
+        img.onerror = () => {
+          const x = dropCoords ? dropCoords.x : 0.5;
+          const y = dropCoords ? dropCoords.y : 0.5;
+
+          const newOverlay: Omit<ImageOverlay, "id"> = {
+            type: "image",
+            imageUrl: finalUrl,
+            x,
+            y,
+            width: 0.25,
+            height: 0.25,
+            page: currentPage,
+            visible: true,
+            zIndex: overlays.length,
+            rotation: 0,
+          };
+
+          handleAddOverlay(newOverlay);
+          toast.success("Image added!", { id: toastId });
+        };
+
+        img.src = dataUrl;
+      };
+      reader.readAsDataURL(file);
+    },
+    [currentPage, overlays.length, handleAddOverlay]
+  );
 
   const handleReorderLayers = useCallback(
     (sourceId: string, targetId: string) => {
@@ -753,8 +868,9 @@ export default function PDFEditor({
                 }
               }}
             />
-          ) : (
+          ) : selectedOverlay.type === "shape" ? (
             <FormattingToolbar
+              overlayType="shape"
               fontSize={12}
               fontFamily="Arial"
               bold={false}
@@ -776,7 +892,23 @@ export default function PDFEditor({
                 handleUpdateOverlay(selectedOverlay.id, { height })
               }
             />
-          )
+          ) : selectedOverlay.type === "image" ? (
+            <FormattingToolbar
+              overlayType="image"
+              imageWidth={selectedOverlay.width}
+              imageHeight={selectedOverlay.height}
+              rotation={selectedOverlay.rotation}
+              onImageWidthChange={(width) =>
+                handleUpdateOverlay(selectedOverlay.id, { width })
+              }
+              onImageHeightChange={(height) =>
+                handleUpdateOverlay(selectedOverlay.id, { height })
+              }
+              onRotationChange={(rotation) =>
+                handleUpdateOverlay(selectedOverlay.id, { rotation })
+              }
+            />
+          ) : null
         ) : (
           <div className="p-4 text-center text-sm text-muted-foreground">
             Select an overlay to edit properties
@@ -865,6 +997,37 @@ export default function PDFEditor({
                   </TooltipTrigger>
                   <TooltipContent side="bottom">
                     <p>Shape Tool (S)</p>
+                  </TooltipContent>
+                </Tooltip>
+
+                {/* Add Image Button next to Shape Tool */}
+                <input
+                  type="file"
+                  ref={imageInputRef}
+                  accept="image/png,image/jpeg,image/jpg"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      await handleProcessImage(file);
+                      e.target.value = "";
+                    }
+                  }}
+                />
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9 hover:text-blue-600"
+                      onClick={() => imageInputRef.current?.click()}
+                    >
+                      <ImageIcon className="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p>Add Image (PNG/JPG, max 10MB)</p>
                   </TooltipContent>
                 </Tooltip>
               </div>
@@ -1045,6 +1208,7 @@ export default function PDFEditor({
               onUpdateOverlay={handleUpdateOverlay}
               onAddOverlay={handleAddOverlay}
               onAddShape={handleAddShape}
+              onAddImageFile={handleProcessImage}
               toolMode={toolMode}
               onApplyFontRef={(fn) => {
                 applyFontToSelectionRef.current = fn;

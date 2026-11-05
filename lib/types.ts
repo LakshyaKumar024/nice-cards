@@ -70,4 +70,18 @@ export interface ShapeOverlay {
   rotation: number; // Add rotation property (degrees)
 }
 
-export type Overlay = TextOverlay | ShapeOverlay;
+export interface ImageOverlay {
+  id: string;
+  type: "image";
+  imageUrl: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  page: number;
+  visible: boolean;
+  zIndex: number;
+  rotation: number; // Rotation in degrees (0-360)
+}
+
+export type Overlay = TextOverlay | ShapeOverlay | ImageOverlay;

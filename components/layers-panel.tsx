@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Eye, EyeOff, Trash2, GripVertical, RotateCw } from "lucide-react";
+import { Eye, EyeOff, Trash2, GripVertical, RotateCw, Square, ImageIcon } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -20,7 +20,6 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { Overlay } from "@/lib/types";
-import { Square } from "lucide-react";
 
 interface LayersPanelProps {
   overlays: Overlay[];
@@ -165,6 +164,34 @@ function SortableOverlayItem({
               />
               <p className="text-sm font-medium truncate text-stone-950">
                 Square Shape
+              </p>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground truncate">
+              <span>
+                {Math.round(overlay.x * 100)}%, {Math.round(overlay.y * 100)}%
+              </span>
+              <span>•</span>
+              <span>
+                {Math.round(overlay.width * 100)}% ×{" "}
+                {Math.round(overlay.height * 100)}%
+              </span>
+              {overlay.rotation !== 0 && (
+                <>
+                  <span>•</span>
+                  <div className="flex items-center gap-1">
+                    <RotateCw className="w-3 h-3" />
+                    <span>{overlay.rotation}°</span>
+                  </div>
+                </>
+              )}
+            </div>
+          </>
+        ) : overlay.type === "image" ? (
+          <>
+            <div className="flex items-center gap-2">
+              <ImageIcon className="w-4 h-4 shrink-0 text-blue-500" />
+              <p className="text-sm font-medium truncate text-stone-950">
+                Image
               </p>
             </div>
             <div className="flex items-center gap-2 text-xs text-muted-foreground truncate">

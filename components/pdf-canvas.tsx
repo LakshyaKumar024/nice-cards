@@ -3,7 +3,10 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import * as pdfjsLib from "pdfjs-dist";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Overlay, TextOverlay, ShapeOverlay } from "@/lib/types";
+import type { Overlay, TextOverlay, ShapeOverlay, ImageOverlay } from "@/lib/types";
+import { toast } from "sonner";
+import { Image as ImageIcon } from "lucide-react";
+import { uploadDirectToCloudinary } from "@/lib/cloudinary-client";
 import {
   createEditor,
   Descendant,
@@ -44,7 +47,14 @@ type ParagraphElement = {
   children: CustomText[];
 };
 
-type CustomElement = ParagraphElement;
+type ImageElement = {
+  type: "image";
+  url: string;
+  alt?: string;
+  children: CustomText[];
+};
+
+type CustomElement = ParagraphElement | ImageElement;
 
 declare module "slate" {
   interface CustomTypes {
@@ -62,23 +72,97 @@ interface PDFCanvasProps {
   onSelectOverlay: (id: string | null) => void;
   onUpdateOverlay: (
     id: string,
-    updates: Partial<TextOverlay> | Partial<ShapeOverlay>
+    updates:
+      | Partial<TextOverlay>
+      | Partial<ShapeOverlay>
+      | Partial<ImageOverlay>
   ) => void;
-  onAddOverlay: (overlay: Omit<TextOverlay, "id">) => void;
+  onAddOverlay: (
+    overlay:
+      | Omit<TextOverlay, "id">
+      | Omit<ShapeOverlay, "id">
+      | Omit<ImageOverlay, "id">
+  ) => void;
   onAddShape: (x: number, y: number) => void;
+  onAddImageFile?: (file: File, coords?: { x: number; y: number }) => Promise<void> | void;
   toolMode: "text" | "shape";
   onApplyFontRef?: (ref: (fontFamily: string) => void) => void;
+}
+
+// Helper: Max image size (10MB)
+const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
+
+// Helper: Validate image format and size
+function validateImageFile(file: File): { valid: boolean; error?: string } {
+  const isPng =
+    file.type === "image/png" || file.name.toLowerCase().endsWith(".png");
+  const isJpg =
+    file.type === "image/jpeg" ||
+    file.type === "image/jpg" ||
+    file.name.toLowerCase().endsWith(".jpg") ||
+    file.name.toLowerCase().endsWith(".jpeg");
+
+  if (!isPng && !isJpg) {
+    return {
+      valid: false,
+      error: "Only PNG and JPG/JPEG images are supported.",
+    };
+  }
+
+  if (file.size > MAX_IMAGE_SIZE_BYTES) {
+    return {
+      valid: false,
+      error: `Image size must be less than 10MB (file is ${(file.size / (1024 * 1024)).toFixed(1)}MB).`,
+    };
+  }
+
+  return { valid: true };
+}
+
+// Plugin: support void image elements in Slate
+const withImages = (editor: ReactEditor & BaseEditor) => {
+  const { isVoid } = editor;
+
+  editor.isVoid = (element) => {
+    return element.type === "image" ? true : isVoid(element);
+  };
+
+  return editor;
+};
+
+// Helper: insert image into Slate editor
+function insertImage(
+  editor: ReactEditor & BaseEditor,
+  url: string,
+  alt: string = ""
+) {
+  if (!editor.selection) {
+    try {
+      ReactEditor.focus(editor);
+      Transforms.select(editor, Editor.end(editor, []));
+    } catch {
+      // Ignore if focus error
+    }
+  }
+
+  const text: CustomText = { text: "" };
+  const image: ImageElement = { type: "image", url, alt, children: [text] };
+  Transforms.insertNodes(editor, image);
+  Transforms.insertNodes(editor, {
+    type: "paragraph",
+    children: [{ text: "" }],
+  });
 }
 
 // Helper: Convert HTML to Slate value
 function htmlToSlate(
   html: string,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  defaultFont: string,
+  defaultFont?: string,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  defaultSize: number,
+  defaultSize?: number,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  defaultColor: string
+  defaultColor?: string
 ): Descendant[] {
   if (!html || html.trim() === "") {
     return [{ type: "paragraph", children: [{ text: "" }] }];
@@ -86,112 +170,124 @@ function htmlToSlate(
 
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, "text/html");
-  const paragraphs: ParagraphElement[] = [];
+  const elements: CustomElement[] = [];
 
-  function extractTextNodes(
-    node: ChildNode | HTMLElement,
-    currentStyles: Partial<CustomText> = {}
-  ): CustomText[] {
-    const texts: CustomText[] = [];
+  let currentParagraphTexts: CustomText[] = [];
 
-    const children = "childNodes" in node ? Array.from(node.childNodes) : [];
+  const flushParagraph = () => {
+    if (currentParagraphTexts.length > 0) {
+      elements.push({
+        type: "paragraph",
+        children: currentParagraphTexts,
+      });
+      currentParagraphTexts = [];
+    }
+  };
 
-    for (const child of children) {
-      if (child.nodeType === 3) {
-        // Text node
-        const text = child.textContent || "";
-        if (text) {
-          texts.push({ text, ...currentStyles });
-        }
-      } else if (child.nodeType === 1) {
-        // Element node
-        const el = child as HTMLElement;
-        const newStyles = { ...currentStyles };
-
-        // Extract font from data-font attribute or inline style
-        const dataFont = el.getAttribute("data-font");
-        if (dataFont) newStyles.fontFamily = dataFont;
-
-        const inlineFont = el.style.fontFamily;
-        if (inlineFont && !newStyles.fontFamily) {
-          newStyles.fontFamily = inlineFont
-            .replace(/['"]/g, "")
-            .split(",")[0]
-            .trim();
-        }
-
-        // Extract other styles
-        if (el.style.fontSize) {
-          newStyles.fontSize = parseInt(el.style.fontSize);
-        }
-        if (el.style.color) {
-          newStyles.color = el.style.color;
-        }
-        if (
-          el.tagName === "STRONG" ||
-          el.tagName === "B" ||
-          el.style.fontWeight === "bold"
-        ) {
-          newStyles.bold = true;
-        }
-        if (
-          el.tagName === "EM" ||
-          el.tagName === "I" ||
-          el.style.fontStyle === "italic"
-        ) {
-          newStyles.italic = true;
-        }
-
-        // Handle BR and block elements
-        if (el.tagName === "BR") {
-          texts.push({ text: "\n", ...currentStyles });
-        } else if (["DIV", "P"].includes(el.tagName)) {
-          const childTexts = extractTextNodes(el, newStyles);
-          texts.push(...childTexts);
-          if (child.nextSibling) {
-            texts.push({ text: "\n", ...currentStyles });
+  function walk(node: ChildNode, currentStyles: Partial<CustomText> = {}) {
+    if (node.nodeType === 3) {
+      // Text node
+      const text = node.textContent || "";
+      if (text) {
+        if (text.includes("\n")) {
+          const parts = text.split("\n");
+          for (let i = 0; i < parts.length; i++) {
+            if (parts[i]) {
+              currentParagraphTexts.push({ ...currentStyles, text: parts[i] });
+            }
+            if (i < parts.length - 1) {
+              flushParagraph();
+              if (i > 0 && !parts[i]) {
+                elements.push({ type: "paragraph", children: [{ text: "" }] });
+              }
+            }
           }
         } else {
-          texts.push(...extractTextNodes(el, newStyles));
+          currentParagraphTexts.push({ ...currentStyles, text });
         }
       }
-    }
+    } else if (node.nodeType === 1) {
+      const el = node as HTMLElement;
+      const newStyles = { ...currentStyles };
 
-    return texts;
-  }
-
-  const bodyTexts = extractTextNodes(doc.body);
-
-  // Split by newlines to create paragraphs
-  let currentParagraph: CustomText[] = [];
-
-  for (const textNode of bodyTexts) {
-    if (textNode.text.includes("\n")) {
-      const parts = textNode.text.split("\n");
-      for (let i = 0; i < parts.length; i++) {
-        if (parts[i]) {
-          currentParagraph.push({ ...textNode, text: parts[i] });
+      // Handle image elements
+      if (el.tagName === "IMG") {
+        const src = el.getAttribute("src");
+        if (src) {
+          flushParagraph();
+          elements.push({
+            type: "image",
+            url: src,
+            alt: el.getAttribute("alt") || "",
+            children: [{ text: "" }],
+          });
         }
-        if (i < parts.length - 1) {
-          if (currentParagraph.length > 0) {
-            paragraphs.push({ type: "paragraph", children: currentParagraph });
-            currentParagraph = [];
-          } else {
-            paragraphs.push({ type: "paragraph", children: [{ text: "" }] });
-          }
-        }
+        return;
       }
-    } else {
-      currentParagraph.push(textNode);
+
+      // Extract font from data-font attribute or inline style
+      const dataFont = el.getAttribute("data-font");
+      if (dataFont) newStyles.fontFamily = dataFont;
+
+      const inlineFont = el.style.fontFamily;
+      if (inlineFont && !newStyles.fontFamily) {
+        newStyles.fontFamily = inlineFont
+          .replace(/['"]/g, "")
+          .split(",")[0]
+          .trim();
+      }
+
+      // Extract other styles
+      if (el.style.fontSize) {
+        newStyles.fontSize = parseInt(el.style.fontSize);
+      }
+      if (el.style.color) {
+        newStyles.color = el.style.color;
+      }
+      if (
+        el.tagName === "STRONG" ||
+        el.tagName === "B" ||
+        el.style.fontWeight === "bold"
+      ) {
+        newStyles.bold = true;
+      }
+      if (
+        el.tagName === "EM" ||
+        el.tagName === "I" ||
+        el.style.fontStyle === "italic"
+      ) {
+        newStyles.italic = true;
+      }
+
+      // Handle BR and block elements
+      if (el.tagName === "BR") {
+        flushParagraph();
+        return;
+      }
+
+      const isBlock = ["DIV", "P"].includes(el.tagName);
+      if (isBlock && currentParagraphTexts.length > 0) {
+        flushParagraph();
+      }
+
+      for (const child of Array.from(el.childNodes)) {
+        walk(child, newStyles);
+      }
+
+      if (isBlock && currentParagraphTexts.length > 0) {
+        flushParagraph();
+      }
     }
   }
 
-  if (currentParagraph.length > 0) {
-    paragraphs.push({ type: "paragraph", children: currentParagraph });
+  for (const child of Array.from(doc.body.childNodes)) {
+    walk(child);
   }
 
-  return paragraphs.length > 0
-    ? paragraphs
+  flushParagraph();
+
+  return elements.length > 0
+    ? elements
     : [{ type: "paragraph", children: [{ text: "" }] }];
 }
 
@@ -199,55 +295,61 @@ function htmlToSlate(
 function slateToHtml(
   value: Descendant[],
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  defaultFont: string,
+  defaultFont?: string,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  defaultSize: number,
+  defaultSize?: number,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  defaultColor: string
+  defaultColor?: string
 ): string {
   const lines: string[] = [];
 
   for (const node of value) {
-    if (SlateElement.isElement(node) && node.type === "paragraph") {
-      const textParts: string[] = [];
+    if (SlateElement.isElement(node)) {
+      if (node.type === "paragraph") {
+        const textParts: string[] = [];
 
-      for (const child of node.children) {
-        if (Text.isText(child)) {
-          let text = child.text || "";
+        for (const child of node.children) {
+          if (Text.isText(child)) {
+            let text = child.text || "";
 
-          // Build span with inline styles
-          const styles: string[] = [];
-          const attrs: string[] = [];
+            // Build span with inline styles
+            const styles: string[] = [];
+            const attrs: string[] = [];
 
-          if (child.fontFamily) {
-            styles.push(`font-family: '${child.fontFamily}', sans-serif`);
-            attrs.push(`data-font="${child.fontFamily}"`);
-          }
-          if (child.fontSize) {
-            styles.push(`font-size: ${child.fontSize}px`);
-          }
-          if (child.color) {
-            styles.push(`color: ${child.color}`);
-          }
-          if (child.bold) {
-            styles.push(`font-weight: bold`);
-          }
-          if (child.italic) {
-            styles.push(`font-style: italic`);
-          }
+            if (child.fontFamily) {
+              styles.push(`font-family: '${child.fontFamily}', sans-serif`);
+              attrs.push(`data-font="${child.fontFamily}"`);
+            }
+            if (child.fontSize) {
+              styles.push(`font-size: ${child.fontSize}px`);
+            }
+            if (child.color) {
+              styles.push(`color: ${child.color}`);
+            }
+            if (child.bold) {
+              styles.push(`font-weight: bold`);
+            }
+            if (child.italic) {
+              styles.push(`font-style: italic`);
+            }
 
-          if (styles.length > 0 || attrs.length > 0) {
-            const styleAttr =
-              styles.length > 0 ? ` style="${styles.join("; ")}"` : "";
-            const dataAttrs = attrs.length > 0 ? ` ${attrs.join(" ")}` : "";
-            text = `<span${styleAttr}${dataAttrs}>${text}</span>`;
-          }
+            if (styles.length > 0 || attrs.length > 0) {
+              const styleAttr =
+                styles.length > 0 ? ` style="${styles.join("; ")}"` : "";
+              const dataAttrs = attrs.length > 0 ? ` ${attrs.join(" ")}` : "";
+              text = `<span${styleAttr}${dataAttrs}>${text}</span>`;
+            }
 
-          textParts.push(text);
+            textParts.push(text);
+          }
         }
-      }
 
-      lines.push(textParts.join(""));
+        lines.push(textParts.join(""));
+      } else if (node.type === "image") {
+        lines.push(
+          `<img src="${node.url}" alt="${node.alt || ""}" style="max-width: 100%; height: auto; display: block; background: transparent; vertical-align: middle;" />`
+        );
+      }
     }
   }
 
@@ -263,6 +365,7 @@ export function PDFCanvas({
   onUpdateOverlay,
   onAddOverlay,
   onAddShape,
+  onAddImageFile,
   toolMode,
   onApplyFontRef,
 }: PDFCanvasProps) {
@@ -277,6 +380,7 @@ export function PDFCanvas({
     null
   );
   const [isResizing, setIsResizing] = useState(false);
+  const [isRotating, setIsRotating] = useState(false);
   const renderTaskRef = useRef<pdfjsLib.RenderTask | null>(null);
 
   // Slate editor instances - one per text overlay
@@ -291,7 +395,7 @@ export function PDFCanvas({
   const getEditorForOverlay = useCallback(
     (overlayId: string) => {
       if (!slateEditors.has(overlayId)) {
-        const editor = withHistory(withReact(createEditor()));
+        const editor = withImages(withHistory(withReact(createEditor())));
         slateEditors.set(overlayId, editor);
       }
       return slateEditors.get(overlayId)!;
@@ -576,7 +680,7 @@ export function PDFCanvas({
   // Handle double-click to add new text or shape
   const handleCanvasDoubleClick = useCallback(
     (event: React.MouseEvent<HTMLCanvasElement>) => {
-      if (!canvasRef.current || isLoading) return;
+      if (!canvasRef.current || isLoading || isResizing || isRotating) return;
 
       const canvas = canvasRef.current;
       const rect = canvas.getBoundingClientRect();
@@ -624,7 +728,7 @@ export function PDFCanvas({
   // Handle single click to select
   const handleCanvasClick = useCallback(
     (event: React.MouseEvent<HTMLCanvasElement>) => {
-      if (!canvasRef.current || isLoading) return;
+      if (!canvasRef.current || isLoading || isResizing || isRotating) return;
 
       const canvas = canvasRef.current;
       const rect = canvas.getBoundingClientRect();
@@ -637,7 +741,7 @@ export function PDFCanvas({
       for (const overlay of overlays) {
         if (overlay.page !== pageNumber) continue;
 
-        if (overlay.type === "shape") {
+        if (overlay.type === "shape" || overlay.type === "image") {
           const shapeX = overlay.x * pageDimensions.width;
           const shapeY = overlay.y * pageDimensions.height;
           const shapeW = overlay.width * pageDimensions.width;
@@ -783,7 +887,7 @@ export function PDFCanvas({
       setIsResizing(true);
 
       const overlay = overlays.find((o) => o.id === overlayId);
-      if (!overlay || overlay.type !== "shape") {
+      if (!overlay || (overlay.type !== "shape" && overlay.type !== "image")) {
         setIsResizing(false);
         return;
       }
@@ -823,19 +927,23 @@ export function PDFCanvas({
         } else if (handle === "se") {
           newWidth = Math.max(0.01, startWidth + deltaX);
           newHeight = Math.max(0.01, startHeight + deltaY);
+          newX = startXPos + deltaX / 2;
+          newY = startYPos + deltaY / 2;
         } else if (handle === "sw") {
           newWidth = Math.max(0.01, startWidth - deltaX);
           newHeight = Math.max(0.01, startHeight + deltaY);
-          newX = startXPos + (startWidth - newWidth) / 2;
+          newX = startXPos + deltaX / 2;
+          newY = startYPos + deltaY / 2;
         } else if (handle === "ne") {
           newWidth = Math.max(0.01, startWidth + deltaX);
           newHeight = Math.max(0.01, startHeight - deltaY);
-          newY = startYPos + (startHeight - newHeight) / 2;
+          newX = startXPos + deltaX / 2;
+          newY = startYPos + deltaY / 2;
         } else if (handle === "nw") {
           newWidth = Math.max(0.01, startWidth - deltaX);
           newHeight = Math.max(0.01, startHeight - deltaY);
-          newX = startXPos + (startWidth - newWidth) / 2;
-          newY = startYPos + (startHeight - newHeight) / 2;
+          newX = startXPos + deltaX / 2;
+          newY = startYPos + deltaY / 2;
         }
 
         onUpdateOverlay(overlayId, {
@@ -848,6 +956,48 @@ export function PDFCanvas({
 
       const handleMouseUp = () => {
         setIsResizing(false);
+        document.removeEventListener("mousemove", handleMouseMove);
+        document.removeEventListener("mouseup", handleMouseUp);
+      };
+
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+    },
+    [overlays, pageDimensions, onSelectOverlay, onUpdateOverlay]
+  );
+
+  // Handle rotation for shapes and images
+  const handleRotateStart = useCallback(
+    (event: React.MouseEvent, overlayId: string) => {
+      event.stopPropagation();
+      event.preventDefault();
+      setIsRotating(true);
+
+      const overlay = overlays.find((o) => o.id === overlayId);
+      if (!overlay || !canvasRef.current) {
+        setIsRotating(false);
+        return;
+      }
+
+      onSelectOverlay(overlayId);
+
+      const rect = canvasRef.current.getBoundingClientRect();
+      const centerX = rect.left + overlay.x * pageDimensions.width;
+      const centerY = rect.top + overlay.y * pageDimensions.height;
+
+      const handleMouseMove = (moveEvent: MouseEvent) => {
+        const dx = moveEvent.clientX - centerX;
+        const dy = moveEvent.clientY - centerY;
+        let deg = Math.round((Math.atan2(dy, dx) * 180) / Math.PI + 90);
+        deg = ((deg % 360) + 360) % 360;
+        if (moveEvent.shiftKey) {
+          deg = (Math.round(deg / 15) * 15) % 360;
+        }
+        onUpdateOverlay(overlayId, { rotation: deg });
+      };
+
+      const handleMouseUp = () => {
+        setIsRotating(false);
         document.removeEventListener("mousemove", handleMouseMove);
         document.removeEventListener("mouseup", handleMouseUp);
       };
@@ -933,7 +1083,38 @@ export function PDFCanvas({
   }
 
   return (
-    <div ref={containerRef} className="flex justify-center">
+    <div
+      ref={containerRef}
+      className="flex justify-center"
+      onDragOver={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        e.dataTransfer.dropEffect = "copy";
+      }}
+      onDrop={async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const files = Array.from(e.dataTransfer.files).filter(
+          (f) => f.type.startsWith("image/") || /\.(png|jpe?g)$/i.test(f.name)
+        );
+        if (files.length > 0 && onAddImageFile) {
+          const rect = canvasRef.current?.getBoundingClientRect();
+          if (rect) {
+            const dropX = Math.max(
+              0.05,
+              Math.min(0.95, (e.clientX - rect.left) / rect.width)
+            );
+            const dropY = Math.max(
+              0.05,
+              Math.min(0.95, (e.clientY - rect.top) / rect.height)
+            );
+            for (const file of files) {
+              await onAddImageFile(file, { x: dropX, y: dropY });
+            }
+          }
+        }
+      }}
+    >
       <div className="relative">
         {isLoading && <Skeleton className="w-[612px] h-[792px]" />}
 
@@ -1012,6 +1193,256 @@ export function PDFCanvas({
                   />
                   {isSelected && (
                     <>
+                      {/* Corner resize handles */}
+                      <div
+                        data-resize-handle
+                        className="absolute w-3 h-3 bg-blue-500 border-2 border-white cursor-nw-resize z-20 rounded-sm"
+                        style={{ left: "-6px", top: "-6px" }}
+                        onMouseDown={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          handleResizeStart(e, overlay.id, "nw");
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      <div
+                        data-resize-handle
+                        className="absolute w-3 h-3 bg-blue-500 border-2 border-white cursor-ne-resize z-20 rounded-sm"
+                        style={{ right: "-6px", top: "-6px" }}
+                        onMouseDown={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          handleResizeStart(e, overlay.id, "ne");
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      <div
+                        data-resize-handle
+                        className="absolute w-3 h-3 bg-blue-500 border-2 border-white cursor-sw-resize z-20 rounded-sm"
+                        style={{ left: "-6px", bottom: "-6px" }}
+                        onMouseDown={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          handleResizeStart(e, overlay.id, "sw");
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      <div
+                        data-resize-handle
+                        className="absolute w-3 h-3 bg-blue-500 border-2 border-white cursor-se-resize z-20 rounded-sm"
+                        style={{ right: "-6px", bottom: "-6px" }}
+                        onMouseDown={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          handleResizeStart(e, overlay.id, "se");
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+
+                      {/* Side resize handles */}
+                      <div
+                        data-resize-handle
+                        className="absolute h-3 bg-blue-500 border-2 border-white cursor-n-resize z-20 rounded-sm"
+                        style={{
+                          left: "50%",
+                          top: "-6px",
+                          transform: "translateX(-50%)",
+                          width: "20px",
+                        }}
+                        onMouseDown={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          handleResizeStart(e, overlay.id, "n");
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      <div
+                        data-resize-handle
+                        className="absolute h-3 bg-blue-500 border-2 border-white cursor-s-resize z-20 rounded-sm"
+                        style={{
+                          left: "50%",
+                          bottom: "-6px",
+                          transform: "translateX(-50%)",
+                          width: "20px",
+                        }}
+                        onMouseDown={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          handleResizeStart(e, overlay.id, "s");
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      <div
+                        data-resize-handle
+                        className="absolute w-3 bg-blue-500 border-2 border-white cursor-e-resize z-20 rounded-sm"
+                        style={{
+                          right: "-6px",
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          height: "20px",
+                        }}
+                        onMouseDown={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          handleResizeStart(e, overlay.id, "e");
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      <div
+                        data-resize-handle
+                        className="absolute w-3 bg-blue-500 border-2 border-white cursor-w-resize z-20 rounded-sm"
+                        style={{
+                          left: "-6px",
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          height: "20px",
+                        }}
+                        onMouseDown={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          handleResizeStart(e, overlay.id, "w");
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+
+                      {/* Rotation handle */}
+                      <div
+                        className="absolute w-0.5 bg-blue-500 z-20 pointer-events-none"
+                        style={{
+                          left: "50%",
+                          top: "-20px",
+                          height: "14px",
+                          transform: "translateX(-50%)",
+                        }}
+                      />
+                      <div
+                        data-resize-handle
+                        className="absolute w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-grab z-30 flex items-center justify-center hover:scale-110 transition-transform shadow-sm"
+                        style={{
+                          left: "50%",
+                          top: "-28px",
+                          transform: "translateX(-50%)",
+                        }}
+                        onMouseDown={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          handleRotateStart(e, overlay.id);
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        title="Drag to rotate (Hold Shift to snap 15°)"
+                      >
+                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full" />
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            } else if (overlay.type === "image") {
+              const imgX = overlay.x * pageDimensions.width;
+              const imgY = overlay.y * pageDimensions.height;
+              const imgW = overlay.width * pageDimensions.width;
+              const imgH = overlay.height * pageDimensions.height;
+              const isSelected = selectedOverlayId === overlay.id;
+              const isDragging = draggingOverlayId === overlay.id;
+
+              return (
+                <div
+                  key={overlay.id}
+                  className={`absolute ${overlay.visible ? "" : "opacity-30"}`}
+                  style={{
+                    left: `${imgX}px`,
+                    top: `${imgY}px`,
+                    width: `${imgW}px`,
+                    height: `${imgH}px`,
+                    zIndex: overlay.zIndex + 10,
+                    transform: `translate(-50%, -50%) rotate(${overlay.rotation}deg)`,
+                    transformOrigin: "center center",
+                  }}
+                  onClick={(e) => {
+                    if (isResizing || isDragging || isRotating) {
+                      e.stopPropagation();
+                      return;
+                    }
+                    e.stopPropagation();
+                    onSelectOverlay(overlay.id);
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      border: isSelected
+                        ? "2px solid #3b82f6"
+                        : "1px dashed transparent",
+                      cursor: "move",
+                      opacity: isDragging ? 0.7 : 1,
+                      transition: isDragging ? "none" : "all 0.2s",
+                      borderRadius: "2px",
+                      position: "relative",
+                      userSelect: "none",
+                      backgroundColor: "transparent",
+                    }}
+                    onMouseDown={(e) => {
+                      if (
+                        (e.target as HTMLElement).closest(
+                          "[data-resize-handle]"
+                        )
+                      ) {
+                        return;
+                      }
+                      e.stopPropagation();
+                      handleDragStart(
+                        e as React.MouseEvent<HTMLDivElement>,
+                        overlay.id
+                      );
+                    }}
+                  >
+                    <img
+                      src={overlay.imageUrl}
+                      alt="Image overlay"
+                      draggable={false}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "contain",
+                        pointerEvents: "none",
+                        backgroundColor: "transparent",
+                        display: "block",
+                        userSelect: "none",
+                      }}
+                    />
+                  </div>
+                  {isSelected && (
+                    <>
+                      {/* Rotation handle */}
+                      <div
+                        className="absolute w-0.5 bg-blue-500 z-20 pointer-events-none"
+                        style={{
+                          left: "50%",
+                          top: "-20px",
+                          height: "14px",
+                          transform: "translateX(-50%)",
+                        }}
+                      />
+                      <div
+                        data-resize-handle
+                        className="absolute w-4 h-4 bg-white border-2 border-blue-500 rounded-full cursor-grab z-30 flex items-center justify-center hover:scale-110 transition-transform shadow-sm"
+                        style={{
+                          left: "50%",
+                          top: "-28px",
+                          transform: "translateX(-50%)",
+                        }}
+                        onMouseDown={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          handleRotateStart(e, overlay.id);
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        title="Drag to rotate (Hold Shift to snap 15°)"
+                      >
+                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full" />
+                      </div>
+
                       {/* Corner resize handles */}
                       <div
                         data-resize-handle
@@ -1222,6 +1653,7 @@ export function PDFCanvas({
                     >
                       {overlay.text ? (
                         <div
+                          style={{ backgroundColor: "transparent" }}
                           dangerouslySetInnerHTML={{ __html: overlay.text }}
                         />
                       ) : (
@@ -1271,6 +1703,7 @@ function SlateEditor({
 }: SlateEditorProps) {
   const editableRef = useRef<HTMLDivElement>(null);
   const [isFocused, setIsFocused] = useState(false);
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
 
   // Auto-focus on mount
   useEffect(() => {
@@ -1288,6 +1721,64 @@ function SlateEditor({
       }, 0);
     }
   }, [editor, isFocused]);
+
+  const processAndInsertImage = useCallback(
+    async (file: File) => {
+      const validation = validateImageFile(file);
+      if (!validation.valid) {
+        toast.error(validation.error!);
+        return;
+      }
+
+      // Convert to base64 immediately for transparent display & fallback
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const dataUrl = reader.result as string;
+        const toastId = toast.loading("Adding image...");
+
+        try {
+          let uploadedUrl: string | null = null;
+          // Attempt direct Cloudinary upload
+          try {
+            const directResult = await uploadDirectToCloudinary(file, "image");
+            if (directResult?.secureUrl) {
+              uploadedUrl = directResult.secureUrl;
+            }
+          } catch (directErr) {
+            console.warn("Direct Cloudinary upload failed:", directErr);
+          }
+
+          if (!uploadedUrl) {
+            // Fallback to /api/upload/image
+            try {
+              const fd = new FormData();
+              fd.append("file", file);
+              const res = await fetch("/api/upload/image", {
+                method: "POST",
+                body: fd,
+              });
+              const json = await res.json();
+              if (json.success && json.data?.url) {
+                uploadedUrl = json.data.url;
+              }
+            } catch (apiErr) {
+              console.warn("API route upload failed:", apiErr);
+            }
+          }
+
+          const finalUrl = uploadedUrl || dataUrl;
+          insertImage(editor, finalUrl, file.name);
+          toast.success("Image added!", { id: toastId });
+        } catch {
+          // Guaranteed fallback: Base64 data URL
+          insertImage(editor, dataUrl, file.name);
+          toast.success("Image added!", { id: toastId });
+        }
+      };
+      reader.readAsDataURL(file);
+    },
+    [editor]
+  );
 
   const handlePasteText = useCallback(
     (textToPaste: string) => {
@@ -1320,8 +1811,27 @@ function SlateEditor({
   );
 
   const handlePaste = useCallback(
-    (event: React.ClipboardEvent<HTMLDivElement>) => {
+    async (event: React.ClipboardEvent<HTMLDivElement>) => {
       event.stopPropagation();
+
+      // Check if image is in clipboard
+      const files = event.clipboardData?.files;
+      if (files && files.length > 0) {
+        const imageFiles = Array.from(files).filter(
+          (f) =>
+            f.type.startsWith("image/") ||
+            /\.(png|jpe?g)$/i.test(f.name)
+        );
+
+        if (imageFiles.length > 0) {
+          event.preventDefault();
+          for (const img of imageFiles) {
+            await processAndInsertImage(img);
+          }
+          return;
+        }
+      }
+
       let text = event.clipboardData?.getData("text/plain");
       if (!text) {
         const html = event.clipboardData?.getData("text/html");
@@ -1336,20 +1846,122 @@ function SlateEditor({
         handlePasteText(text);
       }
     },
-    [handlePasteText]
+    [handlePasteText, processAndInsertImage]
+  );
+
+  const customRenderElement = useCallback(
+    (props: RenderElementProps): React.ReactElement => {
+      const { attributes, children, element } = props;
+
+      if (element.type === "image") {
+        return (
+          <div
+            {...attributes}
+            className="my-1.5 relative group inline-block max-w-full"
+            style={{ backgroundColor: "transparent" }}
+          >
+            <div
+              contentEditable={false}
+              className="relative inline-block select-none"
+              style={{ backgroundColor: "transparent" }}
+            >
+              <img
+                src={element.url}
+                alt={element.alt || "image"}
+                style={{
+                  display: "block",
+                  maxWidth: "100%",
+                  maxHeight: "260px",
+                  height: "auto",
+                  objectFit: "contain",
+                  backgroundColor: "transparent",
+                  borderRadius: "4px",
+                }}
+              />
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  try {
+                    const path = ReactEditor.findPath(editor, element);
+                    Transforms.removeNodes(editor, { at: path });
+                  } catch (err) {
+                    console.error("Failed to remove image", err);
+                  }
+                }}
+                className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow cursor-pointer text-xs z-30"
+                title="Remove image"
+              >
+                ×
+              </button>
+            </div>
+            {children}
+          </div>
+        );
+      }
+
+      return renderElement(props);
+    },
+    [editor, renderElement]
   );
 
   return (
     <div
       ref={editableRef}
-      className="relative editingOverlay"
+      className={`relative editingOverlay ${
+        isDraggingOver
+          ? "ring-2 ring-blue-500 ring-dashed bg-blue-50/20 rounded"
+          : ""
+      }`}
       onMouseDown={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
+      onDragOver={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        e.dataTransfer.dropEffect = "copy";
+        if (!isDraggingOver) setIsDraggingOver(true);
+      }}
+      onDragLeave={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+        setIsDraggingOver(false);
+      }}
+      onDrop={async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDraggingOver(false);
+
+        const files = Array.from(e.dataTransfer.files);
+        const imageFiles = files.filter(
+          (f) =>
+            f.type.startsWith("image/") ||
+            /\.(png|jpe?g)$/i.test(f.name)
+        );
+
+        if (imageFiles.length === 0) {
+          const text = e.dataTransfer.getData("text/plain");
+          if (text) {
+            handlePasteText(text);
+          }
+          return;
+        }
+
+        for (const img of imageFiles) {
+          await processAndInsertImage(img);
+        }
+      }}
     >
+      {isDraggingOver && (
+        <div className="absolute inset-0 pointer-events-none z-40 flex items-center justify-center bg-blue-500/10 border-2 border-dashed border-blue-500 rounded p-2 text-xs font-semibold text-blue-600 backdrop-blur-[1px]">
+          Drop PNG or JPG image here (max 10MB)
+        </div>
+      )}
+
       <Slate editor={editor} initialValue={value} onChange={onChange}>
         <Editable
           renderLeaf={renderLeaf}
-          renderElement={renderElement}
+          renderElement={customRenderElement}
           onPaste={handlePaste}
           onKeyDown={(event) => {
             if (event.key === "Escape") {
