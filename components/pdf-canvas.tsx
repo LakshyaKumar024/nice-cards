@@ -1289,6 +1289,56 @@ function SlateEditor({
     }
   }, [editor, isFocused]);
 
+  const handlePasteText = useCallback(
+    (textToPaste: string) => {
+      if (!textToPaste) return;
+      try {
+        if (!editor.selection) {
+          try {
+            ReactEditor.focus(editor);
+            Transforms.select(editor, Editor.end(editor, []));
+          } catch {
+            // Ignore if already focused or cannot select
+          }
+        }
+
+        // Split by newlines so multiline text creates paragraphs correctly
+        const lines = textToPaste.split(/\r\n|\r|\n/);
+        lines.forEach((line, index) => {
+          if (index > 0) {
+            Transforms.splitNodes(editor, { always: true });
+          }
+          if (line) {
+            Transforms.insertText(editor, line);
+          }
+        });
+      } catch (err) {
+        console.error("Failed to paste text into Slate editor:", err);
+      }
+    },
+    [editor]
+  );
+
+  const handlePaste = useCallback(
+    (event: React.ClipboardEvent<HTMLDivElement>) => {
+      event.stopPropagation();
+      let text = event.clipboardData?.getData("text/plain");
+      if (!text) {
+        const html = event.clipboardData?.getData("text/html");
+        if (html) {
+          const doc = new DOMParser().parseFromString(html, "text/html");
+          text = doc.body.textContent || "";
+        }
+      }
+
+      if (text) {
+        event.preventDefault();
+        handlePasteText(text);
+      }
+    },
+    [handlePasteText]
+  );
+
   return (
     <div
       ref={editableRef}
@@ -1300,11 +1350,24 @@ function SlateEditor({
         <Editable
           renderLeaf={renderLeaf}
           renderElement={renderElement}
+          onPaste={handlePaste}
           onKeyDown={(event) => {
             if (event.key === "Escape") {
               event.preventDefault();
               event.stopPropagation();
               ReactEditor.blur(editor);
+              return;
+            }
+
+            // When editing text in textbox, prevent outer canvas keydown handlers (like overlay copy/paste)
+            // from hijacking Ctrl+V, Ctrl+C, Ctrl+Z, Ctrl+Y, Ctrl+A, Ctrl+X
+            if (
+              (event.ctrlKey || event.metaKey) &&
+              ["v", "V", "c", "C", "z", "Z", "y", "Y", "a", "A", "x", "X"].includes(
+                event.key
+              )
+            ) {
+              event.stopPropagation();
             }
           }}
           style={{

@@ -183,9 +183,24 @@ export default function PDFEditor({
     }
   }, [historyIndex, history]);
 
-  // Keyboard shortcuts for undo/redo
+  // Keyboard shortcuts for undo/redo and overlay copy/paste
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Do not intercept shortcuts when user is in edit mode of a textbox or typing in an input
+      const target = e.target as HTMLElement | null;
+      const isEditable =
+        target &&
+        (target.isContentEditable ||
+          target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          Boolean(target.closest('[contenteditable="true"]')) ||
+          Boolean(target.closest(".editingOverlay")) ||
+          Boolean(target.closest("[data-slate-editor]")));
+
+      if (isEditable) {
+        return;
+      }
+
       if ((e.ctrlKey || e.metaKey) && e.key === "z" && !e.shiftKey) {
         e.preventDefault();
         handleUndo();
