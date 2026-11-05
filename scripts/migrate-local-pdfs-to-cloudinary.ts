@@ -62,21 +62,13 @@ async function migratePdfs() {
 
       const fileBuffer = fs.readFileSync(localFilePath);
       const cleanPublicId = filename.replace(/\.[^/.]+$/, "");
+      const base64String = `data:application/pdf;base64,${fileBuffer.toString("base64")}`;
 
-      const uploadResult = await new Promise<any>((resolve, reject) => {
-        const stream = cloudinary.uploader.upload_stream(
-          {
-            folder: PDF_FOLDER,
-            public_id: cleanPublicId,
-            resource_type: "auto",
-            tags: ["template_pdf", "migrated_from_vps"],
-          },
-          (error, result) => {
-            if (error) return reject(error);
-            resolve(result);
-          }
-        );
-        stream.end(fileBuffer);
+      const uploadResult = await cloudinary.uploader.upload(base64String, {
+        folder: PDF_FOLDER,
+        public_id: cleanPublicId,
+        resource_type: "auto",
+        tags: ["template_pdf", "migrated_from_vps"],
       });
 
       const secureUrl = uploadResult.secure_url;

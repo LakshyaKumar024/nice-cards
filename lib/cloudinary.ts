@@ -124,30 +124,21 @@ export const uploadPdfToCloudinary = async (file: File): Promise<string> => {
     const uniquePublicId =
       "pdf_" + crypto.randomBytes(12).toString("hex") + "_" + Date.now();
 
-    return new Promise((resolve, reject) => {
-      const uploadStream = cloudinary.uploader.upload_stream(
-        {
-          folder: CLOUDINARY_PDF_FOLDER,
-          public_id: uniquePublicId,
-          resource_type: 'auto',
-          tags: ['template_pdf', `uploaded_at_${Date.now()}`],
-          context: {
-            uploadedAt: String(Date.now()),
-            type: 'template_pdf',
-          },
-        },
-        (error, result) => {
-          if (error) {
-            console.error('❌ Cloudinary PDF upload_stream error:', error);
-            return reject(error);
-          }
-          if (!result) return reject(new Error('No response from Cloudinary'));
-          console.log("✅ Cloudinary PDF upload successful:", result.secure_url);
-          resolve(result.secure_url);
-        }
-      );
-      uploadStream.end(buffer);
+    const base64String = `data:application/pdf;base64,${buffer.toString("base64")}`;
+
+    const result = await cloudinary.uploader.upload(base64String, {
+      folder: CLOUDINARY_PDF_FOLDER,
+      public_id: uniquePublicId,
+      resource_type: "auto",
+      tags: ["template_pdf", `uploaded_at_${Date.now()}`],
+      context: {
+        uploadedAt: String(Date.now()),
+        type: "template_pdf",
+      },
     });
+
+    console.log("✅ Cloudinary PDF upload successful:", result.secure_url);
+    return result.secure_url;
   } catch (error) {
     console.error('❌ Cloudinary PDF upload error:', error);
     throw new Error(`Failed to upload PDF: ${error instanceof Error ? error.message : 'Upload failed'}`);
