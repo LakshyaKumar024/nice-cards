@@ -35,6 +35,7 @@ This project is **private** and proprietary — not intended for open-source dis
 | **TailwindCSS**           | Styling framework                  |
 | **Zod + React Hook Form** | Validation and form handling       |
 
+
 ---
 
 ## ⚙️ Environment Setup
