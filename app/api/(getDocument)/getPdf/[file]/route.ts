@@ -1,4 +1,3 @@
-import fs from "fs";
 import path from "path";
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db-init";
@@ -66,28 +65,32 @@ export async function GET(
       });
     }
 
-    // 2. If stored locally (backwards compatibility)
+    // 2. If stored locally (backwards compatibility for local development only)
     if (pdfTarget.includes("..")) {
       return NextResponse.json({ error: "Invalid file name" }, { status: 400 });
     }
 
     const cleanFileName = path.basename(pdfTarget);
-    const filePath = path.join(
-      process.cwd(),
-      "private/designs/design/pdf/",
-      cleanFileName
-    );
+    // Assemble path with reduce so Next.js NFT static tracer does not trace 150MB+ local PDFs into serverless bundle
+    const localDir = ["private", "designs", "design", "pdf"].reduce((a, b) => a + "/" + b);
+    const filePath = path.resolve(localDir, cleanFileName);
 
-    if (fs.existsSync(filePath)) {
-      const fileBuffer = fs.readFileSync(filePath);
-      return new NextResponse(fileBuffer, {
-        headers: {
-          "Content-Type": "application/pdf",
-          "Content-Disposition": "inline",
-          "X-Frame-Options": "SAMEORIGIN",
-          "Cache-Control": "public, max-age=3600",
-        },
-      });
+    try {
+      // Use dynamic require so Next.js NFT does not bundle 150MB+ local dev PDFs into serverless production functions
+      const localFs = eval("require('fs')");
+      if (localFs.existsSync(filePath)) {
+        const fileBuffer = localFs.readFileSync(filePath);
+        return new NextResponse(fileBuffer, {
+          headers: {
+            "Content-Type": "application/pdf",
+            "Content-Disposition": "inline",
+            "X-Frame-Options": "SAMEORIGIN",
+            "Cache-Control": "public, max-age=3600",
+          },
+        });
+      }
+    } catch {
+      // Local file reading fallback ignored in environments without the file
     }
 
     return NextResponse.json({ error: "File not found" }, { status: 404 });

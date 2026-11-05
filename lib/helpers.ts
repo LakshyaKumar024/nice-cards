@@ -1,5 +1,4 @@
 // lib/helpers.ts
-import { mkdir, writeFile } from "fs/promises";
 import path from 'path';
 import { uploadImageToCloudinary } from './cloudinary';
 
@@ -59,7 +58,11 @@ const saveFile = async (
         return imageUrl; // Return the Cloudinary URL directly
     }
 
-    // Handle PDF and SVG files - save locally as before
+    // Handle PDF and SVG files - save locally as before (development only)
+    if (process.env.NODE_ENV === "production") {
+        throw new Error("Direct local disk file saving is not supported in production serverless environments. Use Cloudinary storage.");
+    }
+
     let fileDir: string;
     let generatedFileName: string;
 
@@ -67,14 +70,17 @@ const saveFile = async (
     const rand = Math.floor(Math.random() * 1e6);
     const baseName = sanitizeFileName(filename.replace(/\.[^/.]+$/, ""));
 
+    const localPdfDir = ["private", "designs", "design", "pdf"].reduce((a, b) => a + "/" + b);
+    const localSvgDir = ["private", "designs", "design", "svg"].reduce((a, b) => a + "/" + b);
+
     switch (type) {
         case "pdf":
-            fileDir = path.join(process.cwd(), "private", "designs", "design", "pdf");
+            fileDir = path.resolve(localPdfDir);
             generatedFileName = `design-${baseName}-${ts}-${rand}.pdf`;
             break;
 
         case "svg":
-            fileDir = path.join(process.cwd(), "private", "designs", "design", "svg");
+            fileDir = path.resolve(localSvgDir);
             generatedFileName = `design-${baseName}-${ts}-${rand}.svg`;
             break;
 
@@ -83,15 +89,14 @@ const saveFile = async (
     }
 
     try {
-        
-
-        await mkdir(fileDir, { recursive: true });
+        const localFs = eval("require('fs')");
+        await localFs.promises.mkdir(fileDir, { recursive: true });
 
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
         const fullPath = path.join(fileDir, generatedFileName);
 
-        await writeFile(fullPath, buffer);
+        await localFs.promises.writeFile(fullPath, buffer);
         console.log("File saved successfully:", generatedFileName);
 
         return generatedFileName;

@@ -18,7 +18,16 @@ if (typeof process !== "undefined" && typeof process.emitWarning === "function")
 }
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["@prisma/client", "canvas"],
+  serverExternalPackages: ["@prisma/client"],
+
+  outputFileTracingExcludes: {
+    "*": [
+      "./private/**/*",
+      "private/**/*",
+      "./node_modules/canvas/**/*",
+      "node_modules/canvas/**/*",
+    ],
+  },
 
   outputFileTracingIncludes: {
     "/api/**/*": [

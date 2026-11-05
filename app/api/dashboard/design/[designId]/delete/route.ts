@@ -1,7 +1,6 @@
 import { NextResponse, NextRequest } from "next/server";
 import prisma from "@/lib/db-init";
 import { deleteFromCloudinary } from "@/lib/cloudinary";
-import fs from "fs";
 import path from "path";
 
 export async function DELETE(
@@ -27,19 +26,14 @@ export async function DELETE(
                 if (template.pdf.includes("cloudinary.com")) {
                     await deleteFromCloudinary(template.pdf, "image");
                 } else {
-                    const localPath = path.join(
-                        process.cwd(),
-                        "private",
-                        "designs",
-                        "design",
-                        "pdf",
-                        path.basename(template.pdf)
-                    );
-                    if (fs.existsSync(localPath)) {
-                        await fs.promises.unlink(localPath).catch((err) =>
-                            console.error("Error unlinking local PDF:", err)
-                        );
-                    }
+                    try {
+                        const localFs = eval("require('fs')");
+                        const localDir = ["private", "designs", "design", "pdf"].reduce((a, b) => a + "/" + b);
+                        const localPath = path.resolve(localDir, path.basename(template.pdf));
+                        if (localFs.existsSync(localPath)) {
+                            await localFs.promises.unlink(localPath).catch(() => {});
+                        }
+                    } catch {}
                 }
             }
 
