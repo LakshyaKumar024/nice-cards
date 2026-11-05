@@ -1,5 +1,19 @@
 import z from "zod";
 
+export const CATEGORYS = {
+  WEDDING: 'WEDDING',
+  BIRTHDAY: 'BIRTHDAY',
+  ANNIVERSARY: 'ANNIVERSARY',
+  GRADUATION: 'GRADUATION',
+  BABYSHOWER: 'BABYSHOWER',
+  FESTIVAL: 'FESTIVAL',
+  INVITATION: 'INVITATION',
+  CORPORATE: 'CORPORATE',
+  OTHER: 'OTHER',
+} as const;
+
+export type CATEGORYS = (typeof CATEGORYS)[keyof typeof CATEGORYS];
+
 export const DesignSchema = z.object({
     name: z.string().min(3, "Correct Design name is required").max(100, "Design name too long"),
     description: z.string().max(500, "Description too long").optional().default(""),

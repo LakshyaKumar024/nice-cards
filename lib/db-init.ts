@@ -1,4 +1,4 @@
-import { PrismaClient } from '@/prisma/generated/prisma/client';
+import { PrismaClient } from '@prisma/client';
 
 // allow global caching for dev environment
 const globalForPrisma = globalThis as unknown as {

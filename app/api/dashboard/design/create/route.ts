@@ -1,8 +1,7 @@
 // app/api/dashboard/design/create/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/db-init';
-import { CATEGORYS } from '@/prisma/generated/prisma/enums';
-import { DesignSchema } from '@/lib/types';
+import { CATEGORYS, DesignSchema } from '@/lib/types';
 import { parseTags } from '@/lib/helpers';
 
 // Retry configuration
