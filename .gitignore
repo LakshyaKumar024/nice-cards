@@ -54,3 +54,7 @@ next-env.d.ts
 
 # fonts.back
 /public/fonts.back
+
+# Secrets and OAuth client secrets
+private/*.json
+client_secret*.json

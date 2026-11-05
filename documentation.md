@@ -26,12 +26,15 @@
 
 ### Key Capabilities
 - Browse and purchase invitation templates (wedding, birthday, corporate, etc.)
-- Interactive PDF editor with drag-and-drop text and shape overlays
+- Interactive PDF editor with drag-and-drop text, shape, and image overlays
+- Slate.js rich-text editing with inline formatting, text pasting, and embedded images
+- Standalone and inline image manipulation (resizing, aspect-ratio lock, rotation handles)
 - Multi-language support with Unicode and legacy Hindi fonts
+- High-fidelity, device-independent PDF export with transparent PNG preservation
 - Secure payment processing via Razorpay
-- User authentication and template management
+- User authentication and template management via Clerk
 - Admin dashboard for template approval and management
-- Responsive design for desktop and mobile devices
+- Responsive design for desktop, tablet, and mobile devices
 
 ### Project Metadata
 - **Name**: Nice Card
@@ -584,34 +587,49 @@ Private files not served publicly. Contains uploaded PDFs and user-generated con
 
 ### 2. PDF Editor
 
-**Text Overlays**
-- Add text anywhere on PDF pages
-- Drag-and-drop positioning
-- Font customization (family, size, color)
-- Bold and italic styling
-- Text rotation (0-360 degrees)
-- Multi-language support (English, Hindi)
-- Unicode text normalization
+**Text Overlays & Slate.js Rich-Text**
+- Add text anywhere on PDF pages with custom coordinates
+- Rich text editing powered by Slate.js with per-selection font styling
+- Clipboard pasting (`Ctrl+V`) for plain and multiline text without keydown hijacking
+- Inline image embedding inside textboxes with delete controls
+- Document-flow layout preservation: text and images stay in exact document sequence
+- Font customization (family, size, color, bold, italic)
+- Text alignment: left, center, right, and justify
+- Text rotation (0-360 degrees) with visual rotation handle and toolbar controls
+- Multi-language support (English, Hindi) with Unicode normalization
+
+**Image Overlays & Tools**
+- Dedicated "Add Image" tool on the top toolbar
+- Drag-and-drop onto canvas (places at drop position) or into active Slate textboxes
+- Support for PNG and JPG/JPEG files with strict 10MB file size limit
+- Full alpha-channel transparency preservation for transparent PNGs (no black/white artifacts)
+- 8-point interactive resize handles with stable opposite-corner anchoring
+- Visual circular rotation handle above images with real-time drag-rotation and Shift-key 15° snapping
+- Sidebar formatting controls: width/height percentage sliders, direct numeric input, Lock Aspect Ratio toggle, quick -10%/+10% scale, and rotation controls (0°–360°, -15°/+15°, +90°, 180°, Reset 0°)
+- Direct Cloudinary image upload with instant Base64 offline fallback
+- Layers panel integration with image thumbnail icon, coordinates, dimensions, and rotation indicator
 
 **Shape Overlays**
 - Add rectangular shapes
-- Resize and reposition
-- Color customization
-- Rotation support
-- Layer ordering
+- 8-point interactive resize handles and canvas rotation handle
+- Color customization via color picker and hex codes
+- Rotation support (0-360 degrees)
+- Layer ordering and visibility toggles
 
 **Layer Management**
-- Visual layer panel
-- Drag-to-reorder layers
-- Toggle visibility
+- Visual layer panel with drag-to-reorder layers
+- Support for Text, Shape, and Image overlay layer types
+- Toggle visibility per layer
 - Delete layers
 - Z-index control
 
-**Export**
-- Export edited PDF with all overlays
-- Proper font embedding
-- Maintains original PDF quality
-- Custom filename
+**High-Fidelity PDF Export**
+- Export edited PDF with all overlays (text, shapes, and images) using `pdf-lib`
+- **Document-Flow Layout for Slate**: Images embedded in Slate textboxes are placed in exact DOM sequence, preventing text overlap and maintaining user-specified positions
+- **Device-Independent Scaling**: Automatically maps 1.5x PDF.js canvas viewport display coordinates to 72 DPI PDF point coordinates (`CANVAS_SCALE = 1.5`) across all device screen sizes
+- **Aspect Ratio Fidelity**: Employs mathematical `object-fit: contain` fitting in `pdf-lib` so exported images are never stretched or squished
+- **Alpha Transparency Preservation**: Natively embeds PNG alpha channels (`/SMask`) for high-quality printing without opaque bounding boxes
+- Proper font embedding and Unicode normalization for Hindi text
 
 ### 3. Payment System
 
@@ -809,38 +827,45 @@ Process free template access.
 
 ### Architecture
 
-The PDF editor is built using a combination of `pdfjs-dist` for rendering and `pdf-lib` for manipulation.
+The PDF editor is built using a combination of `pdfjs-dist` for rendering, Slate.js for rich text editing, and `pdf-lib` + `fontkit` for precise vector & image PDF manipulation.
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    PDF Editor Component                  │
-│  ┌────────────────────────────────────────────────┐     │
-│  │  PDFCanvas (Rendering & Interaction)           │     │
-│  │  - pdfjs-dist for PDF rendering                │     │
-│  │  - Canvas-based overlay rendering              │     │
-│  │  - Drag-and-drop positioning                   │     │
-│  └────────────────────────────────────────────────┘     │
-│  ┌────────────────────────────────────────────────┐     │
-│  │  FormattingToolbar (Text/Shape Properties)     │     │
-│  │  - Font selection                              │     │
-│  │  - Size, color, rotation controls              │     │
-│  │  - Bold/italic toggles                         │     │
-│  └────────────────────────────────────────────────┘     │
-│  ┌────────────────────────────────────────────────┐     │
-│  │  LayersPanel (Layer Management)                │     │
-│  │  - Layer list with drag-to-reorder            │     │
-│  │  - Visibility toggles                          │     │
-│  │  - Delete layers                               │     │
-│  └────────────────────────────────────────────────┘     │
-└─────────────────────────────────────────────────────────┘
-                          ↓
-┌─────────────────────────────────────────────────────────┐
-│              Export System (export-utils.ts)             │
-│  - pdf-lib for PDF manipulation                         │
-│  - fontkit for custom font embedding                    │
-│  - Coordinate transformation (canvas → PDF)             │
-│  - Rotation matrix calculations                         │
-└─────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────┐
+│                        PDF Editor Component                             │
+│  ┌──────────────────────────────────────────────────────────────────┐  │
+│  │  PDFCanvas (Rendering, Interaction & Drag-and-Drop)              │  │
+│  │  - pdfjs-dist for high-DPI PDF page rendering (scale: 1.5x)      │  │
+│  │  - Canvas overlay rendering: Text, Shapes, Images                │  │
+│  │  - 8-point interactive resize handles with stationary anchors    │  │
+│  │  - Visual circular rotation handle with 15° Shift-snapping       │  │
+│  │  - Slate.js rich-text editing & inline image embedding           │  │
+│  │  - Drag-and-drop file listener (PNG/JPG, 10MB limit)             │  │
+│  └──────────────────────────────────────────────────────────────────┘  │
+│  ┌──────────────────────────────────────────────────────────────────┐  │
+│  │  FormattingToolbar (Text, Shape, and Image Sidebar Controls)     │  │
+│  │  - Text: font family, font size, bold/italic, alignment, color   │  │
+│  │  - Image: width/height sliders, numeric %, aspect-ratio lock     │  │
+│  │  - Rotation: 0-360° slider, ±15° buttons, 90° flip, 0° reset     │  │
+│  │  - Shape: width, height, color, rotation                         │  │
+│  └──────────────────────────────────────────────────────────────────┘  │
+│  ┌──────────────────────────────────────────────────────────────────┐  │
+│  │  LayersPanel (Z-Index & Visibility Management)                   │  │
+│  │  - Layer list with drag-to-reorder (@dnd-kit)                    │  │
+│  │  - Support for Text, Shape, and Image overlay items              │  │
+│  │  - Visibility toggle (Eye/EyeOff), delete, selection             │  │
+│  └──────────────────────────────────────────────────────────────────┘  │
+└────────────────────────────────────────────────────────────────────────┘
+                                    ↓
+┌────────────────────────────────────────────────────────────────────────┐
+│                  Export System (lib/export-utils.ts)                   │
+│  - pdf-lib for vector and raster PDF composition                       │
+│  - fontkit for custom TrueType font embedding                          │
+│  - Document-flow layout engine for Slate text & embedded images        │
+│  - Proportional object-fit: contain calculation for image overlays     │
+│  - Native alpha-channel SMask transparency preservation (embedPng)     │
+│  - Resolution-independent coordinate normalization (CANVAS_SCALE: 1.5) │
+│  - Graphics state push/pop translation matrix rotation around center   │
+└────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Overlay System
@@ -851,19 +876,20 @@ The PDF editor is built using a combination of `pdfjs-dist` for rendering and `p
 interface TextOverlay {
   id: string;
   type: "text";
-  text: string;
-  x: number;              // Normalized 0-1
-  y: number;              // Normalized 0-1
-  fontSize: number;       // In pixels
+  text: string;               // HTML string serialized from Slate.js
+  x: number;                  // Normalized 0-1 (horizontal center)
+  y: number;                  // Normalized 0-1 (vertical center)
+  fontSize: number;           // In pixels (at 1.5x canvas scale)
   fontFamily: string;
   bold: boolean;
   italic: boolean;
-  color: string;          // Hex color
+  color: string;              // Hex color
   page: number;
   visible: boolean;
   zIndex: number;
-  rotation: number;       // Degrees 0-360
+  rotation: number;           // Degrees 0-360
   fontFamilyClassName?: string;
+  textAlign: "left" | "center" | "right" | "justify";
 }
 ```
 
@@ -874,45 +900,128 @@ interface ShapeOverlay {
   id: string;
   type: "shape";
   shapeType: "square";
-  x: number;              // Normalized 0-1
-  y: number;              // Normalized 0-1
-  width: number;          // Normalized 0-1
-  height: number;         // Normalized 0-1
-  color: string;          // Hex color
+  x: number;                  // Normalized 0-1 (horizontal center)
+  y: number;                  // Normalized 0-1 (vertical center)
+  width: number;              // Normalized 0-1 (fraction of page width)
+  height: number;             // Normalized 0-1 (fraction of page height)
+  color: string;              // Hex color
   page: number;
   visible: boolean;
   zIndex: number;
-  rotation: number;       // Degrees 0-360
+  rotation: number;           // Degrees 0-360
 }
 ```
 
-### Coordinate System
+#### Image Overlay Interface
 
-**Canvas Coordinates (Display)**
-- Origin: Top-left corner
-- X: Left to right (0 to canvas width)
-- Y: Top to bottom (0 to canvas height)
-- Scale: 1.5x for high-DPI displays
+```typescript
+interface ImageOverlay {
+  id: string;
+  type: "image";
+  imageUrl: string;           // Cloudinary CDN URL or Base64 data URI
+  x: number;                  // Normalized 0-1 (horizontal center)
+  y: number;                  // Normalized 0-1 (vertical center)
+  width: number;              // Normalized 0-1 (fraction of page width)
+  height: number;             // Normalized 0-1 (fraction of page height)
+  page: number;
+  visible: boolean;
+  zIndex: number;
+  rotation: number;           // Degrees 0-360
+}
 
-**PDF Coordinates (Export)**
-- Origin: Bottom-left corner
-- X: Left to right (0 to page width)
-- Y: Bottom to top (0 to page height)
-- Scale: Points (72 DPI)
+export type Overlay = TextOverlay | ShapeOverlay | ImageOverlay;
+```
 
-**Normalization**
-All overlay positions are stored as normalized values (0-1) relative to page dimensions, making them resolution-independent.
+### Image System (Standalone & Slate-Embedded)
 
-### Export Process
+The PDF editor supports images in two distinct workflows:
 
-1. **Load Original PDF**: Read PDF file using pdf-lib
-2. **Register FontKit**: Enable custom font embedding
-3. **Embed Fonts**: Load and embed all required fonts
-4. **Sort Overlays**: Order by zIndex (bottom to top)
-5. **Transform Coordinates**: Convert normalized → PDF coordinates
-6. **Apply Rotation**: Use transformation matrices for rotated elements
-7. **Draw Overlays**: Render text and shapes on PDF pages
-8. **Save PDF**: Generate final PDF blob
+1. **Standalone Image Overlays (`overlay.type === "image"`)**:
+   - **Creation**: Added via the "Add Image" button next to the Shape tool, or dropped onto empty canvas areas.
+   - **Aspect Ratio Initialization**: Loads natural image dimensions via `Image()` before creation to set natural width and height (defaulting to 25% page width with proportional height).
+   - **Canvas Sizing & Anchoring**: 8 interactive handles (`nw`, `ne`, `sw`, `se`, `n`, `s`, `e`, `w`) that update both dimensions and center coordinates, anchoring the opposite corner stationary.
+   - **Rotation**: Visual circular handle above the element with mouse vector tracking (`Math.atan2`) and Shift-key 15° snapping.
+   - **Sidebar Controls**: Percentage sliders, direct numeric input, Lock Aspect Ratio toggle, quick ±10% scale buttons, and discrete rotation buttons (±15°, +90°, 180°, 0°).
+
+2. **Slate-Embedded Inline Images**:
+   - **Creation**: Pasted via clipboard (`Ctrl+V`) or dropped directly into an active Slate textbox.
+   - **Editor Node Structure**: Represented as void Slate elements `{ type: "image", url, alt, children: [{ text: "" }] }`.
+   - **HTML Serialization**: Serialized by `slateToHtml` and parsed back into Slate nodes by `htmlToSlate`.
+   - **Inline Controls**: On-hover quick delete button.
+
+3. **Format & Constraint Rules**:
+   - **Formats**: Strictly PNG (`image/png`, `.png`) and JPG/JPEG (`image/jpeg`, `image/jpg`, `.jpg`, `.jpeg`).
+   - **Size Limit**: Enforced 10MB ceiling (`10 * 1024 * 1024` bytes) with user-friendly error toasts.
+   - **Transparency**: Transparent PNG backgrounds are rendered with `background: transparent` without white/black bounding box artifacts.
+
+### Coordinate System & Device Independence
+
+Bridging the browser DOM layout and `pdf-lib` requires converting between two fundamentally different coordinate models:
+
+| Coordinate Dimension | Canvas Display (Browser DOM) | PDF Standard (`pdf-lib`) |
+|----------------------|------------------------------|--------------------------|
+| **Origin (0, 0)**    | Top-Left Corner              | Bottom-Left Corner       |
+| **X-Axis Direction** | Left to Right                | Left to Right            |
+| **Y-Axis Direction** | Top to Bottom (Y increases down) | Bottom to Top (Y increases up) |
+| **Units**            | CSS Pixels (`px`)            | PostScript Points (`pt`, 72 DPI) |
+| **Scale Multiplier** | `1.5x` (`scaledViewport`)    | `1.0x` (Standard Points) |
+
+**Mathematical Normalization (Device Independence):**
+- All overlays store positions as normalized percentages: `x ∈ [0, 1]`, `y ∈ [0, 1]`, `width ∈ [0, 1]`, `height ∈ [0, 1]`.
+- Whether displayed on a 4K monitor, a tablet, or a mobile phone, overlay positions scale dynamically to the device screen.
+- When exporting to PDF:
+  $$\text{centerX} = \text{overlay.x} \times \text{pageWidth}$$
+  $$\text{centerY} = \text{pageHeight} - (\text{overlay.y} \times \text{pageHeight})$$
+
+**Scale Factor (`CANVAS_SCALE = 1.5`):**
+- Because PDF.js renders at `scale = 1.5`, a font size of 24px on canvas corresponds to $24 / 1.5 = 16\text{ pt}$ in the PDF.
+- Image container bounds in Slate (`260px` max height) convert precisely to $260 / 1.5 = 173.33\text{ pt}$.
+
+### Export Process & Document-Flow Layout Engine
+
+The export system in `lib/export-utils.ts` transforms all overlays into print-ready PDF output:
+
+1. **Load Original PDF**: Loads template bytes via `PDFDocument.load()` and registers `fontkit`.
+2. **Embed Custom Fonts**: Embeds Unicode Hindi (Noto Sans Devanagari) and legacy fonts.
+3. **Sort Overlays**: Orders all overlays by `zIndex` ascending.
+4. **Document-Flow Layout for Slate Text Overlays (`drawTextOverlay`)**:
+   - **Sequential Parsing**: Parses HTML content into ordered `flowItems` (text lines and embedded `<img>` blocks in DOM sequence).
+   - **Height & Spacing Tracking**: Measures line widths, line heights, and image dimensions to compute `totalHeight`. This prevents text and images from overlapping.
+   - **Vertical Progression**: Inverts Y coordinates to draw items from top to bottom in visual sequence:
+     $$\text{boxTopY} = \text{boxBottomY} + \text{totalHeight}$$
+     $$\text{currentY}_{\text{next}} = \text{currentY} - \text{item.height}$$
+   - **Horizontal Alignment**: Aligns text and embedded images according to `overlay.textAlign` (`left`, `center`, `right`).
+5. **Standalone Image Overlays (`drawImageOverlay`)**:
+   - Evaluates image magic bytes (`0x89 0x50 0x4E 0x47` for PNG).
+   - Embeds via `pdfDoc.embedPng` (natively preserving alpha channel `/SMask` transparency) or `pdfDoc.embedJpg`.
+   - Performs mathematical `object-fit: contain` aspect-ratio fitting:
+     ```typescript
+     const imgAspect = embeddedImage.width / embeddedImage.height;
+     const boxAspect = boxWidth / boxHeight;
+     let drawWidth = boxWidth;
+     let drawHeight = boxHeight;
+
+     if (boxAspect > imgAspect) {
+       drawHeight = boxHeight;
+       drawWidth = boxHeight * imgAspect;
+     } else {
+       drawWidth = boxWidth;
+       drawHeight = boxWidth / imgAspect;
+     }
+     ```
+   - Positions at $(\text{centerX} - \text{drawWidth}/2, \text{centerY} - \text{drawHeight}/2)$.
+6. **Matrix Rotation**:
+   Applies graphics state push/pop translation matrix transformations around the element center:
+   ```typescript
+   const radians = -(rotation * Math.PI) / 180;
+   page.pushOperators(pushGraphicsState());
+   page.pushOperators(translate(centerX, centerY));
+   page.pushOperators(rotateRadians(radians));
+   page.pushOperators(translate(-centerX, -centerY));
+   // Draw element
+   page.pushOperators(popGraphicsState());
+   ```
+7. **Save PDF**: Generates the final high-resolution PDF Blob for client download.
 
 ### Font Handling
 

@@ -1,0 +1,13 @@
+[build]
+  command = "bun run build"
+  publish = ".next"
+
+[build.environment]
+  # Tell Netlify's secret scanner to ignore client-side public variables and non-secret config
+  # that are intentionally bundled into Next.js frontend pages, chunks, and documentation.
+  SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_BASE_URL,NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,NEXT_PUBLIC_RAZORPAY_KEY_ID,NEXT_PUBLIC_EXPRESS_SERVER_URL,NEXT_PUBLIC_EXPLICIT_POSITION_ADDITION,NEXT_PUBLIC_EXPLICIT_POSITION_LEFT,CLOUDINARY_CLOUD_NAME,SMTP_HOST"
+  SECRETS_SCAN_OMIT_PATHS = "private/**,README.md,documentation.md,Dockerfile"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+

@@ -7,11 +7,13 @@ This project is **private** and proprietary — not intended for open-source dis
 
 ## ✨ Key Features
 
-- 🎨 **PDF Editor**: Interactive PDF editing with text overlays, shapes, and custom fonts
-- 🌐 **Multi-language Support**: Hindi fonts (Unicode & legacy) with proper rendering
-- 🛒 **E-commerce**: Template marketplace with payment integration
-- 👤 **User Management**: Secure authentication and user profiles
-- 📱 **Responsive Design**: Works seamlessly on desktop and mobile
+- 🎨 **PDF Editor**: Interactive PDF editing with rich text overlays (Slate.js), custom shapes, and images
+- 🖼️ **Image Overlays & Manipulation**: Dedicated "Add Image" tool, drag-and-drop onto canvas or Slate, 8 visual resize handles, canvas rotation handle, and sidebar aspect-ratio lock
+- 🪟 **Transparent PNG Support**: Full alpha-channel transparency preserved across preview and high-fidelity PDF print export
+- 🌐 **Multi-language Support**: Hindi fonts (Unicode & legacy) with proper rendering and Unicode normalization
+- 🛒 **E-commerce**: Template marketplace with Razorpay payment integration
+- 👤 **User Management**: Secure authentication and user profiles via Clerk
+- 📱 **Responsive Design**: Resolution-independent coordinate normalization for desktop, tablet, and mobile
 - 💾 **Template Management**: Create, edit, and manage PDF templates
 - 🎯 **Admin Dashboard**: Template approval and management system
 
@@ -159,32 +161,52 @@ export const transporter = nodemailer.createTransport({
 
 ## 🎨 PDF Editor Features
 
-### Text Editing
+### Text Editing (Slate.js Integration)
 
-- Add text overlays with custom positioning
-- Font customization (family, size, color, bold, italic)
-- Support for Hindi fonts (Unicode and legacy)
-- Drag-and-drop text positioning
-- Layer management with z-index control
+- Add rich text overlays with custom positioning and alignment (`left`, `center`, `right`, `justify`)
+- Slate.js rich-text editing with inline formatting (bold, italic, per-selection font styling)
+- Clipboard pasting (`Ctrl+V`) for plain and multiline text without shortcut collision
+- Inline image pasting and drag-and-drop inside Slate textboxes
+- Multi-language Hindi font support (Unicode and legacy typing)
+- Drag-and-drop text positioning and z-index layer ordering
+
+### Image Tools
+
+- **Toolbar Button**: Dedicated "Add Image" button right next to the Shape Tool on the top toolbar
+- **Drag & Drop**: Drop images directly onto the canvas to place at drop coordinates, or drop directly into active Slate textboxes
+- **Supported Formats**: PNG and JPG/JPEG files supported with strict 10MB file size limits
+- **Alpha Transparency**: Full transparent PNG background preservation (no black or white background artifacts)
+- **Interactive Canvas Controls**:
+  - 8 resize handles (`nw`, `ne`, `sw`, `se`, `n`, `s`, `e`, `w`) with stable opposite-corner anchoring
+  - Circular visual rotation handle above the element with real-time drag-rotation and `Shift`-key 15° snapping
+- **Sidebar Formatting Toolbar**:
+  - Width and Height percentage sliders (1%–200%) and direct numeric input fields
+  - Lock Aspect Ratio toggle for proportional resizing
+  - Quick `-10%` and `+10%` scale buttons
+  - Rotation slider (0°–360°), `-15°` / `+15°` step buttons, `+90°` flip, `180°` flip, and `Reset 0°`
+- **Cloud & Offline Fallback**: Direct Cloudinary upload with instant Base64 fallback
 
 ### Shape Tools
 
-- Add rectangular shapes
-- Resize and reposition shapes
-- Color customization
-- Layer ordering
+- Add rectangular and square shapes
+- 8-point interactive resize handles and canvas rotation handle
+- Color customization via color picker and hex codes
+- Layer ordering and visibility toggles
 
 ### Font Support
 
 - Standard fonts: Arial, Helvetica, Times New Roman, etc.
 - Hindi fonts: Noto Sans Devanagari (Unicode), AMS Aasmi, Kruti Dev 640
-- Custom font embedding in exported PDFs
+- Custom font embedding in exported PDFs via `fontkit`
 
-### Export
+### Export System (High-Fidelity PDF Export)
 
-- Export edited PDFs with all overlays
-- Proper font embedding for Hindi text
-- Unicode normalization for copy-pasted text
+- Export edited PDFs with all overlays (text, shapes, and images) using `pdf-lib`
+- **Document-Flow Layout for Slate**: Images embedded in Slate textboxes are placed in exact DOM sequence, preventing text overlap and maintaining user-specified positions
+- **Device-Independent Scaling**: Automatically maps 1.5x PDF.js canvas viewport display coordinates to 72 DPI PDF point coordinates (`CANVAS_SCALE = 1.5`) across all device screen sizes
+- **Aspect Ratio Fidelity**: Employs mathematical `object-fit: contain` fitting in `pdf-lib` so exported images are never stretched or squished
+- **Alpha Transparency Preservation**: Natively embeds PNG alpha channels (`/SMask`) for high-quality printing without opaque bounding boxes
+- Proper font embedding and Unicode normalization for Hindi text
 
 ---
 
@@ -391,5 +413,5 @@ bunx prisma db push
 **Project Name:** Nice Card  
 **Version:** 1.0.0  
 **Client:** Nice-Card  
-**Last Updated:** November 2025
+**Last Updated:** November 2026
 ---

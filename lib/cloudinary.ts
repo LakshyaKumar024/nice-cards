@@ -156,7 +156,7 @@ export const uploadPdfToCloudinary = async (file: File): Promise<string> => {
 
 /**
  * Extract Cloudinary public_id from a Cloudinary URL
- * Example: https://res.cloudinary.com/dr93it3xj/image/upload/v1793819495/template-pdfs/pdf_abc.pdf
+ * Example: https://res.cloudinary.com/<cloud_name>/image/upload/v1793819495/template-pdfs/pdf_abc.pdf
  * Returns: "template-pdfs/pdf_abc"
  */
 export const getPublicIdFromUrl = (url: string): string | null => {
