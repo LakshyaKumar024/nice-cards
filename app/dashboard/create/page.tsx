@@ -28,6 +28,7 @@ import {
 import { toast } from "sonner";
 import Image from "next/image";
 import { FileText, ImageIcon } from "lucide-react";
+import { uploadDirectToCloudinary } from "@/lib/cloudinary-client";
 
 const CATEGORIES = [
   "WEDDING",
@@ -141,68 +142,31 @@ export default function AddTemplatePage() {
     const toastId = toast.loading("Starting upload process...");
 
     try {
-      // ---------- STEP 1: Upload Image ----------
-      toast.loading("Uploading images...", { id: toastId });
-
+      // ---------- STEP 1: Upload Images (Direct to Cloudinary) ----------
       const uploadedImageFilenames: string[] = [];
 
-      for (const img of data.images) {
-        const imageForm = new FormData();
-        imageForm.append("file", img);
+      for (let i = 0; i < data.images.length; i++) {
+        const img = data.images[i];
+        toast.loading(`Uploading image ${i + 1}/${data.images.length}...`, { id: toastId });
 
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_EXPRESS_SERVER_URL}/upload/image`,
-          {
-            method: "POST",
-            body: imageForm,
-          }
-        );
+        const uploadRes = await uploadDirectToCloudinary(img, "image", (percent) => {
+          toast.loading(`Uploading image ${i + 1}/${data.images.length} (${percent}%)...`, { id: toastId });
+        });
 
-        if (!res.ok) {
-          const errorText = await res.text();
-          console.error("❌ Image upload failed:", errorText);
-          throw new Error(`Image upload failed: ${res.status}`);
-        }
-
-        const json = await res.json();
-        let filename = json?.data?.fileName;
-
-        if (!filename) throw new Error("No image filename returned");
-
-        filename = filename.replace(/^["']|["']$/g, "");
-        uploadedImageFilenames.push(filename);
+        uploadedImageFilenames.push(uploadRes.secureUrl);
       }
 
-      console.log("Uploaded images:", uploadedImageFilenames);
+      console.log("✅ Uploaded images directly to Cloudinary:", uploadedImageFilenames);
 
-      // ---------- STEP 2: Upload PDF ----------
-      toast.loading("Uploading PDF...", { id: toastId });
+      // ---------- STEP 2: Upload PDF (Direct to Cloudinary designated PDF folder) ----------
+      toast.loading("Uploading PDF to designated folder...", { id: toastId });
 
-      const pdfForm = new FormData();
-      pdfForm.append("file", data.pdf);
+      const pdfUploadRes = await uploadDirectToCloudinary(data.pdf, "pdf", (percent) => {
+        toast.loading(`Uploading PDF (${percent}%)...`, { id: toastId });
+      });
 
-      const pdfRes = await fetch(
-        `${process.env.NEXT_PUBLIC_EXPRESS_SERVER_URL}/upload/pdf`,
-        {
-          method: "POST",
-          body: pdfForm,
-        }
-      );
-
-      if (!pdfRes.ok) {
-        const errorText = await pdfRes.text();
-        console.error("❌ PDF upload failed:", errorText);
-        throw new Error(`PDF upload failed: ${pdfRes.status}`);
-      }
-
-      const pdfJson = await pdfRes.json();
-      const pdfFilename = pdfJson?.data?.fileName;
-
-      if (!pdfFilename) {
-        throw new Error("No PDF filename returned from server");
-      }
-
-      console.log("✅ PDF uploaded:", pdfFilename);
+      const pdfFilename = pdfUploadRes.secureUrl;
+      console.log("✅ Uploaded PDF directly to Cloudinary:", pdfFilename);
 
       // ---------- STEP 3: Submit Metadata ----------
       toast.loading("Creating template...", { id: toastId });

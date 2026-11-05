@@ -54,5 +54,3 @@ next-env.d.ts
 
 # fonts.back
 /public/fonts.back
-# PDF files
-/private/designs/design/pdf

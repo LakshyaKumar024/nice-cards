@@ -230,7 +230,7 @@ export function TemplateDetail({ templateId }: { templateId: string }) {
                     {template.pdf ? (
                       <div className="relative w-full h-full">
                         <iframe
-                          src={`/api/getPdf/${template.pdf}#toolbar=0&navpanes=0&scrollbar=0`}
+                          src={`/api/getPdf/${template.pdf.split("/").pop() || template.pdf}#toolbar=0&navpanes=0&scrollbar=0`}
                           className="w-full h-full rounded-xl"
                           style={{ border: "none" }}
                           title="PDF Document"

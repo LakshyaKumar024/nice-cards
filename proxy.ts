@@ -38,12 +38,12 @@ export default clerkMiddleware(async (auth, req) => {
   }
 
   const { userId } = await auth();
-  if (isProtectedRoute(req)) await auth.protect()
+  if (isProtectedRoute(req)) await auth.protect();
 
   // check admin routes
   if (isAdminRoute(req)) {
     if (!userId) {
-      return await auth.protect()
+      return await auth.protect();
     }
 
     const client = await clerkClient();
@@ -58,7 +58,7 @@ export default clerkMiddleware(async (auth, req) => {
   // check developer routes
   if (isDeveloperRoute(req)) {
     if (!userId) {
-      return await auth.protect()
+      return await auth.protect();
     }
 
     const client = await clerkClient();
@@ -71,7 +71,13 @@ export default clerkMiddleware(async (auth, req) => {
   }
 });
 
-
 export const config = {
-  matcher: ["/((?!.+\\.[\\w]+$|_next).*)", "/", "/(api|trpc)(.*)"],
+  // Exclude routes that process multipart/form-data streams from middleware matching.
+  // When middleware matches a request, Next.js buffers and clones the body stream,
+  // which empties/corrupts incoming file streams before route handlers can read them.
+  matcher: [
+    "/((?!.+\\.[\\w]+$|_next|api/upload|upload|api/dashboard/design/create).*)",
+    "/",
+    "/(api|trpc)((?!/upload|/dashboard/design/create).*)",
+  ],
 };

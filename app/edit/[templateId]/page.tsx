@@ -73,7 +73,7 @@ export default function EditPDFPage({ params }: EditPDFPageProps) {
         }
 
         // its pdf filename
-        setPdfFName(data.data.pdf);
+        setPdfFName(data.data.pdf ? data.data.pdf.split("/").pop() : "");
         setSavedTemplateUUID(data.data.savedTemplates[0]?.uuid);
 
         const userOverlays = data.data.savedTemplates[0]?.content

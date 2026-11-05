@@ -1,5 +1,22 @@
 import type { NextConfig } from "next";
 
+// Suppress Node.js runtime deprecation warnings (e.g. DEP0205 module.register in newer Node versions)
+if (typeof process !== "undefined" && typeof process.emitWarning === "function") {
+  const originalEmitWarning = process.emitWarning;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  process.emitWarning = function (warning: any, ...args: any[]) {
+    if (
+      (typeof warning === "string" &&
+        (warning.includes("DEP0205") || warning.includes("module.register"))) ||
+      (warning && warning.code === "DEP0205") ||
+      args.includes("DEP0205")
+    ) {
+      return;
+    }
+    return originalEmitWarning.apply(process, [warning, ...args] as [any, ...any[]]);
+  };
+}
+
 const nextConfig: NextConfig = {
   webpack: (config) => {
     // 1. Prevent Webpack from bundling native canvas.node files
@@ -17,6 +34,15 @@ const nextConfig: NextConfig = {
     });
 
     return config;
+  },
+
+  async rewrites() {
+    return [
+      {
+        source: "/upload/:path*",
+        destination: "/api/upload/:path*",
+      },
+    ];
   },
 
   images: {
