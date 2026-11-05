@@ -18,6 +18,19 @@ if (typeof process !== "undefined" && typeof process.emitWarning === "function")
 }
 
 const nextConfig: NextConfig = {
+  serverExternalPackages: ["@prisma/client", "canvas"],
+
+  outputFileTracingIncludes: {
+    "/api/**/*": [
+      "./prisma/generated/prisma/**/*",
+      "./node_modules/.prisma/client/**/*",
+    ],
+    "/*": [
+      "./prisma/generated/prisma/**/*",
+      "./node_modules/.prisma/client/**/*",
+    ],
+  },
+
   webpack: (config) => {
     // 1. Prevent Webpack from bundling native canvas.node files
     config.externals.push({
@@ -27,9 +40,9 @@ const nextConfig: NextConfig = {
     // 2. Force pdfjs-dist to use your root canvas installation
     config.resolve.alias["canvas"] = require.resolve("canvas");
 
-    // 3. Ignore all .node binaries (like canvas.node)
+    // 3. Ignore ONLY canvas.node binary (DO NOT match Prisma's query_engine .node binaries)
     config.module.rules.push({
-      test: /\.node$/,
+      test: /canvas\.node$/,
       loader: "null-loader",
     });
 
