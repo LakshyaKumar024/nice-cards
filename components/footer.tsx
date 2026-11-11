@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 type FooterProps = {
   companyName?: string;
@@ -11,6 +12,11 @@ type FooterProps = {
 export default function ShadcnFooter({
 
 }: FooterProps) {
+  const pathname = usePathname();
+  if (pathname === "/edit" || pathname?.startsWith("/edit/")) {
+    return null;
+  }
+
   return (
     <footer className="text-sm py-4">
       <div className="px-4 w-full">

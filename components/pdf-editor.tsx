@@ -12,6 +12,10 @@ import {
   Globe,
   RotateCcw,
   Image as ImageIcon,
+  Upload,
+  AlertTriangle,
+  FileText,
+  Loader2,
 } from "lucide-react";
 import { uploadDirectToCloudinary } from "@/lib/cloudinary-client";
 import { Button } from "@/components/ui/button";
@@ -34,7 +38,11 @@ import { FormattingToolbar } from "@/components/formatting-toolbar";
 import { LayersPanel } from "@/components/layers-panel";
 import { loadPDFDocument } from "@/lib/pdf-utils";
 import { exportPDFWithOverlays } from "@/lib/export-utils";
-import { resolvePdfUrl, getPdfFileNameFromUrl } from "@/lib/utils";
+import {
+  resolvePdfUrl,
+  getPdfFileNameFromUrl,
+  sanitizePdfDownloadName,
+} from "@/lib/utils";
 import { ImageOverlay, Overlay, ShapeOverlay, TextOverlay } from "@/lib/types";
 import { toast } from "sonner";
 import {
@@ -48,6 +56,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "./ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "./ui/dialog";
 
 // Configure pdfjs worker
 if (typeof window !== "undefined") {
@@ -62,6 +77,9 @@ interface PDFEditorProps {
   isAdmin?: boolean;
   defaultTemplateDesign?: Overlay[] | null;
   savedTemplateUUID: string | null;
+  uploadedFile?: File | null;
+  initialPdfDocument?: pdfjsLib.PDFDocumentProxy | null;
+  onChangePdf?: () => void;
 }
 
 // Utility to convert a font family (like "Open Sans") to a class name ("open-sans")
@@ -77,6 +95,9 @@ export default function PDFEditor({
   isAdmin = false,
   defaultTemplateDesign,
   savedTemplateUUID,
+  uploadedFile = null,
+  initialPdfDocument = null,
+  onChangePdf,
 }: PDFEditorProps) {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [pdfDocument, setPdfDocument] =
@@ -98,6 +119,7 @@ export default function PDFEditor({
   const imageInputRef = useRef<HTMLInputElement>(null);
 
   const [showPublishConfirm, setShowPublishConfirm] = useState(false);
+  const [showChangePdfConfirm, setShowChangePdfConfirm] = useState(false);
 
   // copy and paste
   const [copiedOverlay, setCopiedOverlay] = useState<Overlay | null>(null);
@@ -294,8 +316,58 @@ export default function PDFEditor({
     preloadFonts();
   }, []);
 
-  // Load PDF directly from Cloudinary CDN (or internal API fallback for legacy local files)
+  // Load PDF from an uploaded File, pre-parsed PDFDocumentProxy, Cloudinary CDN URL, or local fallback
   useEffect(() => {
+    if (uploadedFile) {
+      let isCancelled = false;
+
+      const loadUploadedPDF = async () => {
+        if (initialPdfDocument) {
+          setPdfFile(uploadedFile);
+          setPdfDocument(initialPdfDocument);
+          setNumPages(initialPdfDocument.numPages);
+          setCurrentPage(1);
+          setOverlays(defaultOverlays || []);
+          setSelectedOverlayId(null);
+          setIsLoading(false);
+          return;
+        }
+
+        setIsLoading(true);
+        try {
+          const pdf = await loadPDFDocument(uploadedFile);
+          if (isCancelled) {
+            pdf.destroy?.();
+            return;
+          }
+
+          setPdfFile(uploadedFile);
+          setPdfDocument(pdf);
+          setNumPages(pdf.numPages);
+          setCurrentPage(1);
+          setOverlays(defaultOverlays || []);
+          setSelectedOverlayId(null);
+        } catch (error) {
+          if (!isCancelled) {
+            console.error("Error processing uploaded PDF:", error);
+            toast.error("Failed to process uploaded PDF.");
+            setPdfDocument(null);
+            setOverlays([]);
+          }
+        } finally {
+          if (!isCancelled) {
+            setIsLoading(false);
+          }
+        }
+      };
+
+      loadUploadedPDF();
+
+      return () => {
+        isCancelled = true;
+      };
+    }
+
     if (pdfFName === null) return;
 
     let isCancelled = false;
@@ -354,7 +426,7 @@ export default function PDFEditor({
     return () => {
       isCancelled = true;
     };
-  }, [pdfFName, templateId, defaultOverlays]);
+  }, [uploadedFile, initialPdfDocument, pdfFName, templateId, defaultOverlays]);
 
   const handleAddOverlay = useCallback(
     (
@@ -699,8 +771,8 @@ export default function PDFEditor({
     [currentPage]
   );
 
-  const handleExport = useCallback(async () => {
-    if (!pdfFile) return;
+  const handleExport = useCallback(async (): Promise<boolean> => {
+    if (!pdfFile) return false;
 
     setIsExporting(true);
     try {
@@ -709,12 +781,21 @@ export default function PDFEditor({
 
       const link = document.createElement("a");
       link.href = url;
-      link.download = `edited-${templateId}.pdf`;
+      link.download = uploadedFile
+        ? `edited-${sanitizePdfDownloadName(uploadedFile.name, "document")}`
+        : `edited-${templateId}.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
 
       setTimeout(() => URL.revokeObjectURL(url), 10000);
+
+      if (uploadedFile) {
+        toast.success("PDF exported!", {
+          description: "Your edited PDF has been downloaded.",
+        });
+        return true;
+      }
 
       const saveOverlays = await fetch(
         `/api/design/${templateId}/saveOverlays`,
@@ -740,12 +821,29 @@ export default function PDFEditor({
             "Your edits are'nt saved and will not be preloded next time.",
         });
       }
+      return true;
     } catch (error) {
       console.error("Error exporting PDF:", error);
+      toast.error("Failed to export PDF. Please try again.");
+      return false;
     } finally {
       setIsExporting(false);
     }
-  }, [pdfFile, overlays, templateId, savedTemplateUUID, userId]);
+  }, [pdfFile, uploadedFile, overlays, templateId, savedTemplateUUID, userId]);
+
+  const handleDownloadAndChangePdf = useCallback(async () => {
+    if (!onChangePdf) return;
+    const exported = await handleExport();
+    if (exported) {
+      setShowChangePdfConfirm(false);
+      onChangePdf();
+    }
+  }, [handleExport, onChangePdf]);
+
+  const handleDiscardAndChangePdf = useCallback(() => {
+    setShowChangePdfConfirm(false);
+    onChangePdf?.();
+  }, [onChangePdf]);
 
   const confirmPublishDesign = useCallback(async () => {
     if (!isAdmin) {
@@ -828,8 +926,14 @@ export default function PDFEditor({
   if (!pdfDocument) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
+        <div className="text-center space-y-3">
           <p className="text-lg">Failed to load PDF.</p>
+          {onChangePdf && (
+            <Button onClick={onChangePdf} variant="outline" size="sm" className="gap-2">
+              <Upload className="w-4 h-4" />
+              Upload Another PDF
+            </Button>
+          )}
         </div>
       </div>
     );
@@ -985,8 +1089,8 @@ export default function PDFEditor({
               </SheetContent>
             </Sheet>
 
-            <span className="text-sm font-medium text-muted-foreground font-mono truncate">
-              {templateId}.pdf
+            <span className="text-sm font-medium text-muted-foreground font-mono truncate max-w-[160px] sm:max-w-[260px]">
+              {uploadedFile?.name || `${templateId}.pdf`}
             </span>
           </div>
 
@@ -1129,6 +1233,124 @@ export default function PDFEditor({
                   </Tooltip>
                 )}
 
+                {onChangePdf && (
+                  <>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          onClick={() => setShowChangePdfConfirm(true)}
+                          disabled={isExporting}
+                          size="sm"
+                          variant="outline"
+                          className="gap-2"
+                        >
+                          <Upload className="w-4 h-4" />
+                          <span className="hidden sm:inline">Change PDF</span>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom">
+                        <p>Upload a different PDF</p>
+                      </TooltipContent>
+                    </Tooltip>
+
+                    <Dialog
+                      open={showChangePdfConfirm}
+                      onOpenChange={(open) => {
+                        if (!isExporting) setShowChangePdfConfirm(open);
+                      }}
+                    >
+                      <DialogContent
+                        showCloseButton={!isExporting}
+                        onInteractOutside={(e) => {
+                          if (isExporting) e.preventDefault();
+                        }}
+                        onEscapeKeyDown={(e) => {
+                          if (isExporting) e.preventDefault();
+                        }}
+                        className="flex flex-col sm:max-w-[440px] rounded-2xl p-5 sm:p-6 gap-5 overflow-hidden"
+                      >
+                        <DialogHeader className="w-full min-w-0 items-center text-center sm:text-center gap-3">
+                          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 ring-1 ring-amber-500/20">
+                            <AlertTriangle className="h-6 w-6" />
+                          </div>
+                          <div className="w-full min-w-0 space-y-1.5">
+                            <DialogTitle className="text-xl font-semibold tracking-tight">
+                              {overlays.length > 0
+                                ? "Download your edits first?"
+                                : "Switch to another PDF?"}
+                            </DialogTitle>
+                            <DialogDescription className="text-sm text-muted-foreground leading-relaxed">
+                              {overlays.length > 0
+                                ? "Your changes stay only in this browser and will be lost if you leave this file without downloading."
+                                : "Opening a different PDF will replace the current document in the editor."}
+                            </DialogDescription>
+                          </div>
+                        </DialogHeader>
+
+                        <div className="flex w-full min-w-0 items-center gap-3 overflow-hidden rounded-xl border bg-muted/40 px-3.5 py-3">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#6c47ff]/10 text-[#6c47ff]">
+                            <FileText className="h-4 w-4" />
+                          </div>
+                          <div className="min-w-0 flex-1 overflow-hidden">
+                            <p
+                              className="truncate text-sm font-medium text-foreground"
+                              title={uploadedFile?.name || `${templateId}.pdf`}
+                            >
+                              {uploadedFile?.name || `${templateId}.pdf`}
+                            </p>
+                            <p className="truncate text-xs text-muted-foreground">
+                              {numPages} {numPages === 1 ? "page" : "pages"} &bull;{" "}
+                              {overlays.length}{" "}
+                              {overlays.length === 1 ? "edit layer" : "edit layers"}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex w-full min-w-0 flex-col gap-2.5">
+                          <Button
+                            type="button"
+                            disabled={isExporting || !pdfFile}
+                            onClick={handleDownloadAndChangePdf}
+                            className="w-full h-10 gap-2 bg-[#6c47ff] hover:bg-[#5a3fe0] text-white font-medium shadow-sm cursor-pointer"
+                          >
+                            {isExporting ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Download className="h-4 w-4" />
+                            )}
+                            {isExporting
+                              ? "Preparing PDF..."
+                              : "Download PDF & Change"}
+                          </Button>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              disabled={isExporting}
+                              onClick={() => setShowChangePdfConfirm(false)}
+                              className="w-full h-10 cursor-pointer"
+                            >
+                              Continue Editing
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              disabled={isExporting}
+                              onClick={handleDiscardAndChangePdf}
+                              className="w-full h-10 border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive cursor-pointer"
+                            >
+                              {overlays.length > 0
+                                ? "Discard & Switch"
+                                : "Switch PDF"}
+                            </Button>
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </>
+                )}
+
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
@@ -1147,7 +1369,7 @@ export default function PDFEditor({
                   </TooltipContent>
                 </Tooltip>
 
-                {isAdmin && (
+                {isAdmin && !uploadedFile && (
                   <AlertDialog
                     open={showPublishConfirm}
                     onOpenChange={setShowPublishConfirm}
@@ -1209,7 +1431,7 @@ export default function PDFEditor({
         {/* PDF Canvas Area - Scrollable */}
         <div className="flex-1 overflow-auto bg-muted/30 relative">
           {/* ESC Hint - Shows when editing */}
-          {selectedOverlayId && (
+          {selectedOverlayId && !showChangePdfConfirm && !showPublishConfirm && (
             <div
               className="
   fixed 

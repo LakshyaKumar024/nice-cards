@@ -6,6 +6,7 @@ import {
   X,
   Palette,
   LogOut,
+  FileEdit,
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
@@ -71,6 +72,13 @@ export const Navbar = () => {
               </div>
             </SignedOut>
             <SignedIn>
+              <Link href="/edit/custom">
+                <div className="flex justify-between items-center gap-3 px-2 py-3 hover:text-primary transition-colors">
+                  <span className="text-foreground hover:text-primary transition-colors">
+                    Edit PDF
+                  </span>
+                </div>
+              </Link>
               <Link href="/my-template">
                 <div className="flex justify-between items-center  gap-3 px-2 py-3">
                   <span className="text-foreground">My Templates</span>
@@ -172,6 +180,19 @@ export const Navbar = () => {
                             Sign Out
                           </Button>
                         </SignOutButton>
+
+                        <Link
+                          href="/edit/custom"
+                          className="flex items-center gap-3 p-3 rounded-lg hover:bg-accent/50 transition-colors group border border-transparent hover:border-accent"
+                          onClick={() => setIsOpen(false)}
+                        >
+                          <div className="flex items-center justify-center w-8 h-8 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                            <FileEdit className="h-4 w-4 text-primary" />
+                          </div>
+                          <span className="text-foreground font-medium">
+                            Edit PDF
+                          </span>
+                        </Link>
 
                         <Link
                           href="/my-template"
