@@ -11,3 +11,11 @@
 [[plugins]]
   package = "@netlify/plugin-nextjs"
 
+# 4-hour (14400s) browser cache for static fonts in public/fonts/
+# Covers 1-2 hr editing sessions without 304 checks while allowing font updates within 4 hours.
+[[headers]]
+  for = "/fonts/*"
+  [headers.values]
+    Cache-Control = "public, max-age=14400"
+    Access-Control-Allow-Origin = "*"
+

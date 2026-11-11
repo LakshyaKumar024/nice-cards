@@ -34,6 +34,7 @@ import { FormattingToolbar } from "@/components/formatting-toolbar";
 import { LayersPanel } from "@/components/layers-panel";
 import { loadPDFDocument } from "@/lib/pdf-utils";
 import { exportPDFWithOverlays } from "@/lib/export-utils";
+import { resolvePdfUrl, getPdfFileNameFromUrl } from "@/lib/utils";
 import { ImageOverlay, Overlay, ShapeOverlay, TextOverlay } from "@/lib/types";
 import { toast } from "sonner";
 import {
@@ -54,12 +55,12 @@ if (typeof window !== "undefined") {
 }
 
 interface PDFEditorProps {
-  pdfFName: string;
+  pdfFName: string | null;
   templateId: string;
-  defaultOverlays?: Overlay[];
-  userId: string;
+  defaultOverlays?: Overlay[] | null;
+  userId?: string;
   isAdmin?: boolean;
-  defaultTemplateDesign?: Overlay[];
+  defaultTemplateDesign?: Overlay[] | null;
   savedTemplateUUID: string | null;
 }
 
@@ -293,22 +294,40 @@ export default function PDFEditor({
     preloadFonts();
   }, []);
 
-  // Load PDF from API route
+  // Load PDF directly from Cloudinary CDN (or internal API fallback for legacy local files)
   useEffect(() => {
+    if (pdfFName === null) return;
+
+    let isCancelled = false;
+
     const loadPDF = async () => {
-      if (!pdfFName) return;
+      const pdfUrl = resolvePdfUrl(pdfFName);
+      if (!pdfUrl) {
+        setPdfDocument(null);
+        setPdfFile(null);
+        setIsLoading(false);
+        return;
+      }
 
       setIsLoading(true);
       try {
-        const response = await fetch(`/api/getPdf/${pdfFName}`);
-        if (!response.ok) throw new Error("Failed to fetch PDF");
+        const response = await fetch(pdfUrl);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch PDF (${response.status})`);
+        }
 
         const blob = await response.blob();
-        const file = new File([blob], `${pdfFName}.pdf`, {
+        const fileName = getPdfFileNameFromUrl(pdfUrl, templateId);
+        const file = new File([blob], fileName, {
           type: "application/pdf",
         });
 
         const pdf = await loadPDFDocument(file);
+        if (isCancelled) {
+          pdf.destroy?.();
+          return;
+        }
+
         setPdfFile(file);
         setPdfDocument(pdf);
         setNumPages(pdf.numPages);
@@ -316,15 +335,25 @@ export default function PDFEditor({
         setOverlays(defaultOverlays || []); // Add fallback here
         setSelectedOverlayId(null);
       } catch (error) {
-        console.error("Error loading PDF:", error);
-        // Also set overlays to empty array on error
-        setOverlays([]);
+        if (!isCancelled) {
+          console.error("Error loading PDF:", error);
+          toast.error("Failed to load PDF template.");
+          setPdfDocument(null);
+          // Also set overlays to empty array on error
+          setOverlays([]);
+        }
       } finally {
-        setIsLoading(false);
+        if (!isCancelled) {
+          setIsLoading(false);
+        }
       }
     };
 
     loadPDF();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [pdfFName, templateId, defaultOverlays]);
 
   const handleAddOverlay = useCallback(
@@ -681,9 +710,11 @@ export default function PDFEditor({
       const link = document.createElement("a");
       link.href = url;
       link.download = `edited-${templateId}.pdf`;
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
 
-      URL.revokeObjectURL(url);
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
 
       const saveOverlays = await fetch(
         `/api/design/${templateId}/saveOverlays`,
@@ -714,8 +745,7 @@ export default function PDFEditor({
     } finally {
       setIsExporting(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pdfFile, pdfFName, overlays]);
+  }, [pdfFile, overlays, templateId, savedTemplateUUID, userId]);
 
   const confirmPublishDesign = useCallback(async () => {
     if (!isAdmin) {

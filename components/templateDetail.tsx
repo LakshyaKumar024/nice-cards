@@ -16,6 +16,7 @@ import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
+import { resolvePdfUrl, sanitizePdfDownloadName } from "@/lib/utils";
 
 interface Template {
   pages?: number | null;
@@ -39,6 +40,7 @@ export function TemplateDetail({ templateId }: { templateId: string }) {
   const [isPurchased, setIsPurchased] = useState(false);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [tags, setTags] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
@@ -124,24 +126,43 @@ export function TemplateDetail({ templateId }: { templateId: string }) {
     setPurchasing(false);
   };
 
-  const handleDownload = () => {
-    if (!template || !template.pdf) return;
+  const handleDownload = async () => {
+    if (!template || !template.pdf || downloading) return;
 
-    // Extract the filename from the path
-    const fileName = template.pdf.split("/").pop()!;
+    const pdfUrl = resolvePdfUrl(template.pdf);
+    if (!pdfUrl) {
+      toast.error("PDF file is unavailable.");
+      return;
+    }
 
-    // API route URL
-    const apiUrl = `/api/getPdf/${fileName}`;
+    setDownloading(true);
+    const toastId = toast.loading(`Downloading "${template.name}"...`);
 
-    // Create a hidden link and trigger download
-    const link = document.createElement("a");
-    link.href = apiUrl;
-    link.download = `${template.name.replace(/\s+/g, "_")}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    try {
+      const response = await fetch(pdfUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch PDF (${response.status})`);
+      }
 
-    toast.success(`Downloading "${template.name}"...`);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+
+      // Same-origin blob URL ensures browsers honor the `download` filename attribute
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = sanitizePdfDownloadName(template.name, "template");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+      toast.success(`Downloaded "${template.name}"`, { id: toastId });
+    } catch (err) {
+      console.error("Error downloading PDF:", err);
+      toast.error("Failed to download PDF. Please try again.", { id: toastId });
+    } finally {
+      setDownloading(false);
+    }
   };
 
   const handleEditTemplate = () => router.push(`/edit/${template?.uuid}`);
@@ -206,6 +227,7 @@ export function TemplateDetail({ templateId }: { templateId: string }) {
   // Determine the current image to display
   const currentImageUrl =
     imageUrls.length > 0 ? imageUrls[currentImageIndex] : null;
+  const directPdfUrl = template.pdf ? resolvePdfUrl(template.pdf) : "";
 
   return (
     <div className="min-h-screen bg-white dark:bg-black text-gray-800 dark:text-gray-200 transition-colors">
@@ -227,10 +249,10 @@ export function TemplateDetail({ templateId }: { templateId: string }) {
               <div className="aspect-3/4 w-full relative bg-gray-100 dark:bg-[#1a1a1a]">
                 {isPurchased ? (
                   <>
-                    {template.pdf ? (
+                    {directPdfUrl ? (
                       <div className="relative w-full h-full">
                         <iframe
-                          src={`/api/getPdf/${template.pdf.split("/").pop() || template.pdf}#toolbar=0&navpanes=0&scrollbar=0`}
+                          src={`${directPdfUrl}#toolbar=0&navpanes=0&scrollbar=0`}
                           className="w-full h-full rounded-xl"
                           style={{ border: "none" }}
                           title="PDF Document"
@@ -512,8 +534,9 @@ export function TemplateDetail({ templateId }: { templateId: string }) {
                     size="lg"
                     className="w-full dark:border-gray-600 dark:text-gray-200 bg-transparent"
                     onClick={handleDownload}
+                    disabled={downloading}
                   >
-                    Download Files
+                    {downloading ? "Downloading..." : "Download Files"}
                   </Button>
                 </>
               ) : (

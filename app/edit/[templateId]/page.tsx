@@ -72,9 +72,13 @@ export default function EditPDFPage({ params }: EditPDFPageProps) {
           return;
         }
 
-        // its pdf filename
-        setPdfFName(data.data.pdf ? data.data.pdf.split("/").pop() : "");
-        setSavedTemplateUUID(data.data.savedTemplates[0]?.uuid);
+        // Pass the full Cloudinary PDF URL (or legacy local filename) so PDFEditor loads directly
+        const rawPdf =
+          typeof data.data.pdf === "string"
+            ? data.data.pdf.trim().replace(/^["']|["']$/g, "").trim()
+            : "";
+        setPdfFName(rawPdf);
+        setSavedTemplateUUID(data.data.savedTemplates?.[0]?.uuid ?? null);
 
         const userOverlays = data.data.savedTemplates[0]?.content
           ? JSON.parse(data.data.savedTemplates[0].content)
